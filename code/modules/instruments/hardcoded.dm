@@ -90,3 +90,9 @@
 	id = "banjo"
 	legacy_instrument_ext = "ogg"
 	legacy_instrument_path = "banjo"
+
+/datum/instrument/hardcoded/bagpipe
+	name = "Bagpipe"
+	id = "bagpipe"
+	legacy_instrument_ext = "ogg"
+	legacy_instrument_path = "bagpipe"

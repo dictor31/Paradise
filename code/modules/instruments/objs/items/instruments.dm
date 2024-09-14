@@ -183,6 +183,19 @@
 	hitsound = 'sound/items/bikehorn.ogg'
 	allowed_instrument_ids = "bikehorn"
 
+/obj/item/instrument/bagpipe
+	name = "bagpipe"
+	desc = "Блаблабла"
+	icon_state = "bike_horn"
+//	item_state = ""
+//	lefthand_file = ''
+//	righthand_file = ''
+	w_class = WEIGHT_CLASS_SMALL
+	force = 0
+	throw_speed = 3
+	throw_range = 5
+	allowed_instrument_ids = "bagpipe"
+
 // Crafting recipes
 /datum/crafting_recipe/violin
 	name = "Violin"
