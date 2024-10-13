@@ -1,0 +1,62 @@
+"a" = (/turf/space,/area/space)
+"b" = (/obj/structure/table,/obj/machinery/recharger,/turf/simulated/floor/mineral/plastitanium,/area/space)
+"c" = (/obj/structure/shuttle/engine/propulsion{dir = 8},/turf/simulated/floor/shuttle/plating,/area/space)
+"f" = (/obj/structure/lattice,/obj/structure/lattice,/turf/space,/area/space)
+"g" = (/obj/machinery/vending/snack,/turf/simulated/floor/mineral/plastitanium,/area/space)
+"h" = (/obj/structure/lattice,/turf/space,/area/space)
+"i" = (/obj/item/twohanded/required/kirbyplants,/turf/simulated/floor/mineral/plastitanium,/area/space)
+"j" = (/obj/structure/shuttle/engine/propulsion{dir = 8; icon_state = "burst_r"},/turf/simulated/floor/shuttle/plating,/area/space)
+"k" = (/obj/machinery/door/airlock/public/glass,/turf/simulated/floor/plating,/area/space)
+"l" = (/obj/item/vending_refill/medical,/turf/simulated/floor/mineral/plastitanium,/area/space)
+"m" = (/mob/living/simple_animal/bot/mulebot{home_destination = "QM #2"; suffix = "#2"},/turf/simulated/floor/plating,/area/space)
+"n" = (/obj/structure/chair/comfy/shuttle{dir = 8},/turf/simulated/floor/mineral/plastitanium,/area/space)
+"o" = (/turf/simulated/floor/plating,/area/space)
+"q" = (/obj/machinery/door/airlock/centcom{id_tag = "adminshuttle"; name = "Bridge"; opacity = 1; req_access = list(101)},/turf/simulated/floor/mineral/plastitanium,/area/space)
+"s" = (/obj/structure/window/reinforced{dir = 4},/obj/structure/shuttle/engine/heater{dir = 8},/turf/simulated/floor/shuttle/plating,/area/space)
+"u" = (/obj/machinery/computer/shuttle/admin{dir = 1; name = "NTV Argos shuttle console"},/turf/simulated/floor/mineral/plastitanium,/area/space)
+"v" = (/obj/structure/chair/comfy/shuttle,/turf/simulated/floor/plating,/area/space)
+"w" = (/obj/machinery/suit_storage_unit/standard_unit,/turf/simulated/floor/mineral/plastitanium,/area/space)
+"x" = (/turf/simulated/floor/carpet/royalblack,/area/space)
+"y" = (/turf/simulated/floor/mineral/plastitanium,/area/space)
+"A" = (/obj/effect/decal/warning_stripes/yellow,/turf/simulated/floor/mineral/plastitanium,/area/space)
+"B" = (/obj/machinery/door/airlock/centcom{id_tag = "adminshuttle"; name = "Bridge"; opacity = 1; req_access = list(101)},/turf/simulated/floor/plating,/area/space)
+"D" = (/obj/structure/chair/comfy/shuttle{dir = 4},/turf/simulated/floor/mineral/plastitanium,/area/space)
+"F" = (/obj/structure/shuttle/engine/propulsion{dir = 8; icon_state = "burst_l"},/turf/simulated/floor/shuttle/plating,/area/space)
+"G" = (/obj/structure/table,/turf/simulated/floor/plating,/area/space)
+"I" = (/obj/item/folder/yellow{pixel_y = 1},/turf/simulated/floor/mineral/plastitanium,/area/space)
+"K" = (/obj/effect/decal/warning_stripes/yellow,/turf/simulated/floor/plating,/area/space)
+"L" = (/obj/structure/closet/crate,/turf/simulated/floor/plating,/area/space)
+"M" = (/obj/structure/chair/comfy/shuttle,/turf/simulated/floor/mineral/plastitanium,/area/space)
+"N" = (/obj/item/vending_refill/medical,/turf/simulated/floor/plating,/area/space)
+"P" = (/obj/machinery/door/airlock/external,/turf/simulated/floor/plating,/area/space)
+"Q" = (/obj/structure/window/full/shuttle,/obj/structure/grille,/turf/simulated/floor/plating,/area/space)
+"R" = (/obj/machinery/portable_atmospherics/canister/oxygen,/turf/simulated/floor/mineral/plastitanium,/area/space)
+"S" = (/obj/structure/dispenser/oxygen,/turf/simulated/floor/mineral/plastitanium,/area/space)
+"T" = (/obj/structure/table,/turf/simulated/floor/carpet/royalblack,/area/space)
+"U" = (/obj/machinery/vending/medical,/turf/simulated/floor/plating,/area/space)
+"V" = (/turf/simulated/wall/shuttle,/area/space)
+"W" = (/obj/machinery/vending/medical,/turf/simulated/floor/mineral/plastitanium,/area/space)
+"Y" = (/obj/structure/table,/obj/item/paper,/turf/simulated/floor/mineral/plastitanium,/area/space)
+
+(1,1,1) = {"
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaVVVVVVVVVVVVaaaVaaaaaaaa
+aaaFsVVSRVWKNAyUyWoyyaaaaaaaaa
+aaacsVwynVyooLomlhhayaVaaaaaaa
+aaajsVwynVNoAoUyoyaayVVVVVaaaa
+aaaaaVVyyVVkVVVyhohhhVyDuQaaaa
+aaaaaaPyyVyyyyyoohayyVyDuQaaaa
+aaaaaaVyyqyooooyoyooyByIYQaaaa
+aaaaaaVyyqyyyoLohyyohByybQaaaa
+aaaaaaPyyVyyooyyyyhhyVyDuQaaaa
+aaaaaVVyyVVkVVVVkohahfaDuQaaaa
+aaaFsVwynVyyyoyoooahhahVVVaaaa
+aaacsVwynVyyMoovyyyhhhhaaaaaaa
+aaajsVVSRViGGogTxiVhyhyaaaaaaa
+aaaaaaVVVVVQoQQQQVVohyaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+"}

@@ -92,6 +92,7 @@ won't update every console in existence) but it's more of a hassle to do. Also, 
 
 	var/selected_category
 	var/list/datum/design/matching_designs = list() //for the search function
+	var/list/datum/design/add_list = list()
 
 	var/ui_theme = "Nanotrasen" //Тема интерфейса
 
