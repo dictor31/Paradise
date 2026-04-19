@@ -30,6 +30,8 @@
 #define OPEN_BODYPART_BLEEDING 0.75
 /// Internal bleeding size (units per 2 sec)
 #define BODYPART_INTERNAL_BLEEDING 0.5
+/// Open fracture bleeding amount (units per 2 sec)
+#define BODYPART_OPEN_FRACTURE_BLEEDING 0.5
 /// Decrease bleeding size if no wounds (units per 2 sec)
 #define BLEEDING_DECREASE 0.005
 /// Multiplyer for bleeding calculate from bodypart value
@@ -95,10 +97,10 @@
 /mob/living/carbon/human/proc/apply_current_blood_level_effect()
 	switch(blood_volume)
 		if(BLOOD_VOLUME_PALE to BLOOD_VOLUME_SAFE)
-			apply_damage(BLOOD_PALE_DAMAGE, dna.species.blood_damage_type, spread_damage = TRUE, forced = TRUE)
+			adjust_blood_loss_damage(BLOOD_PALE_DAMAGE)
 
 		if(BLOOD_VOLUME_OKAY to BLOOD_VOLUME_PALE)
-			apply_damage(BLOOD_OKAY_DAMAGE, dna.species.blood_damage_type, spread_damage = TRUE, forced = TRUE)
+			adjust_blood_loss_damage(BLOOD_OKAY_DAMAGE)
 			if(prob(5))
 				Confused(2 SECONDS)
 				var/symptom = pick("слабость",
@@ -107,7 +109,7 @@
 				to_chat(src, span_warning("Вы чувствуете [symptom]."))
 
 		if(BLOOD_VOLUME_BAD to BLOOD_VOLUME_OKAY)
-			apply_damage(BLOOD_BAD_DAMAGE, dna.species.blood_damage_type, spread_damage = TRUE, forced = TRUE)
+			adjust_blood_loss_damage(BLOOD_BAD_DAMAGE)
 			if(prob(5))
 				EyeBlurry(12 SECONDS)
 				Confused(12 SECONDS)
@@ -118,7 +120,7 @@
 				to_chat(src, span_warning("Вы чувствуете [symptom]."))
 
 		if(BLOOD_VOLUME_SURVIVE to BLOOD_VOLUME_BAD)
-			apply_damage(BLOOD_SURVIVE_DAMAGE, dna.species.blood_damage_type, spread_damage = TRUE, forced = TRUE)
+			adjust_blood_loss_damage(BLOOD_SURVIVE_DAMAGE)
 			if(prob(15))
 				Confused(10 SECONDS)
 				Slowed(15 SECONDS)
@@ -132,6 +134,12 @@
 		if(-INFINITY to BLOOD_VOLUME_SURVIVE)
 			death()
 
+/mob/living/carbon/human/proc/adjust_blood_loss_damage(amount) //if you want override damage type
+	adjustOxyLoss(amount)
+
+/mob/living/carbon/human/proc/add_bleeding_bodypart(obj/item/organ/external/bodypart)
+	bleeding_bodyparts |= bodypart
+
 /mob/living/carbon/human/proc/calculate_current_bleeding()
 	//not calculate bleeding for fake dath
 	if(HAS_TRAIT(src, TRAIT_FAKEDEATH))
@@ -141,8 +149,10 @@
 	var/internal_bleeding_rate = 0
 	var/has_arterial_bleed = FALSE
 	// calculate total bleeding from bodyparts
-	for(var/obj/item/organ/external/bodypart as anything in bodyparts)
+	var/list/bleeding_bodyparts_cache = bleeding_bodyparts
+	for(var/obj/item/organ/external/bodypart as anything in bleeding_bodyparts_cache)
 		if(bodypart.is_robotic())
+			bleeding_bodyparts_cache -= bodypart
 			continue
 
 		if(bodypart.tourniquet) //all bloodloss suppressed
@@ -150,6 +160,9 @@
 
 		if(bodypart.has_internal_bleeding())
 			internal_bleeding_rate += BODYPART_INTERNAL_BLEEDING
+
+		if(bodypart.has_fracture() && bodypart.fracture == FRACTURE_TYPE_OPEN && !bodypart.is_splinted())
+			current_bleed += BODYPART_OPEN_FRACTURE_BLEEDING
 
 		if(bodypart.has_arterial_bleeding() && left_hand_bleed_suppress_lib != bodypart && right_hand_bleed_suppress_lib != bodypart)
 			has_arterial_bleed = TRUE
@@ -177,6 +190,9 @@
 
 		if(bodypart.open)
 			current_bleed += OPEN_BODYPART_BLEEDING
+
+		if(bodypart.bleeding_amount <= 0 && !bodypart.has_internal_bleeding() && !embedded_length && !bodypart.open)
+			bleeding_bodyparts_cache -= bodypart
 
 	// calculate bleed rate with regenretion and current bleed
 	var/prev_bleed_rate = bleed_rate
@@ -237,17 +253,17 @@
 	if(!blood_volume)
 		return FALSE
 
+	. = TRUE
 	AdjustBlood(-amt)
+
 	//Blood loss still happens in locker, floor stays clean
 	if(!isturf(loc))
-		return TRUE
+		return
 
 	if(amt >= 10)
 		add_splatter_floor(loc)
 	else
 		add_splatter_floor(loc, small_drip = TRUE)
-
-	return TRUE
 
 /mob/living/carbon/human/bleed(amt)
 	if(HAS_TRAIT(src, TRAIT_NO_BLOOD))
@@ -273,11 +289,6 @@
 		custom_emote(EMOTE_AUDIBLE, "кашля%(ет, ют)% кровью!")
 		add_splatter_floor(loc, small_drip = TRUE)
 		return .
-
-	// +2.5% chance per internal bleeding site that we'll cough up blood on a given tick.
-	// Must be bleeding internally in more than one place to have a chance at this.
-	if(amt >= 1 && prob(5 * amt))
-		vomit(mode = VOMIT_BLOOD)
 
 /mob/living/carbon/human/bleed_internal(amt)
 	if(HAS_TRAIT(src, TRAIT_NO_BLOOD))
@@ -462,10 +473,6 @@
 		if("O+")
 			return list("O-", "O+")
 
-/// Minimum amount of blood to create a drop
-#define BLOOD_AMOUNT_DRIP_THRESHOLD 2
-/// The amount of blood above which a large spot (blood) is created, not a splatter
-#define BLOOD_AMOUNT_SPLATTER_THRESHOLD 4
 
 //to add a splatter of blood or other mob liquid.
 /mob/living/proc/add_splatter_floor(turf/T, small_drip, shift_x, shift_y, amt)
@@ -495,7 +502,7 @@
 				temp_blood_DNA = list()
 				temp_blood_DNA |= drop.blood_DNA.Copy() //we transfer the dna from the drip to the splatter
 				qdel(drop)
-		else if(amt < BLOOD_AMOUNT_DRIP_THRESHOLD)
+		else
 			drop = new(T)
 			drop.transfer_mob_blood_dna(src)
 			drop.basecolor = b_data["blood_color"]
@@ -509,10 +516,7 @@
 		bloods = get_atoms_of_type(T, B, TRUE, shift_x, shift_y) //Get all the projectile-splattered blood at these pixels on this turf (pixel-shifted).
 		B = locate() in bloods
 	if(!B)
-		if(amt > BLOOD_AMOUNT_SPLATTER_THRESHOLD)
-			B = new /obj/effect/decal/cleanable/blood(T)
-		else
-			B = new /obj/effect/decal/cleanable/blood/splatter(T)
+		B = new(T)
 	if(B.bloodiness < MAX_SHOE_BLOODINESS) //add more blood, up to a limit
 		B.bloodiness += BLOOD_AMOUNT_PER_DECAL
 	B.transfer_mob_blood_dna(src) //give blood info to the blood decal.
@@ -524,9 +528,6 @@
 	if(shift_x || shift_y)
 		B.off_floor = TRUE
 		B.layer = BELOW_MOB_LAYER //So the blood lands ontop of things like posters, windows, etc.
-
-#undef BLOOD_AMOUNT_DRIP_THRESHOLD
-#undef BLOOD_AMOUNT_SPLATTER_THRESHOLD
 
 /mob/living/carbon/alien/add_splatter_floor(turf/T, small_drip, shift_x, shift_y, amt)
 	if(!T)
@@ -619,4 +620,5 @@
 #undef BRUISE_PACK_SUPPRESS_BLEEDING_MOD
 #undef HEAVY_BLEEDING_RATE
 #undef BODYPART_INTERNAL_BLEEDING
+#undef BODYPART_OPEN_FRACTURE_BLEEDING
 #undef MAX_SUPPRESS_BLEEDING_BY_HAND

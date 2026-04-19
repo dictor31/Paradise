@@ -73,7 +73,7 @@
 
 	for(var/obj/item/stock_parts/micro_laser/ML in component_parts)
 		var/weed_rate_mod = ML.rating * 2.5
-		min_weed_rate = max(FLOOR(10-weed_rate_mod, 1), 0) // 7,5,2,0	Clamps at 0 and 10	You want this low
+		min_weed_rate = max(floor(10-weed_rate_mod), 0) // 7,5,2,0	Clamps at 0 and 10	You want this low
 		min_weed_chance = max(67-(ML.rating*16), 0)  // 48,35,19,3,0	Clamps at 0 and 67	You want this low
 	for(var/obj/item/circuitboard/plantgenes/vaultcheck in component_parts)
 		if(istype(vaultcheck, /obj/item/circuitboard/plantgenes/vault)) // TRAIT_DUMB BOTANY TUTS
@@ -120,7 +120,7 @@
 			var/obj/item/reagent_containers/spray/cleaner/cleaner = I
 			if(cleaner.reagents.total_volume >= cleaner.amount_per_transfer_from_this)
 				cleaning = TRUE
-		else if(istype(I, /obj/item/soap))
+		else if(issoap(I))
 			cleaning = TRUE
 		if(!cleaning)
 			return ATTACK_CHAIN_PROCEED
@@ -439,7 +439,7 @@
 				cleaning = TRUE
 			else
 				return ATTACK_CHAIN_PROCEED
-		if(istype(W, /obj/item/soap))
+		if(issoap(W))
 			cleaning = TRUE
 
 		if(!cleaning)

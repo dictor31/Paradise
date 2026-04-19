@@ -19,7 +19,7 @@
 
 /obj/item/holder/process()
 
-	if(istype(loc,/turf) || !(length(contents)))
+	if(isturf(loc) || !(length(contents)))
 
 		for(var/mob/M in contents)
 
@@ -54,7 +54,7 @@
 	for(var/mob/living/M in contents)
 		M.ex_act(intensity)
 
-/obj/item/holder/container_resist(mob/living/L)
+/obj/item/holder/container_resist_act(mob/living/L)
 	var/mob/M = src.loc                      //Get our mob holder (if any).
 
 	if(istype(M))
@@ -67,7 +67,7 @@
 
 	if(istype(M))
 		for(var/atom/A in M.contents)
-			if(istype(A,/mob/living/simple_animal/borer) || istype(A,/obj/item/holder))
+			if(isborer(A) || istype(A,/obj/item/holder))
 				return
 		M.status_flags &= ~PASSEMOTES
 

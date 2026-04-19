@@ -13,6 +13,7 @@
 	density = TRUE
 	anchored = TRUE
 	dir = WEST
+	interaction_flags_mouse_drop = NEED_DEXTERITY
 	var/mob/living/carbon/human/occupant = null
 	var/possible_chems = list("ephedrine", "salglu_solution", "salbutamol", "charcoal")
 	var/emergency_chems = list("ephedrine") // Desnowflaking
@@ -318,7 +319,7 @@
 	if(exchange_parts(user, I))
 		return ATTACK_CHAIN_PROCEED_SUCCESS
 
-	if(istype(I, /obj/item/reagent_containers/glass))
+	if(isglassreagentcontainer(I))
 		add_fingerprint(user)
 		if(beaker)
 			balloon_alert(user, "слот для ёмкости занят!")
@@ -494,7 +495,7 @@
 		SStgui.update_uis(src)
 	add_fingerprint(usr)
 
-/obj/machinery/sleeper/MouseDrop_T(atom/movable/O, mob/user, params)
+/obj/machinery/sleeper/mouse_drop_receive(atom/movable/O, mob/user, params)
 	if(O.loc == user) //no you can't pull things out of your ass
 		return
 	if(user.incapacitated() || HAS_TRAIT(user, TRAIT_HANDS_BLOCKED)) //are you cuffed, dying, lying, stunned or other
@@ -503,13 +504,13 @@
 		return
 	if(!ismob(O)) //humans only
 		return
-	if(isanimal(O) || istype(O, /mob/living/silicon)) //animals and robots dont fit
+	if(isanimal(O) || issilicon(O)) //animals and robots dont fit
 		return
 	if(!ishuman(user) && !isrobot(user)) //No ghosts or mice putting people into the sleeper
 		return
 	if(user.loc==null) // just in case someone manages to get a closet into the blue light dimension, as unlikely as that seems
 		return
-	if(!istype(user.loc, /turf) || !istype(O.loc, /turf)) // are you in a container/closet/pod/etc?
+	if(!isturf(user.loc) || !isturf(O.loc)) // are you in a container/closet/pod/etc?
 		return
 	if(panel_open)
 		balloon_alert(user, "техпанель открыта!")

@@ -84,7 +84,7 @@
 /obj/structure/closet/cardboard/proc/on_move(turf/old_loc, turf/new_loc, direction)
 	return
 
-/obj/structure/closet/cardboard/open()
+/obj/structure/closet/cardboard/open(mob/living/user, force = FALSE)
 	if(opened || !can_open())
 		return FALSE
 
@@ -157,7 +157,7 @@
 		"Clown", "CMO", "Coroner",
 		"Detective", "Engineering", "Genetics",
 		"HOP", "HOS", "Hydroponics",
-		"Internal Affairs Agent", "Janitor", "Magistrate",
+		"Lawyer", "Janitor", "Magistrate",
 		"Mechanic", "Medical", "Mime",
 		"Mining", "NT Representative", "Paramedic",
 		"Pod Pilot", "Prisoner", "Research Director",

@@ -9,7 +9,7 @@
 	anchored = TRUE
 	density = TRUE
 	max_integrity = 250
-
+	interaction_flags_mouse_drop = NEED_DEXTERITY
 	var/obj/item/clothing/suit/space/suit = null
 	var/obj/item/clothing/head/helmet/space/helmet = null
 	var/obj/item/clothing/mask/mask = null
@@ -140,22 +140,23 @@
 	req_access = list(ACCESS_MEDICAL)
 
 /obj/machinery/suit_storage_unit/cmo
-	suit_type    = /obj/item/mod/control/pre_equipped/medical
+	name = "CMO suit storage unit"
+	suit_type = /obj/item/mod/control/pre_equipped/rescue
 	storage_type = /obj/item/tank/internals/oxygen
-	mask_type    = /obj/item/clothing/mask/breath
+	mask_type = /obj/item/clothing/mask/breath
 	req_access = list(ACCESS_CMO)
 
 /obj/machinery/suit_storage_unit/qm
 	name = "quartermaster suit storage unit"
-	suit_type    = /obj/item/mod/control/pre_equipped/loader
+	suit_type = /obj/item/mod/control/pre_equipped/loader
 	mask_type    = /obj/item/clothing/mask/breath
 	req_access = list(ACCESS_QM)
 
-//version of the SSU for medbay secondary storage. Includes magboots.
-/obj/machinery/suit_storage_unit/cmo/sec_storage
+/obj/machinery/suit_storage_unit/medical
 	name = "medical suit storage unit"
-	storage_type = null
-	mask_type = /obj/item/clothing/mask/gas
+	suit_type = /obj/item/mod/control/pre_equipped/medical
+	mask_type = /obj/item/clothing/mask/breath
+	req_access = list(ACCESS_MEDICAL)
 
 /obj/machinery/suit_storage_unit/clown
 	name = "clown suit storage unit"
@@ -351,7 +352,7 @@
 	. = FALSE
 	if(panel_open)
 		return .
-	if((istype(I, /obj/item/clothing/suit/space) || istype(I, suit_type)  || istype(I, /obj/item/mod/control))  && !suit)
+	if((istype(I, /obj/item/clothing/suit/space) || istype(I, suit_type)  || ismodcontrol(I))  && !suit)
 		. = user.drop_transfer_item_to_loc(I, src)
 		if(.)
 			suit = I
@@ -395,7 +396,7 @@
 		new /obj/item/stack/sheet/metal (loc, 2)
 	qdel(src)
 
-/obj/machinery/suit_storage_unit/MouseDrop_T(atom/A, mob/user, params)
+/obj/machinery/suit_storage_unit/mouse_drop_receive(atom/A, mob/user, params)
 	if(user.incapacitated() || HAS_TRAIT(user, TRAIT_HANDS_BLOCKED) || !Adjacent(user) || !Adjacent(A) || !isliving(A))
 		return
 	. = TRUE
@@ -428,19 +429,29 @@
 	close_machine(target)
 	add_fingerprint(user)
 
+/**
+ * UV decontamination sequence.
+ * Duration is determined by the uv_cycles var.
+ * Effects determined by the uv_super var.
+ * * If FALSE, all atoms (and their contents) contained are cleared of radiation. If a mob is inside, they are burned every cycle.
+ * * If TRUE, all items contained are destroyed, and burn damage applied to the mob is increased. All wires will be cut at the end.
+ * All atoms still inside at the end of all cycles are ejected from the unit.
+*/
 /obj/machinery/suit_storage_unit/proc/cook()
+	var/mob/living/mob_occupant = occupant
 	if(uv_cycles)
 		uv_cycles--
 		uv = TRUE
 		locked = TRUE
-		if(occupant)
-			var/mob/living/mob_occupant = occupant
+		if(mob_occupant)
 			if(uv_super)
 				mob_occupant.adjustFireLoss(rand(20, 36))
 			else
 				mob_occupant.adjustFireLoss(rand(10, 16))
-			mob_occupant.emote("scream")
-		addtimer(CALLBACK(src, PROC_REF(cook)), 50)
+			if(iscarbon(mob_occupant) && mob_occupant.stat < UNCONSCIOUS)
+				//Awake, organic and screaming
+				mob_occupant.emote("scream")
+		addtimer(CALLBACK(src, PROC_REF(cook)), 5 SECONDS)
 	else
 		uv_cycles = initial(uv_cycles)
 		uv = FALSE
@@ -448,23 +459,42 @@
 		if(uv_super)
 			visible_message(span_warning("[src]'s door creaks open with a loud whining noise. A cloud of foul black smoke escapes from its chamber."))
 			playsound(src, 'sound/machines/airlock_alien_prying.ogg', 50, TRUE)
-			qdel(helmet)
-			qdel(mask)
-			qdel(magboots)
-			qdel(storage)
-			qdel(suit)
-			helmet = null
-			suit = null
-			mask = null
-			magboots = null
-			storage = null
-
+			var/datum/effect_system/fluid_spread/smoke/bad/black/smoke = new
+			smoke.set_up(0, holder = src, location = src)
+			smoke.start()
+			QDEL_NULL(helmet)
+			QDEL_NULL(mask)
+			QDEL_NULL(magboots)
+			QDEL_NULL(storage)
+			QDEL_NULL(suit)
 		else
-			if(!occupant)
+			if(!mob_occupant)
 				visible_message(span_notice("[src]'s door slides open. The glowing yellow lights dim to a gentle green."))
 			else
 				visible_message(span_warning("[src]'s door slides open, barraging you with the nauseating smell of charred flesh."))
+				qdel(mob_occupant.GetComponent(/datum/component/irradiated))
 			playsound(src, 'sound/machines/airlock_close.ogg', 25, TRUE)
+			var/list/things_to_clear = list() //Done this way since using GetAllContents on the SSU itself would include circuitry and such.
+			if(suit)
+				things_to_clear += suit
+				things_to_clear += suit.get_all_contents()
+			if(helmet)
+				things_to_clear += helmet
+				things_to_clear += helmet.get_all_contents()
+			if(mask)
+				things_to_clear += mask
+				things_to_clear += mask.get_all_contents()
+			//if(mod)
+			//	things_to_clear += mod
+			//	things_to_clear += mod.get_all_contents()
+			if(storage)
+				things_to_clear += storage
+				things_to_clear += storage.get_all_contents()
+			if(mob_occupant)
+				things_to_clear += mob_occupant
+				things_to_clear += mob_occupant.get_all_contents()
+			for(var/atom/movable/dirty_movable in things_to_clear) //Scorches away blood and forensic evidence, although the SSU itself is unaffected
+				dirty_movable.wash_tg(CLEAN_ALL)
 		if(occupant)
 			dump_contents()
 		update_icon(UPDATE_OVERLAYS)
@@ -479,27 +509,33 @@
 	open_machine()
 	dump_contents()
 
-/obj/machinery/suit_storage_unit/container_resist(mob/living/user)
+/obj/machinery/suit_storage_unit/container_resist_act(mob/living/user)
 	if(!locked)
 		open_machine()
 		dump_contents()
 		return
-	user.visible_message(span_notice("You see [user] kicking against the doors of [src]!"), \
-		span_notice("You start kicking against the doors... (this will take about [DisplayTimeText(breakout_time)].)"), \
-		span_italics("You hear a thump from [src]."))
-	if(do_after(user,(breakout_time), src))
+	user.visible_message(
+		span_notice("You see [user] kicking against the doors of [src]!"),
+		span_notice("You start kicking against the doors... (this will take about [DisplayTimeText(breakout_time)].)"),
+		span_hear("You hear a thump from [src]."),
+	)
+	if(do_after(user, (breakout_time), target = src))
 		if(!user || user.stat != CONSCIOUS || user.loc != src)
 			return
-		user.visible_message(span_warning("[user] successfully broke out of [src]!"), \
-			span_notice("You successfully break out of [src]!"))
+		user.visible_message(
+			span_warning("[user] successfully broke out of [src]!"),
+			span_notice("You successfully break out of [src]!"),
+		)
 		open_machine()
 		dump_contents()
 
 	add_fingerprint(user)
 	if(locked)
-		visible_message(span_notice("You see [user] kicking against the doors of [src]!"), \
-			span_notice("You start kicking against the doors..."))
-		addtimer(CALLBACK(src, PROC_REF(resist_open), user), 300)
+		visible_message(
+			span_notice("You see [user] kicking against the doors of [src]!"),
+			span_notice("You start kicking against the doors..."),
+		)
+		addtimer(CALLBACK(src, PROC_REF(resist_open), user), 30 SECONDS)
 	else
 		open_machine()
 		dump_contents()

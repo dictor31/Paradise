@@ -101,8 +101,8 @@
 	var/aisync = 1
 	var/panel_locked = 1
 
-/obj/item/robot_parts/robot_suit/New()
-	..()
+/obj/item/robot_parts/robot_suit/Initialize(mapload)
+	. = ..()
 	update_icon(UPDATE_OVERLAYS)
 
 /obj/item/robot_parts/robot_suit/Destroy()
@@ -436,6 +436,8 @@
 		check_locomotion(new_borg)
 		return .
 
+	return ..()
+
 /obj/item/robot_parts/robot_suit/proc/Interact(mob/user)
 			var/t1 = "Designation: <a href='byond://?src=[UID()];Name=1'>[(created_name ? "[created_name]" : "Default Cyborg")]</a><br>\n"
 			t1 += "Master AI: <a href='byond://?src=[UID()];Master=1'>[(forced_ai ? "[forced_ai.name]" : "Automatic")]</a><br><br>\n"
@@ -497,7 +499,7 @@
 		to_chat(user, span_notice("You insert the cell."))
 		return ATTACK_CHAIN_BLOCKED_ALL
 
-	if(istype(I, /obj/item/stack/cable_coil))
+	if(iscoil(I))
 		add_fingerprint(user)
 		var/obj/item/stack/cable_coil/coil = I
 		if(wired)

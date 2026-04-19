@@ -14,7 +14,7 @@
 	origin_tech = "engineering=4;materials=2"
 	usesound = 'sound/items/deconstruct.ogg'
 	req_access = list(ACCESS_ENGINE)
-	armor = list(MELEE = 0, BULLET = 0, LASER = 0, ENERGY = 0, BOMB = 0, BIO = 0, RAD = 0, FIRE = 100, ACID = 50)
+	armor = list(MELEE = 0, BULLET = 0, LASER = 0, ENERGY = 0, BOMB = 0, BIO = 0, FIRE = 100, ACID = 50)
 	resistance_flags = FIRE_PROOF
 	toolbox_radial_menu_compatibility = TRUE
 
@@ -47,7 +47,7 @@
 	/// A list of access numbers which have been checked off by the user in the UI.
 	var/list/selected_accesses = list()
 	/// List of areas where we can't deconstruct stuff
-	var/static/list/areas_blacklist = list(/area/lavaland/surface/outdoors/necropolis, /area/mine/necropolis)
+	var/static/list/areas_blacklist = list(/area/lavaland/surface/outdoors/necropolis)
 	/// An associative list of airlock type paths as keys, and their names as values.
 	var/static/list/rcd_door_types = list()
 
@@ -364,17 +364,28 @@
 		else
 			return FALSE
 
-/obj/item/rcd/afterattack(atom/target, mob/user, proximity, params)
-	if(!proximity)
-		return
+/obj/item/rcd/interact_with_atom(atom/interacting_with, mob/living/user, list/modifiers)
+	. = ..()
+	if(. & ITEM_INTERACT_ANY_BLOCKER)
+		return .
+	rcd_interact(interacting_with, user, mode)
+
+/obj/item/rcd/interact_with_atom_secondary(atom/interacting_with, mob/living/user, list/modifiers)
+	rcd_interact(interacting_with, user, RCD_MODE_DECON)
+	return ITEM_INTERACT_SUCCESS
+
+/obj/item/construction/rcd/handle_openspace_click(turf/target, mob/user, list/modifiers)
+	interact_with_atom(target, user, modifiers)
+
+/obj/item/rcd/proc/rcd_interact(atom/target, mob/user, rcd_mode)
 	if(istype(target, /obj/item/rcd_ammo))
 		rcd_reload(target, user)
 		return
 	var/area/check_area = get_area(target)
 	if(check_area?.type in areas_blacklist)
 		to_chat(user, span_warning("Something prevents you from using [src] in here..."))
-		return
-	target.rcd_act(user, src, mode)
+		return FALSE
+	target.rcd_act(user, src, rcd_mode)
 	SStgui.update_uis(src)
 
 /**

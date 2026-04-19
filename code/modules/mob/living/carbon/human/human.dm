@@ -28,6 +28,7 @@
 	GLOB.human_list += src
 
 /mob/living/carbon/human/Destroy()
+	bleeding_bodyparts.Cut()
 	QDEL_NULL(physiology)
 	QDEL_LIST(bodyparts)
 	SSmobs.cubemonkeys -= src
@@ -121,7 +122,7 @@
 	rename_character(null, "Комплексный роботизированный блок [rand(1, 9999)]")
 	update_dna()
 	for(var/obj/item/organ/external/bodypart as anything in bodyparts)
-		if(istype(bodypart, /obj/item/organ/external/chest) || istype(bodypart, /obj/item/organ/external/groin))
+		if(ischest(bodypart) || isgroin(bodypart))
 			continue
 		qdel(bodypart)
 	for(var/obj/item/organ/internal/organ as anything in internal_organs)
@@ -270,7 +271,7 @@
 		return FALSE
 
 	var/armor = getarmor(attack_flag = BOMB)	//Average bomb protection
-	var/limb_loss_reduction = FLOOR(armor / 25, 1) //It's guaranteed that every 25th armor point will protect from one delimb
+	var/limb_loss_reduction = floor(armor / 25) //It's guaranteed that every 25th armor point will protect from one delimb
 	var/limbs_affected = 0
 
 	switch(severity)
@@ -523,6 +524,23 @@
 			if(QDELETED(bodypart) || !bodypart.tourniquet)
 				return
 			bodypart.tourniquet.remove_from_bodypart(usr)
+			return
+
+		if(href_list["open_fracture_limb"])
+			var/obj/item/organ/external/bodypart = locateUID(href_list["open_fracture_limb"])
+			if(QDELETED(bodypart) || !bodypart.has_fracture() || bodypart.fracture != FRACTURE_TYPE_OPEN)
+				return
+			if(!do_after(usr, 10 SECONDS, src, max_interact_count = 1))
+				return
+			if(QDELETED(bodypart) || !bodypart.has_fracture() || bodypart.fracture != FRACTURE_TYPE_OPEN)
+				return
+			bodypart.owner.emote("scream")
+			if(prob(bodypart.fracture.reattach_chance)) //success
+				bodypart.fracture = FRACTURE_TYPE_CLOSED
+				return
+			bodypart.owner.custom_pain("Ваш[GEND_A_E_I(bodypart)] [bodypart.declent_ru(NOMINATIVE)] горит огнем!")
+			bodypart.external_receive_damage(brute = bodypart.fracture.reattach_fail_damage)
+			bodypart.bleeding_amount = max(bodypart.bleeding_amount, min(bodypart.bleeding_amount + 10, bodypart.max_bleeding_amount))
 			return
 
 	if(href_list["criminal"])
@@ -1000,7 +1018,7 @@
 		check_self_for_injuries()
 		return
 
-	SEND_SIGNAL(src, COMSIG_DO_MOB_STRIP, usr, usr)
+	SEND_SIGNAL(src, COMSIG_MOUSEDROP_ONTO, usr, usr)
 
 /**
  * Set up DNA and species.
@@ -1080,7 +1098,6 @@
 
 	maxHealth = dna.species.total_health
 	max_stamina = dna.species.total_stamina
-	max_radiation = dna.species.max_radiation
 
 	if(dna.species.language)
 		add_language(dna.species.language)
@@ -1472,7 +1489,7 @@ Eyes need to have significantly high darksight to shine unless the mob has the X
 /mob/living/carbon/human/singularity_act()
 	. = 20
 	if(mind)
-		if((mind.assigned_role == JOB_TITLE_ENGINEER) || (mind.assigned_role == JOB_TITLE_CHIEF))
+		if((mind.assigned_role == JOB_TITLE_ENGINEER) || (mind.assigned_role == JOB_TITLE_CHIEF_ENGINEER))
 			. = 100
 		if(mind.assigned_role == JOB_TITLE_ENGINEER_TRAINEE)	//Чем глупее, тем вкуснее
 			. = 300
@@ -1488,7 +1505,6 @@ Eyes need to have significantly high darksight to shine unless the mob has the X
 			if(prob(current_size * 5) && hand_item.w_class >= ((11-current_size)/2)	&& drop_item_ground(hand_item))
 				step_towards(hand_item, src)
 				to_chat(src, span_warning("[S] вырывает [hand_item.declent_ru(ACCUSATIVE)] из вашей хватки!"))
-	apply_effect(current_size * 3, IRRADIATE)
 
 /mob/living/carbon/human/narsie_act(obj/singularity/god/narsie/narsie)
 	if(iswizard(src) && iscultist(src)) //Wizard cultists are immune to narsie because it would prematurely end the wiz round that's about to end by the automated shuttle call anyway
@@ -1939,12 +1955,53 @@ Eyes need to have significantly high darksight to shine unless the mob has the X
 		var/obj/item/organ/external/bodypart = bodyparts_by_name[zone]
 		if(isnull(bodypart) || !bodypart.has_fracture() || bodypart.is_splinted())
 			continue
-		modifier += 2
+		modifier += bodypart.fracture.slowdown_mod
 
 	if(modifier)
 		add_or_update_variable_movespeed_modifier(/datum/movespeed_modifier/fractures, multiplicative_slowdown = modifier)
 	else
 		remove_movespeed_modifier(/datum/movespeed_modifier/fractures)
+
+/mob/living/carbon/human/proc/update_fractures_workspeed()
+	var/static/list/possible_limbs = list(
+		BODY_ZONE_R_ARM,
+		BODY_ZONE_L_ARM,
+		BODY_ZONE_PRECISE_L_HAND,
+		BODY_ZONE_PRECISE_R_HAND,
+	)
+
+	var/modifier = 0
+	for(var/zone in possible_limbs)
+		var/obj/item/organ/external/bodypart = bodyparts_by_name[zone]
+		if(isnull(bodypart) || !bodypart.has_fracture() || bodypart.is_splinted())
+			continue
+		modifier += bodypart.fracture.workspeed_mod
+
+	if(modifier)
+		add_or_update_variable_actionspeed_modifier(/datum/actionspeed_modifier/fractures, multiplicative_slowdown = modifier)
+	else
+		remove_actionspeed_modifier(/datum/actionspeed_modifier/fractures)
+
+/mob/living/carbon/human/proc/update_fractures_fall()
+	var/static/list/possible_limbs = list(
+		BODY_ZONE_L_LEG,
+		BODY_ZONE_R_LEG,
+		BODY_ZONE_PRECISE_L_FOOT,
+		BODY_ZONE_PRECISE_R_FOOT,
+	)
+
+	var/exists_fracture  = FALSE
+	for(var/zone in possible_limbs)
+		var/obj/item/organ/external/bodypart = bodyparts_by_name[zone]
+		if(isnull(bodypart) || !bodypart.has_fracture() || bodypart.is_splinted())
+			continue
+		exists_fracture  = TRUE
+		break
+
+	if(exists_fracture)
+		ADD_TRAIT(src, TRAIT_FRACTURE_FALL, GENERIC_TRAIT)
+	else
+		REMOVE_TRAIT(src, TRAIT_FRACTURE_FALL, GENERIC_TRAIT)
 
 /mob/living/carbon/human/can_pull(hand_to_check, supress_message = FALSE)
 	if(pull_hand == PULL_WITHOUT_HANDS)
@@ -1979,7 +2036,7 @@ Eyes need to have significantly high darksight to shine unless the mob has the X
 	return ishuman(target) && target.body_position == LYING_DOWN
 
 /mob/living/carbon/human/proc/fireman_carry(mob/living/carbon/target)
-	if(!can_be_firemanned(target) || incapacitated(INC_IGNORE_GRABBED))
+	if(!can_be_firemanned(target) || incapacitated(IGNORE_GRAB))
 		target.balloon_alert(src, "цель не лежит!")
 		return
 	/// if you have latex you are faster at grabbing
@@ -2003,7 +2060,7 @@ Eyes need to have significantly high darksight to shine unless the mob has the X
 		return
 
 	//Second check to make sure they're still valid to be carried
-	if(!can_be_firemanned(target) || incapacitated(INC_IGNORE_GRABBED) || target.buckled)
+	if(!can_be_firemanned(target) || incapacitated(IGNORE_GRAB) || target.buckled)
 		visible_message(
 			span_warning("[declent_ru(DATIVE)] не удаётся взять [target.declent_ru(ACCUSATIVE)] в пожарный захват."),
 			ignored_mobs = src

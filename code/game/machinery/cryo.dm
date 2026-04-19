@@ -13,9 +13,10 @@
 	resistance_flags = null
 	interact_offline = 1
 	max_integrity = 350
-	armor = list(MELEE = 0, BULLET = 0, LASER = 0, ENERGY = 100, BOMB = 0, BIO = 100, RAD = 100, FIRE = 30, ACID = 30)
+	armor = list(MELEE = 0, BULLET = 0, LASER = 0, ENERGY = 100, BOMB = 0, BIO = 100, FIRE = 30, ACID = 30)
 	vent_movement = VENTCRAWL_CAN_SEE
 	flags = PREVENT_CLICK_UNDER | IGNORE_TURF_PIXEL_OFFSET
+	interaction_flags_mouse_drop = NEED_DEXTERITY
 	var/temperature_archived
 	var/mob/living/carbon/occupant
 	/// A separate effect for the occupant, as you can't animate overlays reliably and constantly removing and adding overlays is spamming the subsystem.
@@ -129,7 +130,7 @@
 		beaker.forceMove(drop_location())
 		beaker = null
 
-/obj/machinery/atmospherics/unary/cryo_cell/MouseDrop_T(atom/movable/O, mob/living/user, params)
+/obj/machinery/atmospherics/unary/cryo_cell/mouse_drop_receive(atom/movable/O, mob/living/user, params)
 	if(O.loc == user) //no you can't pull things out of your ass
 		return
 	if(user.incapacitated() || HAS_TRAIT(user, TRAIT_HANDS_BLOCKED)) //are you cuffed, dying, lying, stunned or other
@@ -138,13 +139,13 @@
 		return
 	if(!ismob(O)) //humans only
 		return
-	if(isanimal(O) || istype(O, /mob/living/silicon)) //animals and robutts dont fit
+	if(isanimal(O) || issilicon(O)) //animals and robutts dont fit
 		return
 	if(!ishuman(user) && !isrobot(user)) //No ghosts or mice putting people into the sleeper
 		return
 	if(user.loc==null) // just in case someone manages to get a closet into the blue light dimension, as unlikely as that seems
 		return
-	if(!istype(user.loc, /turf) || !istype(O.loc, /turf)) // are you in a container/closet/pod/etc?
+	if(!isturf(user.loc) || !isturf(O.loc)) // are you in a container/closet/pod/etc?
 		return
 	if(occupant)
 		balloon_alert(user, "внутри кто-то есть!")
@@ -315,7 +316,7 @@
 	if(exchange_parts(user, I))
 		return ATTACK_CHAIN_PROCEED_SUCCESS
 
-	if(istype(I, /obj/item/reagent_containers/glass))
+	if(isglassreagentcontainer(I))
 		add_fingerprint(user)
 		var/obj/item/reagent_containers/glass/glass = I
 		if(beaker)

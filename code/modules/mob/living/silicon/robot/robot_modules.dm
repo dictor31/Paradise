@@ -364,8 +364,8 @@
 /obj/item/robot_module/engineering/on_apply(mob/living/silicon/robot/robot)
 	if(robot.camera && ("Robots" in robot.camera.network))
 		LAZYADD(robot.camera.network, "Engineering")
-
-	ADD_TRAIT(robot, TRAIT_NEGATES_GRAVITY, ROBOT_TRAIT)
+	var/obj/item/borg/upgrade/magboots/upgrade = new(robot)
+	robot.install_upgrade(upgrade)
 
 	return TRUE
 
@@ -601,7 +601,7 @@
 
 	modules += new /obj/item/reagent_containers/dropper/cyborg(src)
 	modules += new /obj/item/lighter/zippo(src)
-	modules += new /obj/item/storage/bag/tray/cyborg(src)
+	modules += new /obj/item/storage/bag/tray(src)
 	modules += new /obj/item/reagent_containers/food/drinks/shaker(src)
 	modules += new /obj/item/extinguisher(src)
 	modules += new /obj/item/crowbar/cyborg(src)
@@ -636,7 +636,7 @@
 	R.add_language(LANGUAGE_MOTH, 1)
 
 /obj/item/robot_module/butler/handle_death(mob/living/silicon/robot/R, gibbed)
-	var/obj/item/storage/bag/tray/cyborg/T = locate() in modules
+	var/obj/item/storage/bag/tray/T = locate() in modules
 
 	if(istype(T))
 		T.drop_inventory(R)
@@ -748,6 +748,8 @@
 	var/mob/living/silicon/robot/deathsquad/death = new(get_turf(robot))
 	robot.mind?.transfer_to(death)
 	qdel(robot)
+	var/obj/item/borg/upgrade/magboots/upgrade = new(death)
+	death.install_upgrade(upgrade)
 
 	return TRUE
 
@@ -928,6 +930,8 @@
 	var/mob/living/silicon/robot/destroyer/destroy = new(get_turf(robot))
 	robot.mind?.transfer_to(destroy)
 	qdel(robot)
+	var/obj/item/borg/upgrade/magboots/upgrade = new(destroy)
+	destroy.install_upgrade(upgrade)
 
 	return TRUE
 
@@ -965,6 +969,8 @@
 
 /obj/item/robot_module/combat/on_apply(mob/living/silicon/robot/robot)
 	robot.status_flags &= ~CANPUSH
+	var/obj/item/borg/upgrade/magboots/upgrade = new(robot)
+	robot.install_upgrade(upgrade)
 
 	return TRUE
 
@@ -1236,7 +1242,7 @@
 
 //checks whether this item is a module of the robot it is located in.
 /obj/item/proc/is_robot_module()
-	if(!istype(loc, /mob/living/silicon/robot))
+	if(!isrobot(loc))
 		return FALSE
 
 	var/mob/living/silicon/robot/robot = loc

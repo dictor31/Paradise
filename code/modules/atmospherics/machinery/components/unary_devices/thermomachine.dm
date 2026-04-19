@@ -6,11 +6,12 @@
 	post_init_icon_state = "thermo_base"
 	density = TRUE
 	max_integrity = 300
-	armor = list(MELEE = 0, BULLET = 0, LASER = 0, ENERGY = 100, BOMB = 0, BIO = 100, RAD = 100, FIRE = 80, ACID = 30)
+	armor = list(MELEE = 0, BULLET = 0, LASER = 0, ENERGY = 100, BOMB = 0, BIO = 100, FIRE = 80, ACID = 30)
 	layer = OBJ_LAYER
 	greyscale_config = /datum/greyscale_config/thermomachine
 	flags = NO_NEW_GAGS_PREVIEW
 	greyscale_colors = COLOR_VIBRANT_LIME
+	interaction_flags_atom = INTERACT_ATOM_ATTACK_HAND | INTERACT_ATOM_UI_INTERACT
 	/// actual temperature will be defined by RefreshParts() and by the cooling var
 	var/min_temperature = T20C
 	/// actual temperature will be defined by RefreshParts() and by the cooling var

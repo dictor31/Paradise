@@ -12,8 +12,9 @@
 	base_icon_state = "control"
 	w_class = WEIGHT_CLASS_BULKY
 	slot_flags = ITEM_SLOT_BACK
+	interaction_flags_mouse_drop = NEED_HANDS
 	strip_delay = 10 SECONDS
-	armor = list(MELEE = 0, BULLET = 0, LASER = 0, ENERGY = 0, BOMB = 0, RAD = 0, FIRE = 0, ACID = 0)
+	armor = list(MELEE = 0, BULLET = 0, LASER = 0, ENERGY = 0, BOMB = 0, FIRE = 0, ACID = 0)
 	actions_types = list(
 		/datum/action/item_action/mod/deploy,
 		/datum/action/item_action/mod/activate,
@@ -148,10 +149,9 @@
 		else
 			. += span_notice("Слот для ядра пуст.")
 
-/obj/item/mod/control/get_description_info()
-	if(extended_desc)
-		return extended_desc
-	return
+/obj/item/mod/control/examine_more(mob/user)
+	. = ..()
+	. += "<i>[extended_desc]</i>"
 
 /obj/item/mod/control/process()
 	if(seconds_electrified > 0)
@@ -329,7 +329,7 @@
 		attacking_core.install(src)
 		update_charge_alert()
 		return ATTACK_CHAIN_PROCEED
-	if(istype(attacking_item, /obj/item/multitool) && open)
+	if(ismultitool(attacking_item) && open)
 		if(seconds_electrified && get_charge() && shock(user))
 			return ATTACK_CHAIN_PROCEED
 		wires.Interact(user)
@@ -337,7 +337,7 @@
 	if(open && attacking_item.GetID())
 		update_access(user, attacking_item.GetID())
 		return ATTACK_CHAIN_PROCEED
-	if(istype(attacking_item, /obj/item/stock_parts/cell))
+	if(iscell(attacking_item))
 		if(!core)
 			balloon_alert(user, "ядро отсутствует!")
 			playsound(src, 'sound/machines/scanbuzz.ogg', 25, TRUE, SILENCED_SOUND_EXTRARANGE)

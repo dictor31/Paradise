@@ -318,7 +318,7 @@
 	if(occupant)
 		// Eject dead people
 		if(occupant.stat == DEAD)
-			go_out()
+			discard_occupant()
 			return
 
 		// Allow a gap between entering the pod and actually despawning.
@@ -483,6 +483,11 @@
 	update_icon(UPDATE_ICON_STATE)
 	name = initial(name)
 
+/obj/machinery/cryopod/proc/discard_occupant()
+	playsound(src, 'sound/machines/buzz-sigh.ogg', HALFWAY_SOUND_VOLUME, use_reverb = TRUE)
+	go_out()
+	balloon_alert_to_viewers("субъект отклонен")
+
 /obj/machinery/cryopod/grab_attack(mob/living/grabber, atom/movable/grabbed_thing)
 	. = TRUE
 	if(grabber.grab_state < GRAB_AGGRESSIVE || !isliving(grabbed_thing))
@@ -527,8 +532,7 @@
 	add_fingerprint(grabber)
 	take_occupant(target, willing)
 
-/obj/machinery/cryopod/MouseDrop_T(atom/movable/O, mob/user, params)
-
+/obj/machinery/cryopod/mouse_drop_receive(atom/movable/O, mob/user, params)
 	if(O.loc == user) //no you can't pull things out of your ass
 		return
 	if(user.incapacitated() || HAS_TRAIT(user, TRAIT_HANDS_BLOCKED)) //are you cuffed, dying, lying, stunned or other
@@ -543,7 +547,7 @@
 		return
 	if(user.loc==null) // just in case someone manages to get a closet into the blue light dimension, as unlikely as that seems
 		return
-	if(!istype(user.loc, /turf) || !istype(O.loc, /turf)) // are you in a container/closet/pod/etc?
+	if(!isturf(user.loc) || !isturf(O.loc)) // are you in a container/closet/pod/etc?
 		return
 	if(occupant)
 		to_chat(user, span_boldnotice("The cryo pod is already occupied!"))
@@ -725,6 +729,9 @@
 /obj/machinery/cryopod/robot/despawn_occupant()
 	var/mob/living/silicon/robot/R = occupant
 	if(!istype(R))
+		return ..()
+	if(R.shell)
+		discard_occupant()
 		return ..()
 
 	R.contents -= R.mmi

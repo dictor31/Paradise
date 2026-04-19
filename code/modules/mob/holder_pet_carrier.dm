@@ -5,6 +5,7 @@
 	item_state = "pet_carrier"
 	max_integrity = 100
 	w_class = WEIGHT_CLASS_SMALL
+	interaction_flags_mouse_drop = NEED_DEXTERITY
 	var/mob_size = MOB_SIZE_TINY
 
 	var/list/possible_skins = list("black", "blue", "red", "yellow", "green", "purple")
@@ -146,7 +147,7 @@
 	for(var/mob/living/M in contents)
 		M.ex_act(intensity)
 
-/obj/item/pet_carrier/container_resist(mob/living/L)
+/obj/item/pet_carrier/container_resist_act(mob/living/L)
 	var/breakout_time = 60 SECONDS
 	var/breakout_time_open = 5 SECONDS
 
@@ -173,7 +174,7 @@
 
 	spawn(0)
 		if(do_after(L, (breakout_time), target_atom))
-			if(!src || !L || L.stat != CONSCIOUS || L.loc != src || opened) //closet/user destroyed OR user dead/unconcious OR user no longer in closet OR closet opened
+			if(!src || !L || L.stat != CONSCIOUS || L.loc != src || opened) //closet/user destroyed OR user dead/unconscious OR user no longer in closet OR closet opened
 				to_chat(L, span_warning("Побег прерван!"))
 				return
 
@@ -223,7 +224,7 @@
 		try_free_content(user = drag_user)
 		return FALSE
 
-	if(opened && (istype(over_object, /obj/structure/table) || isfloorturf(over_object) \
+	if(opened && (istable(over_object) || isfloorturf(over_object) \
 		&& length(contents) && loc == drag_user && !drag_user.incapacitated() && !HAS_TRAIT(drag_user, TRAIT_HANDS_BLOCKED) && drag_user.Adjacent(over_object)))
 
 		if(alert(drag_user, "Вытащить питомца из [name] на [over_object.name]?", "Подтверждение", "Да", "Нет") != "Да")

@@ -6,6 +6,8 @@
 	maxHealth = 100
 	base_icon = "griefsky"
 	window_name = "Автоматическая Охранная Единица v3.0"
+	bot_type = GRIEF_BOT
+	model = "Griefsky"
 
 	var/spin_icon = "griefsky-c"  // griefsky and griefsky junior have dif icons
 	var/weapon = /obj/item/melee/energy/sword
@@ -114,7 +116,7 @@
 	visible_message(span_danger("[DECLENT_RU_CAP(src, NOMINATIVE)] размахивает своими мечами и отталкивает [arrived]!"))
 	arrived.Weaken(4 SECONDS)
 
-/mob/living/simple_animal/bot/secbot/griefsky/OnUnarmedAttack(atom/atom) //like secbots its only possible with admin intervention
+/mob/living/simple_animal/bot/secbot/griefsky/OnUnarmedAttack(atom/atom, proximity_flag, list/modifiers) //like secbots its only possible with admin intervention
 	if(!iscarbon(atom))
 		return
 

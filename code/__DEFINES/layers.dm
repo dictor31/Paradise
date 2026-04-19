@@ -156,7 +156,7 @@
 #define GAS_PIPE_HIDDEN_LAYER 1.72
 #define WIRE_LAYER 1.73
 #define WIRE_TERMINAL_LAYER 1.75
-#define ABOVE_PLATING_LAYER 1.76 // generic for /obj/hide
+#define ABOVE_PLATING_LAYER 1.76 // generic for /datum/element/undertile
 #define TRAY_SCAN_LAYER_OFFSET 0.5 // place images above TURF_LAYER
 #define TRANSPARENT_PLATING_LAYER 1.98
 #define TRANSPARENT_GIRDER_LAYER 1.99 // for turf_transparency
@@ -192,7 +192,7 @@
 #define BLASTDOOR_LAYER 2.65
 #define OPEN_DOOR_LAYER 2.7
 #define DOOR_HELPER_LAYER 2.71 //keep this above OPEN_DOOR_LAYER
-#define PROJECTILE_HIT_THRESHHOLD_LAYER 2.75 //projectiles won't hit objects at or below this layer if possible
+#define PROJECTILE_HIT_THRESHOLD_LAYER 2.75 //projectiles won't hit objects at or below this layer if possible
 #define TABLE_LAYER 2.8
 #define BELOW_OBJ_LAYER 2.9
 #define LOW_ITEM_LAYER 2.95
@@ -260,6 +260,9 @@
 #define ABOVE_HUD_LAYER 32
 
 #define SPLASHSCREEN_LAYER 33
+
+///Layer for screentips
+#define SCREENTIP_LAYER 34
 
 //-------------------- Radial ---------------------
 

@@ -174,7 +174,7 @@
 		redeem_voucher(I, user)
 		return ATTACK_CHAIN_BLOCKED_ALL
 
-	if(istype(I, /obj/item/card/id))
+	if(is_id_card(I))
 		add_fingerprint(user)
 		if(inserted_id)
 			to_chat(user, span_warning("[DECLENT_RU_CAP(src, NOMINATIVE)] уже содержит другую ID-карту."))
@@ -426,14 +426,14 @@
 		PREPOSITIONAL = "карте доступа шахтёра",
 	)
 
-/obj/item/card/mining_access_card/afterattack(atom/movable/AM, mob/user, proximity, params)
-	if(!istype(AM, /obj/item/card/id))
+/obj/item/card/mining_access_card/afterattack(atom/target, mob/user, proximity_flag, list/modifiers, status)
+	if(!is_id_card(target))
 		return
 
-	if(!proximity)
+	if(!proximity_flag)
 		return
 
-	var/obj/item/card/id/I = AM
+	var/obj/item/card/id/I = target
 	I.access |= list(
 		ACCESS_MAILSORTING,
 		ACCESS_CARGO,

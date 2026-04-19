@@ -15,7 +15,7 @@
 			return TRUE
 	return FALSE
 
-/obj/item/mecha_parts/mecha_equipment/hydraulic_clamp/action(atom/target)
+/obj/item/mecha_parts/mecha_equipment/hydraulic_clamp/action(atom/target, list/modifiers)
 	if(!action_checks(target))
 		return FALSE
 	if(!chassis)
@@ -87,7 +87,7 @@
 	desc = "They won't know what clamped them!"
 	energy_drain = 0
 
-/obj/item/mecha_parts/mecha_equipment/hydraulic_clamp/kill/action(atom/target)
+/obj/item/mecha_parts/mecha_equipment/hydraulic_clamp/kill/action(atom/target, list/modifiers)
 	if(!action_checks(target))
 		return FALSE
 	if(!chassis)
@@ -159,7 +159,7 @@
 /obj/item/mecha_parts/mecha_equipment/rcd/attach_act(obj/mecha/M)
 	rcd_holder.chassis = M
 
-/obj/item/mecha_parts/mecha_equipment/rcd/action(atom/target)
+/obj/item/mecha_parts/mecha_equipment/rcd/action(atom/target, list/modifiers)
 	if(!action_checks(target) || get_dist(chassis, target)>3)
 		return FALSE
 	var/area/check_area = get_area(target)
@@ -257,10 +257,10 @@
 			return TRUE
 	return FALSE
 
-/obj/item/mecha_parts/mecha_equipment/mimercd/action(atom/target)
+/obj/item/mecha_parts/mecha_equipment/mimercd/action(atom/target, list/modifiers)
 	if(istype(target, /turf/space/transit))//>implying these are ever made -Sieve
 		return
-	if(!istype(target, /turf))
+	if(!isturf(target))
 		target = get_turf(target)
 	if(!action_checks(target) || get_dist(chassis, target)>3)
 		return
@@ -319,8 +319,8 @@
 		module.chassis = null
 		module.set_ready_state(TRUE)
 
-/obj/item/mecha_parts/mecha_equipment/multimodule/action(atom/target)
-	targeted_module.action(target)
+/obj/item/mecha_parts/mecha_equipment/multimodule/action(atom/target, list/modifiers)
+	targeted_module.action(target, modifiers)
 
 /obj/item/mecha_parts/mecha_equipment/multimodule/self_occupant_attack()
 	radial_menu(chassis.occupant)
@@ -416,10 +416,10 @@
 /obj/item/mecha_parts/mecha_equipment/cable_layer/detach_act()
 	UnregisterSignal(chassis, COMSIG_MOVABLE_MOVED)
 
-/obj/item/mecha_parts/mecha_equipment/cable_layer/action(atom/target)
+/obj/item/mecha_parts/mecha_equipment/cable_layer/action(atom/target, list/modifiers)
 	if(!action_checks(target))
 		return FALSE
-	if(istype(target, /obj/item/stack/cable_coil))
+	if(iscoil(target))
 		var/obj/item/stack/cable_coil/target_coil = target
 		var/cur_amount = cable? cable.amount : 0
 		var/to_load = max(max_cable - cur_amount,0)
@@ -535,7 +535,7 @@
 	reagents.add_reagent("water", 1000)
 	. = ..()
 
-/obj/item/mecha_parts/mecha_equipment/extinguisher/action(atom/target) //copypasted from extinguisher. TODO: Rewrite from scratch.
+/obj/item/mecha_parts/mecha_equipment/extinguisher/action(atom/target, list/modifiers) //copypasted from extinguisher. TODO: Rewrite from scratch.
 	if(!action_checks(target) || get_dist(chassis, target)>3)
 		return FALSE
 
@@ -630,7 +630,7 @@
 	QDEL_LIST(barriers)
 	. = ..()
 
-/obj/item/mecha_parts/mecha_equipment/holowall/action(atom/target) //copypasted from extinguisher. TODO: Rewrite from scratch.
+/obj/item/mecha_parts/mecha_equipment/holowall/action(atom/target, list/modifiers) //copypasted from extinguisher. TODO: Rewrite from scratch.
 	if(!action_checks(target) || get_dist(chassis, target) > 5)
 		return FALSE
 
@@ -748,10 +748,10 @@
 
 	return FALSE
 
-/obj/item/mecha_parts/mecha_equipment/eng_toolset/action(atom/target)
+/obj/item/mecha_parts/mecha_equipment/eng_toolset/action(atom/target, list/modifiers)
 	if(!action_checks(target))
 		return FALSE
-	selected_item.melee_attack_chain(chassis.occupant, target)
+	selected_item.melee_attack_chain(chassis.occupant, target, modifiers)
 	if(isliving(target))
 		chassis.do_attack_animation(target)
 		start_cooldown()

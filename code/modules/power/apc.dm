@@ -229,7 +229,7 @@
 
 /obj/machinery/power/apc/New(turf/loc, direction, building = 0)
 	if(!armor)
-		armor = list(MELEE = 20, BULLET = 20, LASER = 10, ENERGY = 100, BOMB = 30, BIO = 100, RAD = 100, FIRE = 90, ACID = 50)
+		armor = list(MELEE = 20, BULLET = 20, LASER = 10, ENERGY = 100, BOMB = 30, BIO = 100, FIRE = 90, ACID = 50)
 	..()
 	GLOB.apcs += src
 	GLOB.apcs = sortAtom(GLOB.apcs)
@@ -309,6 +309,15 @@
 	make_terminal()
 
 	addtimer(CALLBACK(src, PROC_REF(update)), 5)
+
+	var/static/list/hovering_mob_typechecks = list(
+		/mob/living/silicon = list(
+			SCREENTIP_CONTEXT_CTRL_LMB = "Вкл/выкл питание",
+			SCREENTIP_CONTEXT_RMB = "Разблокировать/Заблокировать",
+		)
+	)
+
+	AddElement(/datum/element/contextual_screentip_mob_typechecks, hovering_mob_typechecks)
 
 /obj/machinery/power/apc/examine(mob/user)
 	. = ..()
@@ -615,7 +624,7 @@
 		if(!host_turf)
 			. = ATTACK_CHAIN_PROCEED
 			CRASH("attackby on APC when it's not on a turf")
-		if(!host_turf.can_have_cabling() || host_turf.intact)
+		if(!host_turf.can_have_cabling() || host_turf.underfloor_accessibility != UNDERFLOOR_INTERACTABLE)
 			to_chat(user, span_warning("You should remove the floor plating in front of the APC first."))
 			return ATTACK_CHAIN_PROCEED
 		if(!has_electronics())
@@ -629,7 +638,7 @@
 			span_notice("You start to construct the cable terminal beneath the APC frame..."),
 		)
 		coil.play_tool_sound(src)
-		if(!do_after(user, 2 SECONDS * coil.toolspeed, src, category = DA_CAT_TOOL) || opened == APC_CLOSED || terminal || !host_turf.can_have_cabling() || host_turf.intact || !has_electronics() || QDELETED(coil))
+		if(!do_after(user, 2 SECONDS * coil.toolspeed, src, category = DA_CAT_TOOL) || opened == APC_CLOSED || terminal || !host_turf.can_have_cabling() || host_turf.underfloor_accessibility != UNDERFLOOR_INTERACTABLE || !has_electronics() || QDELETED(coil))
 			return ATTACK_CHAIN_PROCEED
 		var/obj/structure/cable/node = host_turf.get_cable_node()
 		if(prob(50) && electrocute_mob(user, node, node, 1, TRUE))
@@ -1094,7 +1103,7 @@
 	data["chargingStatus"] = charging
 	data["totalLoad"] = round(last_used_equipment + last_used_lighting + last_used_environment)
 	data["coverLocked"] = coverlocked
-	data["siliconUser"] = istype(user, /mob/living/silicon)
+	data["siliconUser"] = issilicon(user)
 	data["siliconLock"] = locked
 	data["malfStatus"] = get_malf_status(user)
 	data["nightshiftLights"] = nightshift_lights

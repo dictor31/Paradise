@@ -64,6 +64,8 @@
 
 ///from base of atom/attackby(): (/obj/item, /mob/living, params)
 #define COMSIG_PARENT_ATTACKBY "atom_attackby"
+/// From base of [atom/proc/attacby_secondary()]: (/obj/item/weapon, /mob/user, list/modifiers)
+#define COMSIG_ATOM_ATTACKBY_SECONDARY "atom_attackby_secondary"
 /// from /datum/component/cleave_attack/proc/hit_atoms_on_turf(): (atom/target, obj/item, mob/user)
 #define COMSIG_ATOM_CLEAVE_ATTACK "atom_cleave_attack"
 	// allows cleave attack to hit things it normally wouldn't
@@ -74,23 +76,39 @@
 #define COMSIG_ATOM_HULK_ATTACK "hulk_attack"
 ///from base of atom/animal_attack(): (/mob/user)
 #define COMSIG_ATOM_ATTACK_ANIMAL "attack_animal"
+
+///from base of atom/examine(): (/mob, list/examine_text)
+#define COMSIG_ATOM_EXAMINE "atom_examine"
 ///from base of atom/examine(): (/mob)
 #define COMSIG_PARENT_EXAMINE "atom_examine"
+/// from base of atom/examine(): (/mob, list/examine_text)
+#define COMSIG_CARBON_MID_EXAMINE "carbon_mid_examine"
+///from base of atom/examine_tags(): (/mob, list/examine_tags)
+#define COMSIG_ATOM_EXAMINE_TAGS "atom_examine_tags"
 ///from base of atom/get_examine_name(): (/mob, list/overrides)
 #define COMSIG_ATOM_GET_EXAMINE_NAME "atom_examine_name"
 	//Positions for overrides list
-	#define EXAMINE_POSITION_ARTICLE (1<<0)
-	#define EXAMINE_POSITION_BEFORE (1<<1)
-	//End positions
-	#define COMPONENT_EXNAME_CHANGED (1<<0)
-	///from base of [/atom/proc/update_appearance]: (updates)
-	#define COMSIG_ATOM_UPDATE_APPEARANCE "atom_update_appearance"
-	/// If returned from [COMSIG_ATOM_UPDATE_APPEARANCE] it prevents the atom from updating its name.
-	#define COMSIG_ATOM_NO_UPDATE_NAME UPDATE_NAME
-	/// If returned from [COMSIG_ATOM_UPDATE_APPEARANCE] it prevents the atom from updating its desc.
-	#define COMSIG_ATOM_NO_UPDATE_DESC UPDATE_DESC
-	/// If returned from [COMSIG_ATOM_UPDATE_APPEARANCE] it prevents the atom from updating its icon.
-	#define COMSIG_ATOM_NO_UPDATE_ICON UPDATE_ICON
+	#define EXAMINE_POSITION_BEFORE 1
+	#define EXAMINE_POSITION_NAME 2
+///from base of atom/examine(): (/mob, list/examine_text, can_see_inside)
+#define COMSIG_ATOM_REAGENT_EXAMINE "atom_reagent_examine"
+	/// Stop the generic reagent examine text
+	#define STOP_GENERIC_REAGENT_EXAMINE (1<<0)
+	/// Allows the generic reaegent examine text regardless of whether the user can scan reagents.
+	#define ALLOW_GENERIC_REAGENT_EXAMINE (1<<1)
+///from base of atom/examine_more(): (/mob, examine_list)
+#define COMSIG_ATOM_EXAMINE_MORE "atom_examine_more"
+/// from atom/examine_more(): (/atom/examining, examine_list)
+#define COMSIG_MOB_EXAMINING_MORE "mob_examining_more"
+
+///from base of [/atom/proc/update_appearance]: (updates)
+#define COMSIG_ATOM_UPDATE_APPEARANCE "atom_update_appearance"
+/// If returned from [COMSIG_ATOM_UPDATE_APPEARANCE] it prevents the atom from updating its name.
+#define COMSIG_ATOM_NO_UPDATE_NAME UPDATE_NAME
+/// If returned from [COMSIG_ATOM_UPDATE_APPEARANCE] it prevents the atom from updating its desc.
+#define COMSIG_ATOM_NO_UPDATE_DESC UPDATE_DESC
+/// If returned from [COMSIG_ATOM_UPDATE_APPEARANCE] it prevents the atom from updating its icon.
+#define COMSIG_ATOM_NO_UPDATE_ICON UPDATE_ICON
 ///from base of [/atom/proc/update_name]: (updates)
 #define COMSIG_ATOM_UPDATE_NAME "atom_update_name"
 ///from base of [/atom/proc/update_desc]: (updates)
@@ -140,8 +158,6 @@
 #define COMSIG_ATOM_ACID_ACT "atom_acid_act"
 ///from base of atom/emag_act(): (/mob/user)
 #define COMSIG_ATOM_EMAG_ACT "atom_emag_act"
-///from base of atom/rad_act(intensity)
-#define COMSIG_ATOM_RAD_ACT "atom_rad_act"
 ///from base of atom/narsie_act(): ()
 #define COMSIG_ATOM_NARSIE_ACT "atom_narsie_act"
 ///from base of atom/rcd_act(): (/mob, /obj/item/construction/rcd, passed_mode)
@@ -189,11 +205,53 @@
 ///from base of datum/radiation_wave/check_obstructions(): (datum/radiation_wave, width)
 #define COMSIG_ATOM_RAD_WAVE_PASSING "atom_rad_wave_pass"
 	#define COMPONENT_RAD_WAVE_HANDLED (1<<0)
-///from internal loop in atom/movable/proc/CanReach(): (list/next)
-#define COMSIG_ATOM_CANREACH "atom_can_reach"
-	#define COMPONENT_BLOCK_REACH (1<<0)
+
+/// Sent from [atom/proc/item_interaction], when this atom is left-clicked on by a mob with an item
+/// Sent from the very beginning of the click chain, intended for generic atom-item interactions
+/// Args: (mob/living/user, obj/item/tool, list/modifiers)
+/// Return any ITEM_INTERACT_ flags as relevant (see tools.dm)
+#define COMSIG_ATOM_ITEM_INTERACTION "atom_item_interaction"
+/// Sent from [atom/proc/item_interaction], when this atom is right-clicked on by a mob with an item
+/// Sent from the very beginning of the click chain, intended for generic atom-item interactions
+/// Args: (mob/living/user, obj/item/tool, list/modifiers)
+/// Return any ITEM_INTERACT_ flags as relevant (see tools.dm)
+#define COMSIG_ATOM_ITEM_INTERACTION_SECONDARY "atom_item_interaction_secondary"
+/// Sent from [atom/proc/item_interaction], to a mob clicking on an atom with an item
+#define COMSIG_USER_ITEM_INTERACTION "user_item_interaction"
+/// Sent from [atom/proc/item_interaction], to an item clicking on an atom
+/// Args: (mob/living/user, atom/interacting_with, list/modifiers)
+/// Return any ITEM_INTERACT_ flags as relevant (see tools.dm)
+#define COMSIG_ITEM_INTERACTING_WITH_ATOM "item_interacting_with_atom"
+/// Sent from [atom/proc/item_interaction], to an item right-clicking on an atom
+/// Args: (mob/living/user, atom/interacting_with, list/modifiers)
+/// Return any ITEM_INTERACT_ flags as relevant (see tools.dm)
+#define COMSIG_ITEM_INTERACTING_WITH_ATOM_SECONDARY "item_interacting_with_atom_secondary"
+/// Sent from [atom/proc/item_interaction], when this atom is right-clicked on by a mob with a tool
+#define COMSIG_USER_ITEM_INTERACTION_SECONDARY "user_item_interaction_secondary"
+
 ///from base of atom/proc/tool_act(): (mob/living/user, obj/item/I)
 #define COMSIG_ATOM_TOOL_ACT(tooltype) "tool_act_[tooltype]"
+/// Sent from [atom/proc/item_interaction], when this atom is right-clicked on by a mob with a tool of a specific tool type
+/// Args: (mob/living/user, obj/item/tool)
+/// Return any ITEM_INTERACT_ flags as relevant (see tools.dm)
+#define COMSIG_ATOM_SECONDARY_TOOL_ACT(tooltype) "tool_secondary_act_[tooltype]"
+// Successful actions against an atom.
+///Called from /atom/proc/tool_act (atom)
+#define COMSIG_TOOL_ATOM_ACTED_PRIMARY(tooltype) "tool_atom_acted_[tooltype]"
+///Called from /atom/proc/tool_act (atom)
+#define COMSIG_TOOL_ATOM_ACTED_SECONDARY(tooltype) "tool_atom_acted_[tooltype]"
+
+/// Sent from [atom/proc/ranged_item_interaction], when this atom is left-clicked on by a mob with an item while not adjacent
+#define COMSIG_ATOM_RANGED_ITEM_INTERACTION "atom_ranged_item_interaction"
+/// Sent from [atom/proc/ranged_item_interaction], when this atom is right-clicked on by a mob with an item while not adjacent
+#define COMSIG_ATOM_RANGED_ITEM_INTERACTION_SECONDARY "atom_ranged_item_interaction_secondary"
+/// Sent from [atom/proc/ranged_item_interaction], when a mob is using this item while left-clicking on by an atom while not adjacent
+#define COMSIG_RANGED_ITEM_INTERACTING_WITH_ATOM "ranged_item_interacting_with_atom"
+/// Sent from [atom/proc/ranged_item_interaction], when a mob is using this item while right-clicking on by an atom while not adjacent
+#define COMSIG_RANGED_ITEM_INTERACTING_WITH_ATOM_SECONDARY "ranged_item_interacting_with_atom_secondary"
+
+/// Sent from [atom/proc/item_interaction], when this atom is used as a tool and an event occurs
+#define COMSIG_ITEM_TOOL_ACTED "tool_item_acted"
 ///from base of atom/screwdriver_act(): (mob/living/user, obj/item/I)
 #define COMSIG_ATOM_SCREWDRIVER_ACT "atom_screwdriver_act"
 ///from base of atom/wrench_act(): (mob/living/user, obj/item/I)
@@ -254,6 +312,9 @@
 #define COMSIG_ATOM_ATTACK_PAW "atom_attack_paw"
 	#define COMPONENT_NO_ATTACK_HAND (1<<0)								//works on all 3.
 
+/// From base of [/atom/proc/attack_hand_secondary]: (mob/user, list/modifiers) - Called when the atom receives a secondary unarmed attack.
+#define COMSIG_ATOM_ATTACK_HAND_SECONDARY "atom_attack_hand_secondary"
+
 ///called on a movable (NOT living) when someone starts pulling it (atom/movable/puller, state, force)
 #define COMSIG_ATOM_START_PULL "movable_start_pull"
 /// called on /atom when something attempts to pass through it (atom/movable/source, atom/movable/passing, dir)
@@ -283,12 +344,15 @@
 #define COMSIG_CLICK_CTRL "ctrl_click"
 ///from base of atom/base_click_alt(): (/mob)
 #define COMSIG_CLICK_ALT "alt_click"
+///from base of atom/base_click_alt_secondary(): (/mob)
+#define COMSIG_CLICK_ALT_SECONDARY "click_alt_secondary"
+	#define COMPONENT_CANCEL_CLICK_ALT_SECONDARY (1<<0)
 ///from base of atom/CtrlShiftClick(/mob)
 #define COMSIG_CLICK_CTRL_SHIFT "ctrl_shift_click"
 ///from base of atom/MouseDrop(): (/atom/over, /mob/user)
 #define COMSIG_MOUSEDROP_ONTO "mousedrop_onto"
-	#define COMPONENT_NO_MOUSEDROP (1<<0)
-///from base of atom/MouseDrop_T: (/atom/from, /mob/user)
+	#define COMPONENT_CANCEL_MOUSEDROP_ONTO (1<<0)
+///from base of atom/handle_mouse_drop_receive: (/atom/from, /mob/user)
 #define COMSIG_MOUSEDROPPED_ONTO "mousedropped_onto"
 	#define COMPONENT_CANCEL_MOUSEDROPPED_ONTO (1<<0)
 
@@ -435,6 +499,8 @@
 ///from base of mob/AltClickOn(): (atom/A)
 #define COMSIG_MOB_ALTCLICKON "mob_altclickon"
 	#define COMSIG_MOB_CANCEL_CLICKON (1<<0)
+///from base of mob/alt_click_on_secodary(): (atom/A)
+#define COMSIG_MOB_ALTCLICKON_SECONDARY "mob_altclickon_secondary"
 
 ///from base of mob/key_down(): (_key, client/user)
 #define COMSIG_MOB_KEY_DROP_ITEM_DOWN "mob_key_drop_item_down"
@@ -466,6 +532,11 @@
 #define COMSIG_MOB_ITEM_ATTACK "mob_item_attack"
 	#define COMPONENT_ITEM_NO_ATTACK (1<<0)
 
+/// from base of atom/attack_robot(): (mob/user, list/modifiers)
+#define COMSIG_ATOM_ATTACK_ROBOT "atom_attack_robot"
+/// from base of atom/attack_robot_secondary(): (mob/user)
+#define COMSIG_ATOM_ATTACK_ROBOT_SECONDARY "atom_attack_robot_secondary"
+
 #define COMSIG_GLOVES_DOUBLE_HANDS_TOUCH "gloves_double_hands_touch"
 
 ///from base of /mob/living/proc/get_incoming_damage_modifier(): (list/damage_mods, damage, damagetype, def_zone, sharp, used_weapon)
@@ -491,6 +562,16 @@
 #define COMSIG_MOB_ATTACKED_RANGED "mob_attack_ranged"
 ///from base of /mob/throw_item(): (atom/target)
 #define COMSIG_MOB_THROW "mob_throw"
+
+///from base of /mob/verb/examinate(): (atom/target, list/examine_strings)
+#define COMSIG_MOB_EXAMINING "mob_examining"
+///from base of /mob/verb/examinate(): (atom/target)
+#define COMSIG_MOB_EXAMINATE "mob_examinate"
+///from /mob/living/handle_eye_contact(): (mob/living/other_mob)
+#define COMSIG_MOB_EYECONTACT "mob_eyecontact"
+	/// return this if you want to block printing this message to this person, if you want to print your own (does not affect the other person's message)
+	#define COMSIG_BLOCK_EYECONTACT (1<<0)
+
 ///called when a user is getting new weapon and we want to remove previous weapon to clear hands
 #define COMSIG_MOB_WEAPON_APPEARS "mob_weapon_appears"
 /// from base of /mob/verb/examinate(): (atom/target)
@@ -504,6 +585,7 @@
 ////from /mob/living/say(): ()
 #define COMSIG_MOB_SAY "mob_say"
 	#define COMPONENT_UPPERCASE_SPEECH (1<<0)
+	#define COMPONENT_SMALL_SPEECH (1<<1)
 	// used to access COMSIG_MOB_SAY argslist
 	#define SPEECH_MESSAGE 1
 	// #define SPEECH_BUBBLE_TYPE 2
@@ -667,7 +749,7 @@
 /// From mob/living/proc/on_fall
 #define COMSIG_LIVING_THUD "living_thud"
 
-/// from /datum/component/singularity/proc/can_move(), as well as /obj/singularity/energy_ball/proc/can_move()
+/// from /datum/component/singularity/proc/can_move(), as well as /obj/energy_ball/proc/can_move()
 /// if a callback returns `SINGULARITY_TRY_MOVE_BLOCK`, then the singularity will not move to that turf
 #define COMSIG_ATOM_SINGULARITY_TRY_MOVE "atom_singularity_try_move"
 	/// When returned from `COMSIG_ATOM_SINGULARITY_TRY_MOVE`, the singularity will move to that turf
@@ -734,6 +816,11 @@
 ///From post-can inject check of syringe after attack (mob/user)
 #define COMSIG_LIVING_TRY_SYRINGE "living_try_syringe"
 
+/// From /mob/living/get_examine_name(mob/user) : (mob/examined, visible_name, list/name_override)
+/// Allows mobs to override how they perceive others when examining
+#define COMSIG_LIVING_PERCEIVE_EXAMINE_NAME "living_perceive_examine_name"
+	#define COMPONENT_EXAMINE_NAME_OVERRIDEN (1<<0)
+
 /// From /mob/add_language() (language_name)
 #define COMSIG_MOB_LANGUAGE_ADD "mob_language_add"
 /// From /mob/remove_language() (language_name)
@@ -786,7 +873,7 @@
 #define COMSIG_CARBON_EMBED_RIP "item_embed_start_rip"
 ///called when removing a given item from a mob, from mob/living/carbon/remove_embedded_object(mob/living/carbon/target, /obj/item)
 #define COMSIG_CARBON_EMBED_REMOVAL "item_embed_remove_safe"
-// called when carbon receiving a /obj/item/organ/external/proc/fracture
+// called when carbon receiving a /obj/item/organ/external/proc/fracture (/datum/fracture)
 #define COMSIG_CARBON_RECEIVE_FRACTURE "carbon_receive_fracture"
 ///called when something thrown hits a mob, from /mob/living/carbon/human/hitby(mob/living/carbon/target, /obj/item)
 #define COMSIG_CARBON_HITBY "carbon_hitby"
@@ -845,6 +932,11 @@
 /// Source: /mob/living/simple_animal/handle_environment(datum/gas_mixture/environment)
 #define COMSIG_ANIMAL_HANDLE_ENVIRONMENT "animal_handle_environment"
 
+/// Sent to bingles to evolve
+#define COMSIG_BINGLE_EVOLVE "bingle_evolve"
+/// Sent to all bingles to evolve
+#define COMSIG_MASS_BINGLE_EVOLVE "mass_bingle_evolve"
+
 // /obj signals
 
 ///from base of obj/deconstruct(): (disassembled)
@@ -889,6 +981,8 @@
 #define COMSIG_ITEM_ATTACK "item_attack"
 ///from base of obj/item/attack_self(): (/mob)
 #define COMSIG_ITEM_ATTACK_SELF "item_attack_self"
+//from base of obj/item/attack_self_secondary(): (/mob)
+#define COMSIG_ITEM_ATTACK_SELF_SECONDARY "item_attack_self_secondary"
 ///from base of obj/item/attack_obj(): (/obj, /mob)
 #define COMSIG_ITEM_ATTACK_OBJ "item_attack_obj"
 ///from base of obj/item/pre_attackby(): (atom/target, mob/user, params)
@@ -1138,14 +1232,6 @@
 #define COMSIG_INSTRUMENT_TEMPO_CHANGE "instrument_tempo_change"
 
 /*******Component Specific Signals*******/
-//Janitor
-
-///(): Returns bitflags of wet values.
-#define COMSIG_TURF_IS_WET "check_turf_wet"
-///(max_strength, immediate, duration_decrease = INFINITY): Returns bool.
-#define COMSIG_TURF_MAKE_DRY "make_turf_try"
-///called on an object to clean it of cleanables. Usualy with soap: (num/strength)
-#define COMSIG_COMPONENT_CLEAN_ACT "clean_act"
 
 //Creamed
 
@@ -1404,9 +1490,6 @@
 ///from [/datum/move_loop/has_target/jps/on_finish_pathing]
 #define COMSIG_MOVELOOP_JPS_FINISHED_PATHING "moveloop_jps_finished_pathing"
 
-///from of mob/MouseDrop(): (/atom/over, /mob/user)
-#define COMSIG_DO_MOB_STRIP "do_mob_strip"
-
 // /datum/component/transforming signals
 /// From /datum/component/transforming/proc/on_attack_self(obj/item/source, mob/user): (obj/item/source, mob/user, active)
 #define COMSIG_TRANSFORMING_PRE_TRANSFORM "transforming_pre_transform"
@@ -1429,6 +1512,12 @@
 #define COMSIG_VEHICLE_RIDDEN "vehicle-ridden"
 	/// Return this to signal that the mob should be removed from the vehicle
 	#define EJECT_FROM_VEHICLE (1<<0)
+
+
+/// when a timestop ability is used on the atom: (datum/proximity_monitor/advanced/timestop)
+#define COMSIG_ATOM_TIMESTOP_FREEZE "atom_timestop_freeze"
+/// when the timestop ability effect ends on the atom: (datum/proximity_monitor/advanced/timestop)
+#define COMSIG_ATOM_TIMESTOP_UNFREEZE "atom_timestop_unfreeze"
 
 /// Source: /mob/living/simple_animal/borer, listening in datum/antagonist/borer
 #define	COMSIG_BORER_ENTERED_HOST "borer_on_enter" // when borer entered host
@@ -1549,7 +1638,7 @@
 #define COMSIG_SUPPLYPOD_ENTERED "supply_pod_entered"
 /// From /obj/structure/closet/supplypod/proc/on_exit()
 #define COMSIG_SUPPLYPOD_EXITED "supply_pod_exited"
-/// From /obj/structure/closet/supplypod/extractionpod/MouseDrop_T()
+/// From /obj/structure/closet/supplypod/extractionpod/mouse_drop_receive()
 #define COMSIG_SUPPLYPOD_CLIMB_CHECK "climb_check"
 	#define COMPONENT_CLIMB (1<<0)
 
@@ -1568,8 +1657,31 @@
 
 #define COMSIG_REQUEST_CONSOLE_MESSAGE "request_console_message"
 
+/// from internal loop in /atom/proc/propagate_radiation_pulse: (atom/pulse_source)
+#define COMSIG_ATOM_PROPAGATE_RAD_PULSE "atom_propagate_radiation_pulse"
+
+/// from /proc/healthscan(): (list/scan_results, advanced, mob/user, mode)
+/// Consumers are allowed to mutate the scan_results list to add extra information
+#define COMSIG_LIVING_HEALTHSCAN "living_healthscan"
+
 #define COMSIG_GREYSCALE_CONFIG_REFRESHED "greyscale_config_refreshed"
 
 #define COMSIG_LUNGE_DUAL_STRIKE "lunge_dual_strike"
 
 #define COMSIG_MASKFILTER_UPDATE_STATE "ttsfilter_update_state"
+
+/// Sent after addind a camera to the cameranet datum (/datum/cameranet/proc/addCamera(obj/machinery/camera/c))
+#define COMSIG_CAMERANET_CAMERA_ADDED "cameranet_camera_added"
+
+/// Sent after removing a camera from the cameranet datum (/datum/cameranet/proc/removeCamera(obj/machinery/camera/c))
+#define COMSIG_CAMERANET_CAMERA_REMOVED "cameranet_camera_removed"
+
+#define COMSIG_IRRADIATED_PROCESS "irradiated_process"
+
+/// Called on tripwire activation (/obj/item/tripwire)
+#define COMSIG_TRIPWIRE_TRIGGERED "tripwire_triggered"
+// Called on payload installing at tripwire
+#define COMSIG_TRIPWIRE_BASE_ACTIVATE "tripwire_base_activate"
+
+/// signal sent when a mouse is hovering over us, sent by atom/proc/on_mouse_entered
+#define COMSIG_ATOM_MOUSE_ENTERED "mouse_entered"

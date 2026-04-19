@@ -13,7 +13,7 @@
 		if(client.handle_spam_prevention(message,MUTE_IC))
 			return
 
-	if(istype(loc,/mob/living/simple_animal/borer))
+	if(isborer(loc))
 		message = trim(sanitize(copytext_char(message, 1, MAX_MESSAGE_LEN)))
 		if(!message)
 			return
@@ -367,7 +367,7 @@
 	else
 		return ..()
 
-/mob/living/simple_animal/borer/OnUnarmedAttack(mob/living/carbon/human/human)
+/mob/living/simple_animal/borer/OnUnarmedAttack(mob/living/carbon/human/human, proximity_flag, list/modifiers)
 	if(!istype(human))
 		return
 
@@ -416,7 +416,7 @@
 
 	if(href_list["borer_use_chem"])
 		locateUID(href_list["src"])
-		if(!istype(src, /mob/living/simple_animal/borer))
+		if(!isborer(src))
 			return
 
 		var/datum/reagent/reagent = href_list["borer_use_chem"]

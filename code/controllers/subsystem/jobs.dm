@@ -127,21 +127,23 @@ SUBSYSTEM_DEF(jobs)
 	if(player?.mind && rank)
 		var/datum/job/job = GetJob(rank)
 		if(!job)
-			return 0
+			return FALSE
 		if(jobban_isbanned(player, rank))
-			return 0
+			return FALSE
 		if(!job.player_old_enough(player.client))
-			return 0
+			return FALSE
 		if(job.available_in_playtime(player.client))
-			return 0
+			return FALSE
 		if(!job.can_novice_play(player.client))
-			return 0
+			return FALSE
 		if(job.barred_by_disability(player.client))
-			return 0
+			return FALSE
 		if(!job.character_old_enough(player.client))
-			return 0
+			return FALSE
 		if(job.species_in_blacklist(player.client))
-			return 0
+			return FALSE
+		if(!job.check_custom_requirements(player.client))
+			return FALSE
 
 		var/position_limit = job.total_positions
 		if(!latejoin)
@@ -813,17 +815,15 @@ SUBSYSTEM_DEF(jobs)
 		for(var/datum/job/job in occupations)
 			if(tgtcard.rank && tgtcard.rank == job.title)
 				jobs_to_formats[job.title] = "green" // the job they already have is pre-selected
-			else if(tgtcard.assignment == "Demoted" || tgtcard.assignment == "Terminated")
+			else if(tgtcard.assignment == JOB_TITLE_RU_DEMOTED || tgtcard.assignment == JOB_TITLE_RU_TERMINATED)
 				jobs_to_formats[job.title] = "grey"
-			else if(!job.would_accept_job_transfer_from_player(M))
-				jobs_to_formats[job.title] = "grey" // jobs which are karma-locked and not unlocked for this player are discouraged
 			else if((job.title in GLOB.command_positions) && istype(M) && M.client && job.available_in_playtime(M.client))
 				jobs_to_formats[job.title] = "grey" // command jobs which are playtime-locked and not unlocked for this player are discouraged
 			else if(job.total_positions && !job.current_positions && job.title != JOB_TITLE_CIVILIAN)
 				jobs_to_formats[job.title] = "teal" // jobs with nobody doing them at all are encouraged
 			else if(job.total_positions >= 0 && job.current_positions >= job.total_positions)
 				jobs_to_formats[job.title] = "grey" // jobs that are full (no free positions) are discouraged
-		if(tgtcard.assignment == "Demoted" || tgtcard.assignment == "Terminated")
+		if(tgtcard.assignment == JOB_TITLE_RU_DEMOTED || tgtcard.assignment == JOB_TITLE_RU_TERMINATED)
 			jobs_to_formats["Custom"] = "grey"
 	return jobs_to_formats
 
