@@ -280,9 +280,12 @@ GLOBAL_LIST_INIT(glass_sheet_types, typecacheof(list(
 #define ismodcore(A) istype(A, /obj/item/mod/core)
 
 GLOBAL_LIST_INIT(turfs_without_ground, typecacheof(list(
-	/turf/space,
+	/turf/simulated/floor/beach/water,
 	/turf/simulated/floor/chasm,
+	/turf/simulated/floor/lava,
 	/turf/simulated/openspace,
+	/turf/space,
+	/turf/space/openspace,
 )))
 
 #define isgroundlessturf(A) (is_type_in_typecache(A, GLOB.turfs_without_ground))
@@ -392,6 +395,9 @@ GLOBAL_LIST_INIT(turfs_without_ground, typecacheof(list(
 #define isdrask(A) (is_species(A, /datum/species/drask))
 #define iswryn(A) (is_species(A, /datum/species/wryn))
 #define ismoth(A) (is_species(A, /datum/species/moth))
+
+// Antag
+#define IS_CHANGELING(A) (A?.mind?.has_antag_datum(/datum/antagonist/changeling))
 
 #define is_clown_job(job_type) (istype(job_type, /datum/job/service/clown))
 
