@@ -203,6 +203,9 @@
 	/// Radiation insulation types
 	var/rad_insulation = RAD_NO_INSULATION
 
+	/// Preferred way to render this atom's icon in the lootpanel, as one of the LOOT_ICON_* defines.
+	/// Null lets [/datum/search_object] decide heuristically; subtypes set it when the heuristic
+	/// would pick wrong (e.g. mobs force [LOOT_ICON_FLAT_ICON] for their layered appearances).
 	var/looting_icon_mode
 
 	/// Text that appears preceding the name in [/atom/proc/examine_title]
@@ -245,7 +248,7 @@
 	if(!is_admin_level(T.z))//if not, don't bother
 		return
 
-	if(istype(T.loc, /area/shuttle/syndicate_elite) || istype(T.loc, /area/syndicate_mothership))
+	if(istype(T.loc, /area/shuttle/syndicate_elite) || istype(T.loc, /area/centcom/syndicate_base))
 		return TRUE
 
 /atom/Destroy(force)

@@ -293,21 +293,20 @@
 	)
 	/// Lists of area to trash
 	var/static/list/areas_to_trash = list(
-		/area/bridge,
-		/area/security,
-		/area/medical/cmo,
-		/area/quartermaster/qm,
-		/area/blueshield,
-		/area/ntrep,
-		/area/lawoffice,
-		/area/magistrateoffice,
-		/area/crew_quarters/captain,
-		/area/crew_quarters/heads,
-		/area/crew_quarters/hor,
-		/area/crew_quarters/hos,
-		/area/crew_quarters/chief,
-		/area/crew_quarters/courtroom,
-		/area/crew_quarters/recruit,
+		/area/station/command/bridge,
+		/area/station/security,
+		/area/station/command/office/cmo,
+		/area/station/command/office/qm,
+		/area/station/command/office/blueshield,
+		/area/station/command/office/ntrep,
+		/area/station/legal/office/law,
+		/area/station/legal/office/magistrate,
+		/area/station/command/office/captain,
+		/area/station/command/office/hop,
+		/area/station/command/office/rd,
+		/area/station/command/office/hos,
+		/area/station/command/office/ce,
+		/area/station/legal/courtroom,
 	)
 
 /datum/station_trait/revolutionary_trashing/on_round_start()
@@ -383,25 +382,18 @@
 
 /datum/station_trait/looted_armory
 	name = "Разграбленная оружейная"
-	report_message = "Из-за острой нехватки финансирования, часть снаряжения в оружейной объекта была списана. В качестве компенсации стоимость заказа вооружения была снижена."
+	report_message = "Из-за острой нехватки финансирования, часть снаряжения в оружейной объекта была списана."
 	trait_type = STATION_TRAIT_NEGATIVE
 	show_in_report = TRUE
 	trait_to_give = STATION_TRAIT_LOOTED_ARMORY
 	weight = 2
-	blacklist = list(/datum/station_trait/upgraded_armory)
 
 /datum/station_trait/looted_armory/on_round_start()
 	. = ..()
-	for(var/set_name in SSshuttle.supply_packs)
-		var/datum/supply_packs/pack = SSshuttle.supply_packs[set_name]
-		if(pack.group != SUPPLY_SECURITY)
-			continue
-		pack.cost *= 0.6
-
 	INVOKE_ASYNC(src, PROC_REF(loot_armory))
 
 /datum/station_trait/looted_armory/proc/loot_armory()
-	for(var/area/security/securearmory/armory in GLOB.areas)
+	for(var/area/station/security/hallway/armory/armory in GLOB.areas)
 		for(var/list/zlevel_turfs as anything in armory.get_zlevel_turf_lists())
 			for(var/turf/current_turf as anything in zlevel_turfs)
 				for(var/obj/current_thing as anything in current_turf.contents)

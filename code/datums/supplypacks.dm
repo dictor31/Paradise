@@ -6367,7 +6367,7 @@ GLOBAL_LIST_INIT(all_supply_groups, list(SUPPLY_EMERGENCY,SUPPLY_SECURITY,SUPPLY
 	)
 
 /datum/supply_packs/contraband/ammobox_nagant
-	name = "Патргоны 7,62x38 мм"
+	name = "Патроны 7,62x38 мм"
 	contains = list(
 		/obj/item/ammo_box/n762x38,
 		/obj/item/ammo_box/n762x38,
@@ -6386,8 +6386,8 @@ GLOBAL_LIST_INIT(all_supply_groups, list(SUPPLY_EMERGENCY,SUPPLY_SECURITY,SUPPLY
 /datum/supply_packs/contraband/ammobox545
 	name = "Патроны 5,45x39 мм"
 	contains = list(
-		/obj/item/ammo_box/a545x39,
-		/obj/item/ammo_box/a545x39,
+		/obj/item/ammo_box/a545x39/fusty,
+		/obj/item/ammo_box/a545x39/fusty,
 	)
 	credits_cost = 4500
 	containername = "ящик патронов 5,45x39 мм"
@@ -6403,9 +6403,9 @@ GLOBAL_LIST_INIT(all_supply_groups, list(SUPPLY_EMERGENCY,SUPPLY_SECURITY,SUPPLY
 /datum/supply_packs/contraband/rpg
 	name = "Фугасные ракеты"
 	contains = list(
-		/obj/item/ammo_casing/rocket,
-		/obj/item/ammo_casing/rocket,
-		/obj/item/ammo_casing/rocket,
+		/obj/item/ammo_casing/caseless/rocket/a70mm_he,
+		/obj/item/ammo_casing/caseless/rocket/a70mm_he,
+		/obj/item/ammo_casing/caseless/rocket/a70mm_he,
 	)
 	credits_cost = 25000
 	containername = "ящик фугасных ракет"
@@ -6669,7 +6669,9 @@ GLOBAL_LIST_INIT(all_supply_groups, list(SUPPLY_EMERGENCY,SUPPLY_SECURITY,SUPPLY
 /datum/supply_packs/contraband/autoimplanter
 	name = "Автоимплантер"
 	contains = list(
-		/obj/item/autoimplanter/traitor,
+		/obj/item/autoimplanter/oneuse,
+		/obj/item/autoimplanter/oneuse,
+		/obj/item/autoimplanter/oneuse,
 	)
 	credits_cost = 10000
 	containertype = /obj/structure/closet/crate/syndicate
