@@ -229,7 +229,9 @@
 		"check_weapons" = weaponscheck,
 		"check_warrant" = check_records,
 		"arrest_mode" = arrest_type, // detain or arrest
-		"arrest_declare" = declare_arrests // announce arrests on radio
+		"arrest_declare" = declare_arrests, // announce arrests on radio
+		"health" = health,
+		"maxhealth" = maxHealth
 	)
 	return data
 

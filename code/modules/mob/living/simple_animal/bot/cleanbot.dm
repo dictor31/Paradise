@@ -248,7 +248,9 @@
 		"canhack" = canhack(user),
 		"emagged" = emagged, // this is an int, NOT a boolean
 		"remote_disabled" = remote_disabled, // -- STUFF BELOW HERE IS SPECIFIC TO THIS BOT
-		"cleanblood" = blood
+		"cleanblood" = blood,
+		"health" = health,
+		"maxhealth" = maxHealth,
 	)
 	return data
 

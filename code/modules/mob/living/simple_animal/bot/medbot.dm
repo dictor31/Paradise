@@ -131,6 +131,9 @@
 		PREPOSITIONAL = "подозрительном медботе",
 	)
 
+/mob/living/simple_animal/bot/medbot/show_controls(mob/user)
+	ui_interact(user, null)
+
 /mob/living/simple_animal/bot/medbot/syndicate/Initialize(mapload, new_skin)
 	. = ..()
 	Radio.syndiekey = new /obj/item/encryptionkey/syndicate
@@ -194,91 +197,122 @@
 	text_dehack = "Вы восстановили микросхемы синтезатора реагентов [declent_ru(GENITIVE)]."
 	text_dehack_fail = "[DECLENT_RU_CAP(src, NOMINATIVE)] выглядит повреждённым и не может быть перепрограммирован!"
 
-/mob/living/simple_animal/bot/medbot/get_controls(mob/user)
-	var/dat
-	dat += hack(user)
-	dat += showpai(user)
-	dat += "<tt><b>Панель управления медицинским роботом v1.1</b></tt><br><br>"
-	dat += "Состояние: <a href='byond://?src=[UID()];power=1'>[on ? "Включён" : "Выключен"]</a><br>"
-	dat += "Панель технического обслуживания [open ? "открыта" : "закрыта"]<br>"
-	dat += "Ёмкость: "
+/mob/living/simple_animal/bot/medbot/ui_interact(mob/user, datum/tgui/ui)
+	ui = SStgui.try_update_ui(user, src, ui)
+
+	if(!ui)
+		ui = new(user, src, "MedBot")
+		ui.open()
+
+/mob/living/simple_animal/bot/medbot/ui_data(mob/user)
+	var/list/data = list()
+
+	data["on"] = on
+	data["open"] = open
+	data["locked"] = locked
+	data["canhack"] = canhack(user)
+	data["emagged"] = emagged
+	data["noaccess"] = topic_denied(user)
+	data["health"] = health
+	data["maxhealth"] = maxHealth
+	data["remote_disabled"] = remote_disabled
+
+	data["heal_threshold"] = heal_threshold
+	data["injection_amount"] = injection_amount
+
+	data["use_beaker"] = use_beaker
+	data["treat_virus"] = treat_virus
+	data["shut_up"] = shut_up
+	data["declare_crit"] = declare_crit
+	data["auto_patrol"] = auto_patrol
+	data["stationary_mode"] = stationary_mode
+
+	data["beaker"] = !isnull(reagent_glass)
+
 	if(reagent_glass)
-		dat += "<a href='byond://?src=[UID()];eject=1'>Установлена \[[reagent_glass.reagents.total_volume]/[reagent_glass.reagents.maximum_volume]\]</a>"
+		data["beaker_volume"] = reagent_glass.reagents.total_volume
+		data["beaker_max"] = reagent_glass.reagents.maximum_volume
 	else
-		dat += "Не установлена"
-	dat += "<br>Управление поведением [locked ? "заблокировано" : "разблокировано"]<hr>"
-	if(!locked || issilicon(user) || user.can_admin_interact())
-		dat += "<tt>Порог лечения: "
-		dat += "<a href='byond://?src=[UID()];adj_threshold=-10'>--</a> "
-		dat += "<a href='byond://?src=[UID()];adj_threshold=-5'>-</a> "
-		dat += "[heal_threshold] "
-		dat += "<a href='byond://?src=[UID()];adj_threshold=5'>+</a> "
-		dat += "<a href='byond://?src=[UID()];adj_threshold=10'>++</a>"
-		dat += "</tt><br>"
+		data["beaker_volume"] = 0
+		data["beaker_max"] = 100
 
-		dat += "<tt>Объём инъекции: "
-		dat += "<a href='byond://?src=[UID()];adj_inject=-5'>-</a> "
-		dat += "[injection_amount] "
-		dat += "<a href='byond://?src=[UID()];adj_inject=5'>+</a> "
-		dat += "</tt><br>"
+	return data
 
-		dat += "Источник реагентов: "
-		dat += "<a href='byond://?src=[UID()];use_beaker=1'>[use_beaker ? "Установленная ёмкость (Если доступна)" : "Внутренний синтезатор"]</a><br>"
+/mob/living/simple_animal/bot/medbot/ui_act(action, params)
 
-		dat += "Лечить вирусные инфекции: <a href='byond://?src=[UID()];virus=1'>[treat_virus ? "Да" : "Нет"]</a><br>"
-		dat += "Динамик [shut_up ? "выключен" : "включён"]. <a href='byond://?src=[UID()];togglevoice=[1]'>Переключить</a><br>"
-		dat += "Оповещать о тяжелораненых: <a href='byond://?src=[UID()];critalerts=1'>[declare_crit ? "Да" : "Нет"]</a><br>"
-		dat += "Режим патрулирования: <a href='byond://?src=[UID()];operation=patrol'>[auto_patrol ? "Да" : "Нет"]</a><br>"
-		dat += "Стационарный режим: <a href='byond://?src=[UID()];stationary=1'>[stationary_mode ? "Да" : "Нет"]</a><br>"
-
-	return dat
-
-/mob/living/simple_animal/bot/medbot/Topic(href, href_list)
 	if(..())
-		return TRUE
+		return
 
-	if(href_list["adj_threshold"])
-		var/adjust_num = text2num(href_list["adj_threshold"])
-		heal_threshold += adjust_num
-		if(heal_threshold < 5)
-			heal_threshold = 5
-		if(heal_threshold > 75)
-			heal_threshold = 75
+	if(topic_denied(usr))
+		to_chat(usr, span_warning("Интерфейс [declent_ru(GENITIVE)] не отвечает!"))
+		return
 
-	else if(href_list["adj_inject"])
-		var/adjust_num = text2num(href_list["adj_inject"])
-		injection_amount += adjust_num
-		if(injection_amount < 5)
-			injection_amount = 5
-		if(injection_amount > 15)
-			injection_amount = 15
+	add_fingerprint(usr)
 
-	else if(href_list["use_beaker"])
-		use_beaker = !use_beaker
+	. = TRUE
 
-	else if(href_list["eject"] && (!isnull(reagent_glass)))
-		if(ishuman(usr))
-			usr.put_in_active_hand(reagent_glass, ignore_anim = FALSE)
-		else
-			reagent_glass.forceMove(get_turf(src))
-		reagent_glass = null
-		balloon_alert(usr, "ёмкость извлечена")
+	switch(action)
+		if("power")
+			if(on)
+				turn_off()
+			else
+				turn_on()
+		if("disableremote")
+			remote_disabled = !remote_disabled
 
-	else if(href_list["togglevoice"])
-		shut_up = !shut_up
+		if("hack")
+			handle_hacking(usr)
 
-	else if(href_list["critalerts"])
-		declare_crit = !declare_crit
+		if("virus")
+			treat_virus = !treat_virus
 
-	else if(href_list["stationary"])
-		stationary_mode = !stationary_mode
-		path = list()
-		update_icon()
 
-	else if(href_list["virus"])
-		treat_virus = !treat_virus
+		if("togglevoice")
+			shut_up = !shut_up
 
-	update_controls()
+
+		if("critalerts")
+			declare_crit = !declare_crit
+
+
+		if("patrol")
+			auto_patrol = !auto_patrol
+			bot_reset()
+
+
+		if("stationary")
+			stationary_mode = !stationary_mode
+			path = list()
+			update_icon()
+
+
+		if("use_beaker")
+			use_beaker = !use_beaker
+
+
+		if("eject")
+			if(reagent_glass)
+
+				if(ishuman(usr))
+					usr.put_in_active_hand(reagent_glass, ignore_anim = FALSE)
+
+				else
+					reagent_glass.forceMove(get_turf(src))
+
+				reagent_glass = null
+
+
+		if("adj_threshold")
+			heal_threshold += text2num(params["value"])
+			heal_threshold = clamp(heal_threshold, 5, 75)
+
+
+		if("adj_inject")
+			injection_amount += text2num(params["value"])
+			injection_amount = clamp(injection_amount, 5, 15)
+
+
+	SStgui.update_uis(src)
 
 /mob/living/simple_animal/bot/medbot/attackby(obj/item/I, mob/user, params)
 	var/current_health = health

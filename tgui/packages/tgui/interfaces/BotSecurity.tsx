@@ -1,22 +1,15 @@
 import { useBackend } from '../backend';
-import { Button, LabeledList, NoticeBox, Section, Box } from '../components';
+import { Button, Box } from '../components';
 import { Window } from '../layouts';
 
-type SecurityBotData = {
-  cleanblood: boolean;
-  check_id: boolean;
-  check_weapons: boolean;
-  check_warrant: boolean;
-  arrest_mode: boolean;
-  arrest_declare: boolean;
-} & BotControlsData;
+import '../styles/BotSecurity.scss';
 
-export const BotSecurity = (props: unknown) => {
-  const { act, data } = useBackend<SecurityBotData>();
+export const BotSecurity = () => {
+  const { act, data } = useBackend<any>();
+
   const {
     locked,
     noaccess,
-    maintpanel,
     on,
     autopatrol,
     canhack,
@@ -28,126 +21,276 @@ export const BotSecurity = (props: unknown) => {
     check_warrant,
     arrest_mode,
     arrest_declare,
+    health,
+    maxhealth,
   } = data;
+
   return (
-    <Window width={500} height={500}>
-      <Window.Content scrollable>
-        <NoticeBox>
-          Проведите своей ID-картой, чтобы
-          {locked ? 'разблокировать' : 'заблокировать'} этот интерфейс.
-        </NoticeBox>
-        <Section title="Основные настройки">
-          <LabeledList>
-            <LabeledList.Item label="Состояние">
-              <Button
-                icon={on ? 'power-off' : 'times'}
-                selected={on}
-                disabled={noaccess}
-                onClick={() => act('power')}
-              >
-                {on ? 'Включён' : 'Выключен'}
-              </Button>
-            </LabeledList.Item>
-            <LabeledList.Item label="Режим патрулирования">
-              <Button.Checkbox
-                fluid
-                checked={autopatrol}
-                disabled={noaccess}
-                onClick={() => act('autopatrol')}
-              >
-                Автоматическое патрулирование
-              </Button.Checkbox>
-            </LabeledList.Item>
-            {!!maintpanel && (
-              <LabeledList.Item label="Панель техобслуживания">
-                <Box color="bad">Панель открыта</Box>
-              </LabeledList.Item>
-            )}
-            <LabeledList.Item label="Протоколы безопасности">
-              <Box color={emagged ? 'bad' : 'good'}>
-                {emagged ? 'Отключены' : 'Включены'}
+    <Window width={670} height={760}>
+      <Window.Content className="securityBot">
+
+        <Box className="header">
+
+          <Box className="title">
+            ОХРАННЫЙ БОТ
+          </Box>
+
+          <Box className="sub">
+            SECURITY SUPPORT SYSTEM v1.1
+          </Box>
+
+        </Box>
+
+        <Box className="authNotice">
+
+          <Box className="authHeader">
+            СИСТЕМНОЕ УВЕДОМЛЕНИЕ
+          </Box>
+
+          <Box className="authText">
+
+            <Box className="authDot" />
+
+            Для получения полного доступа требуется ID-карта
+
+          </Box>
+
+        </Box>
+
+        <Box
+          className={
+            locked
+              ? 'accessStatus lockedStatus'
+              : 'accessStatus unlockedStatus'
+          }
+        >
+
+          <Box className="accessLabel">
+            СТАТУС ДОСТУПА
+          </Box>
+
+          <Box className="accessValue">
+
+            <Box className="accessDot" />
+
+            {locked
+              ? 'УПРАВЛЕНИЕ ЗАБЛОКИРОВАНО'
+              : 'ПОЛНЫЙ ДОСТУП'}
+
+          </Box>
+
+        </Box>
+
+        <Box className="systemCore">
+
+          <Box
+            className={
+              on
+                ? 'coreStatus online'
+                : 'coreStatus offline'
+            }
+          >
+            {on
+              ? 'СИСТЕМА АКТИВНА'
+              : 'СИСТЕМА ОТКЛЮЧЕНА'}
+          </Box>
+
+          <Box
+            className={
+              on
+                ? 'powerToggle active'
+                : 'powerToggle'
+            }
+            onClick={() => !noaccess && act('power')}
+          >
+
+            <Box className="toggleLabel">
+              ПИТАНИЕ
+            </Box>
+
+            <Box className="toggleBody">
+
+              <Box
+                className={
+                  on
+                    ? 'toggleSwitch switchOn'
+                    : 'toggleSwitch'
+                }
+              />
+
+            </Box>
+
+          </Box>
+
+        </Box>
+
+        <Box className="layout">
+
+          <Box className="panel">
+
+            <Box className="panelTitle">
+              УПРАВЛЕНИЕ
+            </Box>
+
+            <Button.Checkbox
+              fluid
+              checked={autopatrol}
+              disabled={noaccess}
+              onClick={() => act('autopatrol')}
+            >
+              Автопатрулирование
+            </Button.Checkbox>
+
+            <Button.Checkbox
+              fluid
+              checked={!remote_disabled}
+              disabled={noaccess}
+              onClick={() => act('disableremote')}
+            >
+              Подключение ИИ
+            </Button.Checkbox>
+
+            <Button.Checkbox
+              fluid
+              checked={check_id}
+              disabled={noaccess}
+              onClick={() => act('authid')}
+            >
+              Проверка личности
+            </Button.Checkbox>
+
+            <Button.Checkbox
+              fluid
+              checked={check_weapons}
+              disabled={noaccess}
+              onClick={() => act('authweapon')}
+            >
+              Проверка оружия
+            </Button.Checkbox>
+
+            <Button.Checkbox
+              fluid
+              checked={check_warrant}
+              disabled={noaccess}
+              onClick={() => act('authwarrant')}
+            >
+              Проверка розыска
+            </Button.Checkbox>
+
+            <Button.Checkbox
+              fluid
+              checked={arrest_mode}
+              disabled={noaccess}
+              onClick={() => act('arrtype')}
+            >
+              Режим задержания
+            </Button.Checkbox>
+
+            <Button.Checkbox
+              fluid
+              checked={arrest_declare}
+              disabled={noaccess}
+              onClick={() => act('arrdeclare')}
+            >
+              Радиооповещение
+            </Button.Checkbox>
+
+          </Box>
+
+          <Box className="log">
+
+            <Box className="panelTitle">
+              ДИАГНОСТИКА
+            </Box>
+
+            <Box className="line">
+              Состояние питания
+              <span className={on ? 'good' : 'bad'}>
+                {on ? 'НОРМА' : 'ОТКЛЮЧЕНО'}
+              </span>
+            </Box>
+
+            <Box className="line">
+              Протоколы безопасности
+              <span className={emagged ? 'bad' : 'good'}>
+                {emagged ? 'НАРУШЕНЫ' : 'СТАБИЛЬНЫ'}
+              </span>
+            </Box>
+
+            <Box className="line">
+              Удалённый доступ
+              <span className={!remote_disabled ? 'good' : 'bad'}>
+                {!remote_disabled
+                  ? 'РАЗРЕШЁН'
+                  : 'ЗАПРЕЩЁН'}
+              </span>
+            </Box>
+
+            <Box className="healthBlock">
+
+              <Box className="healthTitle">
+                ЦЕЛОСТНОСТЬ КОРПУСА
               </Box>
-            </LabeledList.Item>
-            {!!canhack && (
-              <LabeledList.Item label="Взлом">
-                <Button
-                  icon="terminal"
-                  disabled={noaccess}
-                  color="bad"
-                  onClick={() => act('hack')}
-                >
-                  {emagged ? 'Восстановить протоколы безопасности' : 'Взломать'}
-                </Button>
-              </LabeledList.Item>
-            )}
-            <LabeledList.Item label="Удалённый доступ">
-              <Button.Checkbox
-                fluid
-                checked={!remote_disabled}
-                disabled={noaccess}
-                onClick={() => act('disableremote')}
-              >
-                Удалённый доступ со стороны ИИ
-              </Button.Checkbox>
-            </LabeledList.Item>
-          </LabeledList>
-        </Section>
-        <Section title="Задерживаемые цели">
-          <Button.Checkbox
-            fluid
-            checked={check_id}
-            disabled={noaccess}
-            onClick={() => act('authid')}
-          >
-            Неопознанные личности
-          </Button.Checkbox>
-          <Button.Checkbox
-            fluid
-            checked={check_weapons}
-            disabled={noaccess}
-            onClick={() => act('authweapon')}
-          >
-            Имеющие неавторизированное оружие
-          </Button.Checkbox>
-          <Button.Checkbox
-            fluid
-            checked={check_warrant}
-            disabled={noaccess}
-            onClick={() => act('authwarrant')}
-          >
-            Разыскиваемые преступники
-          </Button.Checkbox>
-        </Section>
-        <Section title="Процедура задержания">
-          <Button.Checkbox
-            fluid
-            checked={arrest_mode}
-            disabled={noaccess}
-            onClick={() => act('arrtype')}
-          >
-            Бессрочное оглушение целей вместо задержания
-          </Button.Checkbox>
-          <Button.Checkbox
-            fluid
-            checked={arrest_declare}
-            disabled={noaccess}
-            onClick={() => act('arrdeclare')}
-          >
-            Сообщать о задержании по радиосвязи
-          </Button.Checkbox>
-        </Section>
-        {painame && (
-          <Section title="ПИИ">
+
+              <Box className="healthBar">
+
+                <Box
+                  className={
+                    health > maxhealth * 0.6
+                      ? 'healthFill healthy'
+                      : health > maxhealth * 0.3
+                        ? 'healthFill damaged'
+                        : 'healthFill critical'
+                  }
+                  style={{
+                    width: `${(health / maxhealth) * 100}%`,
+                  }}
+                />
+
+              </Box>
+
+            </Box>
+
+          </Box>
+
+        </Box>
+
+        {!!canhack && (
+          <Box className="danger">
+
+            <Box className="dangerTitle">
+              КРИТИЧЕСКИЙ ДОСТУП
+            </Box>
+
             <Button
               fluid
-              icon="eject"
+              color="bad"
+              icon="terminal"
               disabled={noaccess}
-              onClick={() => act('ejectpai')}
+              onClick={() => act('hack')}
             >
-              {painame}
+              {emagged
+                ? 'Восстановить защиту'
+                : 'Взломать систему'}
             </Button>
-          </Section>
+
+          </Box>
         )}
+
+        {!!painame && (
+          <Box className="danger">
+
+            <Box className="dangerTitle">
+              ВНЕШНИЙ МОДУЛЬ
+            </Box>
+
+            <Button fluid onClick={() => act('ejectpai')}>
+              Извлечь: {painame}
+            </Button>
+
+          </Box>
+        )}
+
       </Window.Content>
     </Window>
   );
