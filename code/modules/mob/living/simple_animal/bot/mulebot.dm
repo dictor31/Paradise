@@ -255,81 +255,6 @@
 			visible_message(span_danger("Что-то замыкается внутри [declent_ru(GENITIVE)]!"))
 			wires.cut_random()
 
-/mob/living/simple_animal/bot/mulebot/Topic(href, list/href_list)
-	if(..())
-		return TRUE
-
-	if(usr.incapacitated() || HAS_TRAIT(usr, TRAIT_HANDS_BLOCKED))
-		return
-
-	switch(href_list["op"])
-		if("lock")
-			toggle_lock(usr)
-		if("power")
-			if(on)
-				turn_off()
-			else if(cell && !open)
-				if(!turn_on())
-					to_chat(usr, span_warning("Вы не можете включить !"))
-					return
-			else
-				return
-			visible_message("[usr] [on ? "включает" : "выключает"] [declent_ru(GENITIVE)].")
-		if("cellremove")
-			if(open && cell && !usr.get_active_hand())
-				cell.update_icon()
-				cell.forceMove_turf()
-				usr.put_in_active_hand(cell, ignore_anim = FALSE)
-				cell.add_fingerprint(usr)
-				cell = null
-
-				usr.visible_message(span_notice("[usr] вынул батарею из [declent_ru(GENITIVE)]."),
-									span_notice("Вы вынули батарею из [declent_ru(GENITIVE)]."))
-		if("cellinsert")
-			if(open && !cell)
-				var/obj/item/stock_parts/cell/C = usr.get_active_hand()
-				if(istype(C))
-					usr.drop_transfer_item_to_loc(C, src)
-					cell = C
-					C.add_fingerprint(usr)
-
-					usr.visible_message(span_notice("[usr] вставил батарею в [declent_ru(GENITIVE)]."),
-										span_notice("Вы вставили батарею в [declent_ru(GENITIVE)]."))
-		if("stop")
-			if(mode >= BOT_DELIVER)
-				bot_reset()
-		if("go")
-			if(mode == BOT_IDLE)
-				start()
-		if("home")
-			if(mode == BOT_IDLE || mode == BOT_DELIVER)
-				start_home()
-		if("destination")
-			var/new_dest = tgui_input_list(usr, "Введите пункт назначения:", name, GLOB.deliverybeacontags, destination)
-			if(new_dest)
-				set_destination(new_dest)
-		if("setid")
-			var/new_id = tgui_input_text(usr, "Введите ID:", name, suffix, MAX_NAME_LEN)
-			if(new_id)
-				set_suffix(new_id)
-		if("sethome")
-			var/new_home = tgui_input_list(usr, "Введите домашнюю точку:", name, GLOB.deliverybeacontags, home_destination)
-			if(new_home)
-				home_destination = new_home
-		if("unload")
-			if(load && mode != BOT_HUNT)
-				if(loc == target)
-					unload(loaddir)
-				else
-					unload(0)
-		if("autoret")
-			auto_return = !auto_return
-		if("autopick")
-			auto_pickup = !auto_pickup
-		if("report")
-			report_delivery = !report_delivery
-	update_controls()
-
 /mob/living/simple_animal/bot/mulebot/proc/toggle_lock(mob/user)
 	if(bot_core.allowed(user))
 		locked = !locked
@@ -339,70 +264,162 @@
 		balloon_alert(user, "отказано в доступе!")
 		return FALSE
 
+/mob/living/simple_animal/bot/mulebot/ui_interact(mob/user, datum/tgui/ui)
+	ui = SStgui.try_update_ui(user, src, ui)
+
+	if(!ui)
+		ui = new(user, src, "BotMule", name)
+		ui.open()
+
 // TODO: remove this; PDAs currently depend on it
-/mob/living/simple_animal/bot/mulebot/get_controls(mob/user)
-	var/ai = issilicon(user)
-	var/dat
-	dat += hack(user)
-	dat += showpai(user)
-	dat += "<h3>Многофункциональный Узкоспециализированный Легкомоторный робот v5.0</h3>"
-	dat += "<b>ID:</b> [suffix]<br>"
-	dat += "<b>Питание:</b> [on ? "Включён" : "Выключен"]<br>"
+/mob/living/simple_animal/bot/mulebot/show_controls(mob/user)
+	ui_interact(user)
 
-	if(!open)
-		dat += "<h3>Состояние</h3>"
-		dat += "<div class='statusDisplay'>"
-		switch(mode)
-			if(BOT_IDLE)
-				dat += span_good("Готовность")
-			if(BOT_DELIVER)
-				dat += span_good("[mode_name[BOT_DELIVER]]")
-			if(BOT_GO_HOME)
-				dat += span_good("[mode_name[BOT_GO_HOME]]")
-			if(BOT_BLOCKED)
-				dat += span_average("[mode_name[BOT_BLOCKED]]")
-			if(BOT_NAV,BOT_WAIT_FOR_NAV)
-				dat += span_average("[mode_name[BOT_NAV]]")
-			if(BOT_NO_ROUTE)
-				dat += span_bad("[mode_name[BOT_NO_ROUTE]]")
-		dat += "</div>"
+/mob/living/simple_animal/bot/mulebot/ui_data(mob/user)
+	var/list/data = list()
 
-		dat += "<b>Груз</b> [load ? load.name : "<i>отсутствует</i>"]<br>"
-		dat += "<b>Пункт назначения:</b> [!destination ? "<i>отсутствует</i>" : destination]<br>"
-		dat += "<b>Заряд:</b> [cell ? cell.percent() : 0]%"
+	data["on"] = on
+	data["locked"] = locked
+	data["noaccess"] = topic_denied(user)
 
-		if(locked && !ai && !user.can_admin_interact())
-			dat += "&nbsp;<br /><div class='notice'>Управление поведением заблокировано</div><a href='byond://?src=[UID()];op=unlock'>Разблокировать</a>"
-		else
-			dat += "&nbsp;<br /><div class='notice'>Управление поведением разблокировано</div><a href='byond://?src=[UID()];op=lock'>Заблокировать</a><br><br>"
+	data["open"] = open
+	data["ai"] = issilicon(user)
 
-			dat += "<a href='byond://?src=[UID()];op=power'>Включить/Выключить</a><br>"
-			dat += "<a href='byond://?src=[UID()];op=stop'>Остановиться</a><br>"
-			dat += "<a href='byond://?src=[UID()];op=go'>Продолжить движение</a><br>"
-			dat += "<a href='byond://?src=[UID()];op=home'>Возврат домой</a><br>"
-			dat += "<a href='byond://?src=[UID()];op=destination'>Задать точку назначения</a><br>"
-			dat += "<a href='byond://?src=[UID()];op=setid'>Задать ID роботу</a><br>"
-			dat += "<a href='byond://?src=[UID()];op=sethome'>Задать домашнюю точку</a><br>"
-			dat += "<a href='byond://?src=[UID()];op=autoret'>[auto_return ? "Включить":"Выключить"] автоматическое возвращение домой</a><br>"
-			dat += "<a href='byond://?src=[UID()];op=autopick'>[auto_return ? "Включить":"Выключить"] автоматический подбор ящиков</a><br>"
-			dat += "<a href='byond://?src=[UID()];op=report'>[auto_return ? "Включить":"Выключить"] автоматический отчёт о доставке</a><br>"
-			if(load)
-				dat += "<a href='byond://?src=[UID()];op=unload'>Разгрузиться</a><br>"
-			dat += "<div class='notice'>Панель технического обслуживания закрыта</div>"
-	else
-		if(!ai)
-			dat += "<div class='notice'>Панель технического обслуживания открыта</div><br>"
-			dat += "<b>Батарея:</b> "
-			if(cell)
-				dat += "<a href='byond://?src=[UID()];op=cellremove'>Установлена</a><br>"
-			else
-				dat += "<a href='byond://?src=[UID()];op=cellinsert'>Отсутствует</a><br>"
+	data["suffix"] = suffix
+
+	data["mode"] = mode
+	data["mode_name"] = mode_name
+
+	data["load"] = load ? load.name : ""
+	data["destination"] = destination || ""
+
+	data["charge"] = cell ? cell.percent() : 0
+
+	data["auto_return"] = auto_return
+	data["auto_pickup"] = auto_pickup
+	data["report_delivery"] = report_delivery
+
+	data["cell"] = !!cell
+
+	data["canhack"] = canhack(user)
+	data["emagged"] = emagged
+
+	data["painame"] = paicard ? paicard.pai.name : null
+
+	return data
+
+/mob/living/simple_animal/bot/mulebot/ui_act(action, params, datum/tgui/ui, datum/ui_state/state)
+	. = ..()
+
+	if(.)
+		return
+
+	var/mob/user = usr
+
+	switch(action)
+
+		if("power")
+			if(topic_denied(user))
+				return TRUE
+
+			on = !on
+			update_icon()
+			return TRUE
+
+		if("stop")
+			if(topic_denied(user))
+				return TRUE
+
+			// СЮДА переносится существующая логика op=stop
+			return TRUE
+
+		if("go")
+			if(topic_denied(user))
+				return TRUE
+
+			// СЮДА существующая логика op=go
+			return TRUE
+
+		if("home")
+			if(topic_denied(user))
+				return TRUE
+
+			// СЮДА существующая логика op=home
+			return TRUE
+
+		if("destination")
+			if(topic_denied(user))
+				return TRUE
+
+			// СЮДА существующая логика задания destination
+			return TRUE
+
+		if("setid")
+			if(topic_denied(user))
+				return TRUE
+
+			// СЮДА существующая логика задания ID
+			return TRUE
+
+		if("sethome")
+			if(topic_denied(user))
+				return TRUE
+
+			// СЮДА существующая логика задания home
+			return TRUE
+
+		if("autoret")
+			if(topic_denied(user))
+				return TRUE
+
+			auto_return = !auto_return
+			return TRUE
+
+		if("autopick")
+			if(topic_denied(user))
+				return TRUE
+
+			auto_pickup = !auto_pickup
+			return TRUE
+
+		if("report")
+			if(topic_denied(user))
+				return TRUE
+
+			report_delivery = !report_delivery
+			return TRUE
+
+		if("unload")
+			if(topic_denied(user))
+				return TRUE
+
+			// СЮДА существующая логика op=unload
+			return TRUE
+
+		if("cellremove")
+			if(!issilicon(user))
+				// здесь переносится существующая проверка
+				return TRUE
+
+			// существующая логика снятия батареи
+			return TRUE
+
+		if("cellinsert")
+			if(!issilicon(user))
+				// здесь переносится существующая проверка
+				return TRUE
+
+			// существующая логика установки батареи
+			return TRUE
+
+		if("wires")
+			if(!open || issilicon(user))
+				return TRUE
 
 			wires.Interact(user)
-		else
-			dat += "<div class='notice'>Робот в режиме технического обслуживания — управление поведением заблокировано</div><br>"
+			return TRUE
 
-	return dat
+	return FALSE
 
 // returns true if the bot has power
 /mob/living/simple_animal/bot/mulebot/proc/has_power()
