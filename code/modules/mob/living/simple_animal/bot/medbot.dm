@@ -201,7 +201,7 @@
 	ui = SStgui.try_update_ui(user, src, ui)
 
 	if(!ui)
-		ui = new(user, src, "MedBot")
+		ui = new(user, src, "MedBot", name)
 		ui.open()
 
 /mob/living/simple_animal/bot/medbot/ui_data(mob/user)

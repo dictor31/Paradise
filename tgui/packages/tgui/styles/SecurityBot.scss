@@ -1,0 +1,198 @@
+/* =========================================================
+   SECURITY BOT — RED THEME
+   ========================================================= */
+
+.securityBot {
+  background:
+    radial-gradient(
+      circle at 50% 0%,
+      rgba(255, 70, 70, .10),
+      transparent 45%
+    ),
+    #0e171b;
+}
+
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+.securityBot .title,
+.securityBot .panelTitle,
+.securityBot .dangerTitle {
+  color: #ff6b6b;
+
+  text-shadow:
+    0 0 10px rgba(255, 107, 107, .45);
+}
+
+
+/* =========================================================
+   PANELS
+   ========================================================= */
+
+.securityBot .panel,
+.securityBot .log {
+  border-color: rgba(255, 70, 70, .35);
+
+  box-shadow:
+    inset 0 0 15px rgba(255, 70, 70, .06);
+}
+
+
+.securityBot .danger {
+  border-color: rgba(255, 70, 70, .4);
+
+  box-shadow:
+    inset 0 0 15px rgba(255, 70, 70, .04);
+}
+
+
+/* =========================================================
+   SYSTEM STATUS
+   ========================================================= */
+
+.securityBot .online {
+  color: #ff6b6b;
+
+  text-shadow:
+    0 0 8px #ff6b6b,
+    0 0 20px rgba(255, 107, 107, .5);
+}
+
+
+/* =========================================================
+   POWER
+   ========================================================= */
+
+.securityBot .switchOn {
+  background: #ff6b6b;
+
+  box-shadow:
+    0 0 12px rgba(255, 107, 107, .8);
+}
+
+
+/* =========================================================
+   BOT BUTTONS
+   ========================================================= */
+
+/* Активная кнопка */
+
+.securityBot .botButton.checked {
+  background: #2a1b1d;
+
+  border-color: #96565c;
+
+  box-shadow:
+    inset 3px 0 0 rgba(255, 105, 105, .75),
+    inset 0 0 12px rgba(220, 70, 70, .06);
+}
+
+
+/* Индикатор активной кнопки */
+
+.securityBot .botButton.checked .botButtonIndicator {
+  color: #ff7777;
+
+  border-color: #a85f65;
+
+  background: rgba(255, 80, 80, .09);
+
+  text-shadow:
+    0 0 7px rgba(255, 100, 100, .8);
+
+  box-shadow:
+    0 0 7px rgba(255, 80, 80, .2);
+}
+
+
+/* Текст активной кнопки */
+
+.securityBot .botButton.checked .botButtonText {
+  color: #f8e3e3;
+}
+
+
+/* =========================================================
+   HOVER
+   ========================================================= */
+
+.securityBot .botButton:hover:not(.disabled) {
+  background: #302023;
+
+  border-color: #a66a70;
+
+  box-shadow:
+    0 0 9px rgba(255, 100, 100, .14),
+    inset 0 0 10px rgba(255, 100, 100, .04);
+}
+
+
+.securityBot .botButton:hover:not(.disabled) .botButtonIndicator {
+  color: #ff8c8c;
+
+  border-color: #b77b80;
+
+  text-shadow:
+    0 0 7px rgba(255, 100, 100, .7);
+}
+
+
+/* =========================================================
+   ACTIVE / PRESS
+   ========================================================= */
+
+.securityBot .botButton:active:not(.disabled) {
+  background: #1b1214;
+}
+
+
+/* =========================================================
+   DISABLED
+   ========================================================= */
+
+.securityBot .botButton.disabled {
+  opacity: .4;
+}
+
+
+.securityBot .botButton.disabled .botButtonIndicator {
+  color: #5b484b;
+
+  text-shadow: none;
+}
+
+
+/* =========================================================
+   HEALTH
+   ========================================================= */
+
+/* Нормальное состояние */
+
+.securityBot .healthFill.healthy {
+  background: #ff6b72;
+
+  box-shadow:
+    0 0 9px rgba(255, 107, 114, .5);
+}
+
+
+/* Повреждение */
+
+.securityBot .healthFill.damaged {
+  background: #ffb84d;
+
+  box-shadow:
+    0 0 8px rgba(255, 184, 77, .45);
+}
+
+
+/* Критическое состояние */
+
+.securityBot .healthFill.critical {
+  background: #ff454d;
+
+  box-shadow:
+    0 0 10px rgba(255, 69, 77, .6);
+}

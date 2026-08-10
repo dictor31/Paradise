@@ -1,0 +1,203 @@
+.cleanBot {
+  background:
+    radial-gradient(
+      circle at 50% 0%,
+      rgba(170, 80, 255, .12),
+      transparent 45%
+    ),
+    #0e171b;
+}
+
+.cleanBot .title,
+.cleanBot .panelTitle,
+.cleanBot .dangerTitle {
+  color: #c875ff;
+
+  text-shadow:
+    0 0 10px rgba(200, 117, 255, .45);
+}
+
+.cleanBot .panel,
+.cleanBot .log {
+  border-color: rgba(170, 80, 255, .35);
+
+  box-shadow:
+    inset 0 0 15px rgba(170, 80, 255, .06);
+}
+
+.cleanBot .danger {
+  border-color: rgba(170, 80, 255, .4);
+
+  box-shadow:
+    inset 0 0 15px rgba(170, 80, 255, .04);
+}
+
+.cleanBot .online {
+  color: #c875ff;
+
+  text-shadow:
+    0 0 8px #c875ff,
+    0 0 20px rgba(200, 117, 255, .5);
+}
+
+.cleanBot .switchOn {
+  background: #c875ff;
+
+  box-shadow:
+    0 0 12px rgba(200, 117, 255, .8);
+}
+/* =========================================================
+   CLEAN BOT — PURPLE THEME
+   ========================================================= */
+
+.cleanBot .botButton.checked {
+  background: #241b2b;
+  border-color: #76558c;
+
+  box-shadow:
+    inset 3px 0 0 rgba(200, 117, 255, .7),
+    inset 0 0 12px rgba(170, 80, 255, .06);
+}
+
+.cleanBot .botButton.checked .botButtonIndicator {
+  border-color: #a66ac7;
+  background: rgba(170, 80, 255, .08);
+
+  box-shadow:
+    0 0 7px rgba(170, 80, 255, .2);
+}
+
+.cleanBot .botButton.checked .botButtonIndicatorCore {
+  background: #c875ff;
+
+  box-shadow:
+    0 0 7px rgba(200, 117, 255, .8);
+}
+
+.cleanBot .botButton.checked .botButtonText {
+  color: #efdfff;
+}
+
+.cleanBot .botButton.checked .botButtonState {
+  color: #c875ff;
+}
+
+
+/* Hover */
+
+.cleanBot .botButton:hover:not(.disabled) {
+  border-color: #76558c;
+
+  box-shadow:
+    0 0 8px rgba(170, 80, 255, .12),
+    inset 0 0 10px rgba(170, 80, 255, .04);
+}
+
+.cleanBot .botButton:hover:not(.disabled) .botButtonIndicator {
+  border-color: #9d70b5;
+}
+
+
+/* Active */
+
+.cleanBot .botButton:active:not(.disabled) {
+  background: #19131e;
+}
+
+
+/* Health */
+
+.cleanBot .healthFill.healthy {
+  background: #c875ff;
+
+  box-shadow:
+    0 0 9px rgba(200, 117, 255, .55);
+}
+
+.cleanBot .healthFill.damaged {
+  background: #d79cff;
+
+  box-shadow:
+    0 0 8px rgba(215, 156, 255, .45);
+}
+
+.cleanBot .healthFill.critical {
+  background: #ff6b9d;
+
+  box-shadow:
+    0 0 10px rgba(255, 107, 157, .5);
+}
+/* =========================================================
+   CLEANING BOT — BOT BUTTONS
+   ========================================================= */
+
+.cleanBot .botButton.checked {
+  background: #211b29;
+  border-color: #80529c;
+
+  box-shadow:
+    inset 3px 0 0 rgba(200, 117, 255, .75),
+    inset 0 0 12px rgba(170, 80, 255, .06);
+}
+
+.cleanBot .botButton.checked .botButtonIndicator {
+  color: #c875ff;
+
+  border-color: #a66bc7;
+  background: rgba(170, 80, 255, .09);
+
+  text-shadow:
+    0 0 7px rgba(200, 117, 255, .8);
+
+  box-shadow:
+    0 0 7px rgba(170, 80, 255, .2);
+}
+
+.cleanBot .botButton.checked .botButtonText {
+  color: #f0e3f8;
+}
+
+
+/* =========================================================
+   HOVER
+   ========================================================= */
+
+.cleanBot .botButton:hover:not(.disabled) {
+  background: #261e2d;
+  border-color: #9165aa;
+
+  box-shadow:
+    0 0 9px rgba(180, 100, 230, .14),
+    inset 0 0 10px rgba(200, 120, 255, .04);
+}
+
+.cleanBot .botButton:hover:not(.disabled) .botButtonIndicator {
+  color: #d58cff;
+  border-color: #b17acb;
+
+  text-shadow:
+    0 0 7px rgba(200, 117, 255, .7);
+}
+
+
+/* =========================================================
+   ACTIVE
+   ========================================================= */
+
+.cleanBot .botButton:active:not(.disabled) {
+  background: #17121b;
+}
+
+
+/* =========================================================
+   DISABLED
+   ========================================================= */
+
+.cleanBot .botButton.disabled {
+  opacity: .4;
+}
+
+.cleanBot .botButton.disabled .botButtonIndicator {
+  color: #55485b;
+  text-shadow: none;
+}

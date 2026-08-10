@@ -1,11 +1,40 @@
 import { useBackend } from '../backend';
-import { Button, Box } from '../components';
+import { Box } from '../components';
 import { Window } from '../layouts';
 
-import '../styles/BotSecurity.scss';
+import { BotHeader } from '../components/BotHeader';
+import { BotPower } from '../components/BotPower';
+import { BotAccess } from '../components/BotAccess';
+import { BotHealth } from '../components/BotHealth';
+import { BotHack } from '../components/BotHack';
+import { BotPanel } from '../components/BotPanel';
+import { BotDiagnostic } from '../components/BotDiagnostic';
+import { BotExternalModule } from '../components/BotExternalModule';
+import { BotButton } from '../components/BotButton';
+
+import '../styles/CommonBot.scss';
+import '../styles/SecurityBot.scss';
+
+type SecurityBotData = {
+  locked: boolean;
+  noaccess: boolean;
+  on: boolean;
+  autopatrol: boolean;
+  canhack: boolean;
+  emagged: boolean;
+  remote_disabled: boolean;
+  painame: string;
+  check_id: boolean;
+  check_weapons: boolean;
+  check_warrant: boolean;
+  arrest_mode: boolean;
+  arrest_declare: boolean;
+  health: number;
+  maxhealth: number;
+};
 
 export const BotSecurity = () => {
-  const { act, data } = useBackend<any>();
+  const { act, data } = useBackend<SecurityBotData>();
 
   const {
     locked,
@@ -27,184 +56,89 @@ export const BotSecurity = () => {
 
   return (
     <Window width={670} height={760}>
-      <Window.Content className="securityBot">
+      <Window.Content className="botUI securityBot">
 
-        <Box className="header">
+        <BotHeader
+          title="ОХРАННЫЙ БОТ"
+          subtitle="SECURITY SUPPORT SYSTEM v1.1"
+        />
 
-          <Box className="title">
-            ОХРАННЫЙ БОТ
-          </Box>
+        <BotPower
+          on={on}
+          onToggle={() => !noaccess && act('power')}
+        />
 
-          <Box className="sub">
-            SECURITY SUPPORT SYSTEM v1.1
-          </Box>
-
-        </Box>
-
-        <Box className="authNotice">
-
-          <Box className="authHeader">
-            СИСТЕМНОЕ УВЕДОМЛЕНИЕ
-          </Box>
-
-          <Box className="authText">
-
-            <Box className="authDot" />
-
-            Для получения полного доступа требуется ID-карта
-
-          </Box>
-
-        </Box>
-
-        <Box
-          className={
-            locked
-              ? 'accessStatus lockedStatus'
-              : 'accessStatus unlockedStatus'
-          }
-        >
-
-          <Box className="accessLabel">
-            СТАТУС ДОСТУПА
-          </Box>
-
-          <Box className="accessValue">
-
-            <Box className="accessDot" />
-
-            {locked
-              ? 'УПРАВЛЕНИЕ ЗАБЛОКИРОВАНО'
-              : 'ПОЛНЫЙ ДОСТУП'}
-
-          </Box>
-
-        </Box>
-
-        <Box className="systemCore">
-
-          <Box
-            className={
-              on
-                ? 'coreStatus online'
-                : 'coreStatus offline'
-            }
-          >
-            {on
-              ? 'СИСТЕМА АКТИВНА'
-              : 'СИСТЕМА ОТКЛЮЧЕНА'}
-          </Box>
-
-          <Box
-            className={
-              on
-                ? 'powerToggle active'
-                : 'powerToggle'
-            }
-            onClick={() => !noaccess && act('power')}
-          >
-
-            <Box className="toggleLabel">
-              ПИТАНИЕ
-            </Box>
-
-            <Box className="toggleBody">
-
-              <Box
-                className={
-                  on
-                    ? 'toggleSwitch switchOn'
-                    : 'toggleSwitch'
-                }
-              />
-
-            </Box>
-
-          </Box>
-
-        </Box>
+        <BotAccess
+          locked={locked}
+        />
 
         <Box className="layout">
 
-          <Box className="panel">
+          <BotPanel title="УПРАВЛЕНИЕ">
 
-            <Box className="panelTitle">
-              УПРАВЛЕНИЕ
-            </Box>
-
-            <Button.Checkbox
-              fluid
+            <BotButton
               checked={autopatrol}
               disabled={noaccess}
               onClick={() => act('autopatrol')}
             >
               Автопатрулирование
-            </Button.Checkbox>
+            </BotButton>
 
-            <Button.Checkbox
-              fluid
+            <BotButton
               checked={!remote_disabled}
               disabled={noaccess}
               onClick={() => act('disableremote')}
             >
               Подключение ИИ
-            </Button.Checkbox>
+            </BotButton>
 
-            <Button.Checkbox
-              fluid
+            <BotButton
               checked={check_id}
               disabled={noaccess}
               onClick={() => act('authid')}
             >
               Проверка личности
-            </Button.Checkbox>
+            </BotButton>
 
-            <Button.Checkbox
-              fluid
+            <BotButton
               checked={check_weapons}
               disabled={noaccess}
               onClick={() => act('authweapon')}
             >
               Проверка оружия
-            </Button.Checkbox>
+            </BotButton>
 
-            <Button.Checkbox
-              fluid
+            <BotButton
               checked={check_warrant}
               disabled={noaccess}
               onClick={() => act('authwarrant')}
             >
               Проверка розыска
-            </Button.Checkbox>
+            </BotButton>
 
-            <Button.Checkbox
-              fluid
+            <BotButton
               checked={arrest_mode}
               disabled={noaccess}
               onClick={() => act('arrtype')}
             >
               Режим задержания
-            </Button.Checkbox>
+            </BotButton>
 
-            <Button.Checkbox
-              fluid
+            <BotButton
               checked={arrest_declare}
               disabled={noaccess}
               onClick={() => act('arrdeclare')}
             >
               Радиооповещение
-            </Button.Checkbox>
+            </BotButton>
 
-          </Box>
+          </BotPanel>
 
-          <Box className="log">
-
-            <Box className="panelTitle">
-              ДИАГНОСТИКА
-            </Box>
+          <BotDiagnostic title="ДИАГНОСТИКА">
 
             <Box className="line">
-              Состояние питания
+              Питание
+
               <span className={on ? 'good' : 'bad'}>
                 {on ? 'НОРМА' : 'ОТКЛЮЧЕНО'}
               </span>
@@ -212,6 +146,7 @@ export const BotSecurity = () => {
 
             <Box className="line">
               Протоколы безопасности
+
               <span className={emagged ? 'bad' : 'good'}>
                 {emagged ? 'НАРУШЕНЫ' : 'СТАБИЛЬНЫ'}
               </span>
@@ -219,6 +154,7 @@ export const BotSecurity = () => {
 
             <Box className="line">
               Удалённый доступ
+
               <span className={!remote_disabled ? 'good' : 'bad'}>
                 {!remote_disabled
                   ? 'РАЗРЕШЁН'
@@ -226,69 +162,29 @@ export const BotSecurity = () => {
               </span>
             </Box>
 
-            <Box className="healthBlock">
+            <BotHealth
+              health={health}
+              maxHealth={maxhealth}
+            />
 
-              <Box className="healthTitle">
-                ЦЕЛОСТНОСТЬ КОРПУСА
-              </Box>
-
-              <Box className="healthBar">
-
-                <Box
-                  className={
-                    health > maxhealth * 0.6
-                      ? 'healthFill healthy'
-                      : health > maxhealth * 0.3
-                        ? 'healthFill damaged'
-                        : 'healthFill critical'
-                  }
-                  style={{
-                    width: `${(health / maxhealth) * 100}%`,
-                  }}
-                />
-
-              </Box>
-
-            </Box>
-
-          </Box>
+          </BotDiagnostic>
 
         </Box>
 
         {!!canhack && (
-          <Box className="danger">
-
-            <Box className="dangerTitle">
-              КРИТИЧЕСКИЙ ДОСТУП
-            </Box>
-
-            <Button
-              fluid
-              color="bad"
-              icon="terminal"
-              disabled={noaccess}
-              onClick={() => act('hack')}
-            >
-              {emagged
-                ? 'Восстановить защиту'
-                : 'Взломать систему'}
-            </Button>
-
-          </Box>
+          <BotHack
+            emagged={emagged}
+            disabled={noaccess}
+            onClick={() => act('hack')}
+          />
         )}
 
         {!!painame && (
-          <Box className="danger">
-
-            <Box className="dangerTitle">
-              ВНЕШНИЙ МОДУЛЬ
-            </Box>
-
-            <Button fluid onClick={() => act('ejectpai')}>
-              Извлечь: {painame}
-            </Button>
-
-          </Box>
+          <BotExternalModule
+            name={painame}
+            disabled={noaccess}
+            onEject={() => act('ejectpai')}
+          />
         )}
 
       </Window.Content>
