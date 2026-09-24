@@ -235,7 +235,7 @@
 /turf/simulated/floor/swarmer_act() //ex_act() on turf calls it on its contents, this is to prevent attacking mobs by DisIntegrate()'ing the floor
 	return FALSE
 
-/obj/structure/lattice/catwalk/swarmer_catwalk/swarmer_act(mob/living/simple_animal/hostile/swarmer/S)
+/obj/structure/lattice/catwalk/fireproof/swarmer_catwalk/swarmer_act(mob/living/simple_animal/hostile/swarmer/S)
 	to_chat(S, span_warning("We have created these for our own benefit. Aborting."))
 	return FALSE
 
@@ -257,9 +257,11 @@
 	return FALSE
 
 /turf/simulated/floor/lava/swarmer_act()
-	if(!is_safe())
-		new /obj/structure/lattice/catwalk/swarmer_catwalk(src)
-	return FALSE
+	if(is_safe())
+		return FALSE
+	if(locate(/obj/structure/lattice/catwalk/fireproof) in src)
+		return FALSE
+	new /obj/structure/lattice/catwalk/fireproof/swarmer_catwalk(src)
 
 /obj/machinery/atmospherics/swarmer_act()
 	return FALSE
@@ -658,18 +660,12 @@
 	qdel(src)
 
 /mob/living/simple_animal/hostile/swarmer/proc/CreateTrap()
-	set name = "Создать ловушку"
-	set category = VERB_CATEGORY_SWARMER
-	set desc = "Creates a simple trap that will non-lethally electrocute anything that steps on it. Costs 5 resources."
 	if(locate(/obj/structure/swarmer/trap) in loc)
 		to_chat(src, span_warning("There is already a trap here. Aborting."))
 		return
 	Fabricate(/obj/structure/swarmer/trap, 5)
 
 /mob/living/simple_animal/hostile/swarmer/proc/CreateBarricade()
-	set name = "Создать баррикаду"
-	set category = VERB_CATEGORY_SWARMER
-	set desc = "Creates a barricade that will stop anything but swarmers and disabler beams from passing through."
 	if(locate(/obj/structure/swarmer/blockade) in loc)
 		to_chat(src, span_warning("There is already a blockade here. Aborting."))
 		return
@@ -692,9 +688,6 @@
 		return TRUE
 
 /mob/living/simple_animal/hostile/swarmer/proc/CreateSwarmer()
-	set name = "Репликация"
-	set category = VERB_CATEGORY_SWARMER
-	set desc = "Creates a shell for a new swarmer. Swarmers will self activate."
 	to_chat(src, span_notice("We are attempting to replicate ourselves. We will need to stand still until the process is complete."))
 	if(resources < 100)
 		to_chat(src, span_warning("We do not have the resources for this!"))
@@ -711,9 +704,6 @@
 	return /obj/effect/mob_spawn/swarmer
 
 /mob/living/simple_animal/hostile/swarmer/proc/RepairSelf()
-	set name = "Саморемонт"
-	set category = VERB_CATEGORY_SWARMER
-	set desc = "Attempts to repair damage to our body. You will have to remain motionless until repairs are complete."
 	if(!isturf(loc))
 		return
 	to_chat(src, span_notice("Attempting to repair damage to our body, stand by..."))

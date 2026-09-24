@@ -91,6 +91,7 @@
 
 	var/list/equipment = new
 	var/list/list/equipment_in_hands
+	// Associative list of "hand_define" = equipment
 	var/list/obj/item/mecha_parts/mecha_equipment/selected_equipment_in_hands = list()
 	var/max_equip = 3
 	var/turf/crashing = null
@@ -246,9 +247,9 @@
 	QDEL_NULL(spark_system)
 	QDEL_NULL(smoke_system)
 	QDEL_LIST(trackers)
-	LAZYCLEARLIST(selected_equipment_in_hands)
+	QDEL_LIST_ASSOC_VAL(selected_equipment_in_hands)
 	for(var/list/equipment in equipment_in_hands)
-		equipment.Cut()
+		QDEL_LIST(equipment)
 	QDEL_NULL(ui_view)
 	lose_hearing_sensitivity(trait_source = ROUNDSTART_TRAIT)
 	remove_from_all_data_huds()
@@ -802,7 +803,7 @@
 		booster_damage_modifier /= facing_modifier
 		booster_deflection_modifier *= facing_modifier
 	if(prob(deflect_chance * booster_deflection_modifier))
-		visible_message(span_danger("[src]'s armour deflects the attack!"), projectile_message = projectile_check)
+		visible_message(span_danger("[src]'s armour deflects the attack!"))
 		return FALSE
 	if(.)
 		. *= booster_damage_modifier
@@ -1590,8 +1591,7 @@
 		dir = dir_in
 
 	if(L?.client)
-		ASYNC
-			L.client.RemoveViewMod("mecha")
+		INVOKE_ASYNC(L.client.view_size, TYPE_PROC_REF(/datum/view_data, resetToDefault))
 		zoom_mode = FALSE
 
 	if(ishuman(L))
