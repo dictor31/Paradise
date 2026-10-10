@@ -9,6 +9,43 @@ GLOBAL_DATUM_INIT(skills_upgrade_window, /datum/ui_module/skills_upgrade_win, ne
 	var/mob/target_user
 	COOLDOWN_DECLARE(skill_click_cooldown)
 
+/datum/ui_module/cook_window
+	name = "Рецепты персонажа"
+	COOLDOWN_DECLARE(skill_click_cooldown)
+
+/datum/ui_module/cook_window/ui_interact(mob/user, datum/tgui/ui)
+	ui = SStgui.try_update_ui(user, src, ui)
+	if(!ui)
+		ui = new(user, src, "CookWindow", "Рецепты персонажа")
+		ui.set_autoupdate(FALSE)
+		ui.open()
+
+/datum/ui_module/cook_window/ui_state(mob/user)
+	return GLOB.always_state
+
+/datum/ui_module/cook_window/ui_data(mob/user)
+    var/list/data = list()
+    var/list/recipes = list()
+
+    for(var/datum/recipe/recipe in GLOB.cooking_recipes["Microwave"])
+        var/list/items = list()
+
+        for(var/item in recipe.items)
+            items += "[initial(item.name)]"
+
+        var/list/reagents = list()
+
+        for(var/reagent in recipe.reagents)
+            reagents += "[reagent]"
+
+        recipes += list(list(
+            "name" = "[initial(recipe.result.name)]",
+            "items" = items,
+            "reagents" = reagents
+        ))
+
+    data["recipes"] = recipes
+    return data
 
 /datum/ui_module/skills_upgrade_win/ui_state(mob/user)
 	if(isobserver(user))

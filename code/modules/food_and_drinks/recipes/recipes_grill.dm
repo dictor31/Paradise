@@ -35,11 +35,13 @@
 	result = /obj/item/reagent_containers/food/snacks/birdsteak
 
 /datum/recipe/grill/meatsteak
-	reagents = list("sodiumchloride" = 1, "blackpepper" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/meat,
 	)
 	result = /obj/item/reagent_containers/food/snacks/meatsteak
+
+/datum/recipe/grill/meatsteak/New()
+	reagents = list("sodiumchloride" = rand(1,5), "blackpepper" = rand(1,5))
 
 /datum/recipe/grill/salmonsteak
 	reagents = list("sodiumchloride" = 1, "blackpepper" = 1)

@@ -73,3 +73,10 @@ GAME_VERB(/mob, view_skills_win, "Навыки персонажа", VERB_CATEGOR
 		return
 	var/datum/ui_module/skills_upgrade_win/skills_win = new()
 	skills_win.show(usr, src)
+
+GAME_VERB(/mob, cook_window, "Рецепты персонажа", VERB_CATEGORY_IC)
+	if(!mind)
+		to_chat(world, span_danger("Произошла неизвестная ошибка, поэтому мы не можем показать вам ваши рецепты."))
+		return
+	var/datum/ui_module/cook_window/cook_win = new()
+	cook_win.ui_interact(usr)
