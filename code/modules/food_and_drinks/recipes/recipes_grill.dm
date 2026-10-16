@@ -1,12 +1,14 @@
 // /datum/recipe/grill
 
 /datum/recipe/grill/bacon
+	name = "Бекон"
 	items = list(
 		/obj/item/reagent_containers/food/snacks/raw_bacon,
 	)
 	result = /obj/item/reagent_containers/food/snacks/bacon
 
 /datum/recipe/grill/telebacon
+	name = "Теле-Бекон"
 	items = list(
 		/obj/item/reagent_containers/food/snacks/meat,
 		/obj/item/assembly/signaler,
@@ -14,6 +16,7 @@
 	result = /obj/item/reagent_containers/food/snacks/telebacon
 
 /datum/recipe/grill/syntitelebacon
+	name = "Синтетический Теле-Бекон"
 	items = list(
 		/obj/item/reagent_containers/food/snacks/meat/syntiflesh,
 		/obj/item/assembly/signaler,
@@ -21,6 +24,7 @@
 	result = /obj/item/reagent_containers/food/snacks/telebacon
 
 /datum/recipe/grill/friedegg
+	name = "Яичница"
 	reagents = list("sodiumchloride" = 1, "blackpepper" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/egg,
@@ -28,6 +32,7 @@
 	result = /obj/item/reagent_containers/food/snacks/friedegg
 
 /datum/recipe/grill/birdsteak
+	name = "Куринный стейк"
 	reagents = list("sodiumchloride" = 1, "blackpepper" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/meat/bird,
@@ -35,6 +40,7 @@
 	result = /obj/item/reagent_containers/food/snacks/birdsteak
 
 /datum/recipe/grill/meatsteak
+	name = "Мясной стейк"
 	items = list(
 		/obj/item/reagent_containers/food/snacks/meat,
 	)
@@ -44,6 +50,7 @@
 	reagents = list("sodiumchloride" = rand(1,5), "blackpepper" = rand(1,5))
 
 /datum/recipe/grill/salmonsteak
+	name = "Рыбный стейк"
 	reagents = list("sodiumchloride" = 1, "blackpepper" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/salmonmeat,
@@ -51,6 +58,7 @@
 	result = /obj/item/reagent_containers/food/snacks/salmonsteak
 
 /datum/recipe/grill/syntisteak
+	name = "Синтетический стейк"
 	reagents = list("sodiumchloride" = 1, "blackpepper" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/meat/syntiflesh,
@@ -58,6 +66,7 @@
 	result = /obj/item/reagent_containers/food/snacks/meatsteak
 
 /datum/recipe/grill/meatsteak_human
+	name = "Стейк из человечины"
 	reagents = list("sodiumchloride" = 1, "blackpepper" = 1, "herbsmix" = 5, "oliveoil" = 5)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/meat/humanoid/human,
@@ -66,6 +75,7 @@
 	result = /obj/item/reagent_containers/food/snacks/meatsteak/human
 
 /datum/recipe/grill/meatsteak_vulpkanin
+	name = "Стейк из вульпканина"
 	reagents = list("sodiumchloride" = 1, "blackpepper" = 1, "lemonjuice" = 5, "oliveoil" = 5)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/meat/humanoid/vulpkanin,
@@ -75,6 +85,7 @@
 	result = /obj/item/reagent_containers/food/snacks/meatsteak/vulpkanin
 
 /datum/recipe/grill/meatsteak_tajaran
+	name = "Стейк из таяры"
 	reagents = list("sodiumchloride" = 1, "blackpepper" = 1, "sodawater" = 5, "oliveoil" = 5)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/meat/humanoid/tajaran,
@@ -83,6 +94,7 @@
 	result = /obj/item/reagent_containers/food/snacks/meatsteak/tajaran
 
 /datum/recipe/grill/meatsteak_unathi
+	name = "Стейк из унати"
 	reagents = list("sodiumchloride" = 5, "blackpepper" = 5, "herbsmix" = 5, "tomatojuice" = 5, "oliveoil" = 5)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/meat/humanoid/unathi,

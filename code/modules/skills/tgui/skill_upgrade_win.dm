@@ -25,26 +25,34 @@ GLOBAL_DATUM_INIT(skills_upgrade_window, /datum/ui_module/skills_upgrade_win, ne
 
 /datum/ui_module/cook_window/ui_data(mob/user)
     var/list/data = list()
-    var/list/recipes = list()
 
-    for(var/datum/recipe/recipe in GLOB.cooking_recipes["Microwave"])
-        var/list/items = list()
+    for(var/category in list(RECIPE_GRILL, RECIPE_MICROWAVE, RECIPE_OVEN, RECIPE_CANDY))
+        var/list/recipes = list()
 
-        for(var/item in recipe.items)
-            items += "[initial(item.name)]"
+        for(var/datum/recipe/recipe in GLOB.cooking_recipes[category])
+            var/list/items = list()
 
-        var/list/reagents = list()
+            for(var/item_type in recipe.items)
+                var/obj/item/item = new item_type
+                items += item.name
+                qdel(item)
 
-        for(var/reagent in recipe.reagents)
-            reagents += "[reagent]"
+            var/list/reagents = list()
 
-        recipes += list(list(
-            "name" = "[initial(recipe.result.name)]",
-            "items" = items,
-            "reagents" = reagents
-        ))
+            for(var/reagent_id in recipe.reagents)
+                var/amount = recipe.reagents[reagent_id]
+                var/datum/reagent/reagent = GLOB.chemical_reagents_list[reagent_id]
+                var/reagent_name = reagent ? reagent.name : reagent_id
+                reagents += "[reagent_name] — [amount]"
 
-    data["recipes"] = recipes
+            recipes += list(list(
+                "name" = "[recipe.name]",
+                "items" = items,
+                "reagents" = reagents
+            ))
+
+        data[category] = recipes
+
     return data
 
 /datum/ui_module/skills_upgrade_win/ui_state(mob/user)
