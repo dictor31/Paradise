@@ -15,6 +15,20 @@
 // Candy Ingredients / Flavorings Recipes
 // ***********************************************************
 
+/datum/recipe/candy/New()
+	. = ..()
+
+	if(!reagents)
+		return
+
+	var/list/randomized_reagents = list()
+
+	for(var/reagent in reagents)
+		var/amount = reagents[reagent]
+		randomized_reagents[reagent] = rand(max(1, amount - 5), amount + 5)
+
+	reagents = randomized_reagents
+
 /datum/recipe/candy/chocolate_bar
 	reagents = list("soymilk" = 2, "cocoa" = 2, "sugar" = 2)
 	items = list()

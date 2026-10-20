@@ -1,5 +1,19 @@
 // /datum/recipe/oven
 
+/datum/recipe/oven/New()
+	. = ..()
+
+	if(!reagents)
+		return
+
+	var/list/randomized_reagents = list()
+
+	for(var/reagent in reagents)
+		var/amount = reagents[reagent]
+		randomized_reagents[reagent] = rand(max(1, amount - 5), amount + 5)
+
+	reagents = randomized_reagents
+
 /datum/recipe/oven/bun
 	items = list(
 		/obj/item/reagent_containers/food/snacks/dough,

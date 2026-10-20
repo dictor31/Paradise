@@ -23,37 +23,63 @@ GLOBAL_DATUM_INIT(skills_upgrade_window, /datum/ui_module/skills_upgrade_win, ne
 /datum/ui_module/cook_window/ui_state(mob/user)
 	return GLOB.always_state
 
+
 /datum/ui_module/cook_window/ui_data(mob/user)
-    var/list/data = list()
+	var/list/data = list()
 
-    for(var/category in list(RECIPE_GRILL, RECIPE_MICROWAVE, RECIPE_OVEN, RECIPE_CANDY))
-        var/list/recipes = list()
+	GET_SKILL_LEVEL(user, /datum/skill/general/cooking, cooking_skill_level)
 
-        for(var/datum/recipe/recipe in GLOB.cooking_recipes[category])
-            var/list/items = list()
+	var/static/list/categories = list(
+		RECIPE_GRILL,
+		RECIPE_MICROWAVE,
+		RECIPE_OVEN,
+		RECIPE_CANDY
+	)
 
-            for(var/item_type in recipe.items)
-                var/obj/item/item = new item_type
-                items += item.name
-                qdel(item)
+	for(var/category in categories)
+		var/list/recipes = list()
 
-            var/list/reagents = list()
+		for(var/datum/recipe/recipe as anything in GLOB.cooking_recipes[category])
+			if(recipe.required_skill_level > cooking_skill_level)
+				continue
+			var/list/items = list()
+			var/list/reagents = list()
 
-            for(var/reagent_id in recipe.reagents)
-                var/amount = recipe.reagents[reagent_id]
-                var/datum/reagent/reagent = GLOB.chemical_reagents_list[reagent_id]
-                var/reagent_name = reagent ? reagent.name : reagent_id
-                reagents += "[reagent_name] — [amount]"
+			for(var/item_type in recipe.items)
+				var/item_name = initial(item_type:name)
+				var/found = FALSE
 
-            recipes += list(list(
-                "name" = "[recipe.name]",
-                "items" = items,
-                "reagents" = reagents
-            ))
+				for(var/list/ingredient in items)
+					if(ingredient["name"] == item_name)
+						ingredient["amount"]++
+						found = TRUE
+						break
 
-        data[category] = recipes
+				if(!found)
+					items += list(list(
+						"name" = item_name,
+						"amount" = 1
+					))
 
-    return data
+			for(var/reagent_id in recipe.reagents)
+				var/amount = recipe.reagents[reagent_id]
+				var/datum/reagent/reagent = GLOB.chemical_reagents_list[reagent_id]
+
+				reagents += list(list(
+					"name" = reagent ? reagent.name : "[reagent_id]",
+					"amount" = amount
+				))
+
+			recipes += list(list(
+				"name" = recipe.name,
+				"items" = items,
+				"reagents" = reagents
+			))
+
+		data[category] = recipes
+
+	return data
+
 
 /datum/ui_module/skills_upgrade_win/ui_state(mob/user)
 	if(isobserver(user))

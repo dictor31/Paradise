@@ -39,6 +39,7 @@
 	var/result //example: = /obj/item/reagent_containers/food/snacks/donut
 	var/time = 100 // 1/10 part of second
 	var/byproduct // example: = /obj/item/kitchen/mould // byproduct to return, such as a mould or trash
+	var/required_skill_level = 1
 
 /datum/recipe/proc/check_reagents(datum/reagents/avail_reagents) //1=precisely, 0=insufficiently, -1=superfluous
 	. = 1
