@@ -1,8 +1,5 @@
 // /datum/recipe/grill
 
-/datum/recipe/grill
-		required_skill_level = 5
-
 /datum/recipe/grill/New()
 	. = ..()
 
@@ -19,6 +16,7 @@
 
 /datum/recipe/grill/bacon
 	name = "Бекон"
+	reagents = list("sodiumchloride" = 1, "blackpepper" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/raw_bacon,
 	)
@@ -26,6 +24,7 @@
 
 /datum/recipe/grill/telebacon
 	name = "Теле-Бекон"
+	reagents = list("sodiumchloride" = 1, "blackpepper" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/meat,
 		/obj/item/assembly/signaler,
@@ -34,6 +33,7 @@
 
 /datum/recipe/grill/syntitelebacon
 	name = "Синтетический Теле-Бекон"
+	reagents = list("sodiumchloride" = 1, "blackpepper" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/meat/syntiflesh,
 		/obj/item/assembly/signaler,
@@ -280,7 +280,7 @@
 	result = /obj/item/reagent_containers/food/snacks/rofflewaffles
 
 /datum/recipe/grill/grilledcheese
-	name = "Грильд-чиз"
+	name = "Сэндвич с сыром"
 	items = list(
 		/obj/item/reagent_containers/food/snacks/breadslice,
 		/obj/item/reagent_containers/food/snacks/breadslice,
@@ -290,6 +290,7 @@
 
 /datum/recipe/grill/sausage
 	name = "Сосиска"
+	reagents = list("sodiumchloride" = 5, "blackpepper" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/meatball,
 		/obj/item/reagent_containers/food/snacks/cutlet,
@@ -312,6 +313,7 @@
 
 /datum/recipe/grill/cutlet
 	name = "Котлета"
+	reagents = list("sodiumchloride" = 1, "blackpepper" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/rawcutlet,
 	)
@@ -319,6 +321,7 @@
 
 /datum/recipe/grill/omelette
 	name = "Омлет"
+	reagents = list("sodiumchloride" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/egg,
 		/obj/item/reagent_containers/food/snacks/egg,
@@ -337,6 +340,7 @@
 
 /datum/recipe/grill/human/kabob
 	name = "Мясной кебаб"
+	reagents = list("sodiumchloride" = 1, "blackpepper" = 1)
 	items = list(
 		/obj/item/stack/rods,
 		/obj/item/reagent_containers/food/snacks/meat/humanoid/human,
@@ -346,6 +350,7 @@
 
 /datum/recipe/grill/monkeykabob
 	name = "Обезьянский кебаб"
+	reagents = list("sodiumchloride" = 1, "blackpepper" = 1)
 	items = list(
 		/obj/item/stack/rods,
 		/obj/item/reagent_containers/food/snacks/meat/humanoid/monkey,
@@ -355,6 +360,7 @@
 
 /datum/recipe/grill/syntikabob
 	name = "Синтетический кебаб"
+	reagents = list("sodiumchloride" = 1, "blackpepper" = 1)
 	items = list(
 		/obj/item/stack/rods,
 		/obj/item/reagent_containers/food/snacks/meat/syntiflesh,
@@ -364,6 +370,7 @@
 
 /datum/recipe/grill/tofukabob
 	name = "Тофу-кебаб"
+	reagents = list("sodiumchloride" = 1, "blackpepper" = 1)
 	items = list(
 		/obj/item/stack/rods,
 		/obj/item/reagent_containers/food/snacks/tofu,
@@ -391,6 +398,7 @@
 
 /datum/recipe/grill/sushi_Ebi
 	name = "Суши Эби"
+	reagents = list("sake" = 5)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/boiledrice,
 		/obj/item/reagent_containers/food/snacks/boiled_shrimp,
@@ -399,6 +407,7 @@
 
 /datum/recipe/grill/sushi_Ikura
 	name =  "Суши Икура"
+	reagents = list("sake" = 5)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/boiledrice,
 		/obj/item/fish_eggs/salmon,
@@ -407,6 +416,7 @@
 
 /datum/recipe/grill/sushi_Inari
 	name = "Суши Инара"
+	reagents = list("sake" = 5)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/boiledrice,
 		/obj/item/reagent_containers/food/snacks/fried_tofu,
@@ -415,6 +425,7 @@
 
 /datum/recipe/grill/sushi_Sake
 	name = "Суши Саке"
+	reagents = list("sake" = 5)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/boiledrice,
 		/obj/item/reagent_containers/food/snacks/salmonmeat,
@@ -423,6 +434,7 @@
 
 /datum/recipe/grill/sushi_SmokedSalmon
 	name = "Суши с копченым лососем"
+	reagents = list("sake" = 5)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/boiledrice,
 		/obj/item/reagent_containers/food/snacks/salmonsteak,
@@ -431,6 +443,7 @@
 
 /datum/recipe/grill/sushi_Masago
 	name = "Суши Масаго"
+	reagents = list("sake" = 5)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/boiledrice,
 		/obj/item/fish_eggs/goldfish,
@@ -439,6 +452,7 @@
 
 /datum/recipe/grill/sushi_Tobiko
 	name = "Суши Тобико"
+	reagents = list("sake" = 5)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/boiledrice,
 		/obj/item/fish_eggs/shark,
@@ -447,6 +461,7 @@
 
 /datum/recipe/grill/sushi_TobikoEgg
 	name = "Суши Тобико с яйцом"
+	reagents = list("sake" = 5)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/sushi_Tobiko,
 		/obj/item/reagent_containers/food/snacks/egg,
@@ -455,6 +470,7 @@
 
 /datum/recipe/grill/sushi_Tai
 	name = "Суши Тай"
+	reagents = list("sake" = 5)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/boiledrice,
 		/obj/item/reagent_containers/food/snacks/catfishmeat,
@@ -468,6 +484,7 @@
 
 /datum/recipe/grill/shrimp_skewer
 	name = "Креветочный шашлык"
+	reagents = list("sodiumchloride" = 1, "blackpepper" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/shrimp,
 		/obj/item/reagent_containers/food/snacks/shrimp,
@@ -489,6 +506,7 @@
 
 /datum/recipe/grill/pancake
 	name = "Блины"
+	reagents = list("sodiumchloride" = 1, "sugar" = 10)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/cookiedough,
 	)
@@ -496,6 +514,7 @@
 
 /datum/recipe/grill/berry_pancake
 	name = "Блины с ягодами"
+	reagents = list("sodiumchloride" = 1, "sugar" = 10)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/cookiedough,
 		/obj/item/reagent_containers/food/snacks/grown/berries,
@@ -504,6 +523,7 @@
 
 /datum/recipe/grill/choc_chip_pancake
 	name = "Блины с шоколадной крошкой"
+	reagents = list("sodiumchloride" = 1, "sugar" = 10)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/cookiedough,
 		/obj/item/reagent_containers/food/snacks/choc_pile,
@@ -520,6 +540,7 @@
 
 /datum/recipe/grill/plov
 	name = "Плов"
+	reagents = list("sodiumchloride" = 1, "blackpepper" = 1, "oliveoil" = 5, "herbsmix" = 5)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/boiledrice,
 		/obj/item/reagent_containers/food/snacks/onion_slice,

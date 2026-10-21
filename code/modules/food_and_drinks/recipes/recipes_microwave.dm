@@ -73,6 +73,7 @@
 
 /datum/recipe/microwave/human/burger
 	name = "Бургер..."
+	reagents = list("sodiumchloride" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/meat/humanoid/human,
 		/obj/item/reagent_containers/food/snacks/bun,
@@ -81,6 +82,7 @@
 
 /datum/recipe/microwave/plainburger
 	name = "Бургер"
+	reagents = list("sodiumchloride" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/bun,
 		/obj/item/reagent_containers/food/snacks/meat, //do not place this recipe before /datum/recipe/microwave/human_burger
@@ -88,7 +90,8 @@
 	result = /obj/item/reagent_containers/food/snacks/monkeyburger
 
 /datum/recipe/microwave/syntiburger
-	name = "Синти-бургер"
+	name = "Бургер из синтетического мяса"
+	reagents = list("sodiumchloride" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/bun,
 		/obj/item/reagent_containers/food/snacks/meat/syntiflesh,
@@ -97,6 +100,7 @@
 
 /datum/recipe/microwave/xenoburger
 	name = "Ксенобургер"
+	reagents = list("sodiumchloride" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/bun,
 		/obj/item/organ/internal/brain/xeno,
@@ -105,6 +109,7 @@
 
 /datum/recipe/microwave/brainburger
 	name = "Мозговой бургер"
+	reagents = list("sodiumchloride" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/bun,
 		/obj/item/organ/internal/brain,
@@ -113,6 +118,7 @@
 
 /datum/recipe/microwave/roburger
 	name = "Робургер"
+	reagents = list("sodiumchloride" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/bun,
 		/obj/item/robot_parts/head,
@@ -121,6 +127,7 @@
 
 /datum/recipe/microwave/fishburger
 	name = "Рыбный бургер"
+	reagents = list("sodiumchloride" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/bun,
 		/obj/item/reagent_containers/food/snacks/carpmeat,
@@ -129,6 +136,7 @@
 
 /datum/recipe/microwave/tofuburger
 	name = "Тофу-бургер"
+	reagents = list("sodiumchloride" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/bun,
 		/obj/item/reagent_containers/food/snacks/tofu,
@@ -137,6 +145,7 @@
 
 /datum/recipe/microwave/ghostburger
 	name = "Призрачный бургер"
+	reagents = list("sodiumchloride" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/bun,
 		/obj/item/reagent_containers/food/snacks/ectoplasm, //where do you even find this stuff
@@ -145,6 +154,7 @@
 
 /datum/recipe/microwave/clownburger
 	name = "Клоунский бургер"
+	reagents = list("sodiumchloride" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/bun,
 		/obj/item/clothing/mask/gas/clown_hat,
@@ -153,6 +163,7 @@
 
 /datum/recipe/microwave/mimeburger
 	name = "Мимский бургер"
+	reagents = list("sodiumchloride" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/bun,
 		/obj/item/clothing/head/beret,
@@ -161,6 +172,7 @@
 
 /datum/recipe/microwave/baseballburger
 	name = "Бейсбольный бургер"
+	reagents = list("sodiumchloride" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/bun,
 		/obj/item/melee/baseball_bat,
@@ -169,6 +181,7 @@
 
 /datum/recipe/microwave/cheeseburger
 	name = "Чизбургер"
+	reagents = list("sodiumchloride" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/bun,
 		/obj/item/reagent_containers/food/snacks/meat,
@@ -178,6 +191,7 @@
 
 /datum/recipe/microwave/hotdog
 	name = "Хот-дог"
+	reagents = list("sodiumchloride" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/bun,
 		/obj/item/reagent_containers/food/snacks/sausage,
@@ -186,6 +200,7 @@
 
 /datum/recipe/microwave/donkpocket
 	name = "Донк-пакет"
+	reagents = list("sodiumchloride" = 1, "blackpepper" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/dough,
 		/obj/item/reagent_containers/food/snacks/meatball,
@@ -201,6 +216,7 @@
 
 /datum/recipe/microwave/eggplantparm
 	name = "Пармиджана из баклажанов"
+	reagents = list("sodiumchloride" = 1, "blackpepper" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/cheesewedge,
 		/obj/item/reagent_containers/food/snacks/cheesewedge,
@@ -235,6 +251,7 @@
 
 /datum/recipe/microwave/cheesyfries
 	name = "Картофель фри с сыром"
+	reagents = list("sodiumchloride" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/fries,
 		/obj/item/reagent_containers/food/snacks/cheesewedge,
@@ -243,6 +260,7 @@
 
 /datum/recipe/microwave/cubancarp
 	name = "Кубинский карп"
+	reagents = list("sodiumchloride" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/dough,
 		/obj/item/reagent_containers/food/snacks/carpmeat,
@@ -423,6 +441,7 @@
 
 /datum/recipe/microwave/stewedsoymeat
 	name = "Тушенное соевое мясо"
+	reagents = list("water" = 10, "sodiumchloride" = 1, "blackpepper" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/soydope,
 		/obj/item/reagent_containers/food/snacks/soydope,
@@ -433,6 +452,7 @@
 
 /datum/recipe/microwave/hotchili
 	name = "Острый чили"
+	reagents = list("sodiumchloride" = 1, "blackpepper" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/meat,
 		/obj/item/reagent_containers/food/snacks/grown/chili,
@@ -442,6 +462,7 @@
 
 /datum/recipe/microwave/coldchili
 	name = "Холодный чили"
+	reagents = list("sodiumchloride" = 1, "blackpepper" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/meat,
 		/obj/item/reagent_containers/food/snacks/grown/icepepper,
@@ -451,7 +472,7 @@
 
 /datum/recipe/microwave/shavelsoup
 	name = "Щавелевый суп"
-	reagents = list("water" = 10)
+	reagents = list("water" = 10, "sodiumchloride" = 1, "blackpepper" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/cutlet,
 		/obj/item/reagent_containers/food/snacks/grown/potato,
@@ -462,6 +483,7 @@
 
 /datum/recipe/microwave/spellburger
 	name = "Спеллбургер"
+	reagents = list("sodiumchloride" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/bun,
 		/obj/item/clothing/head/wizard,
@@ -470,6 +492,7 @@
 
 /datum/recipe/microwave/bigbiteburger
 	name = "Большой бургер"
+	reagents = list("sodiumchloride" = 3)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/monkeyburger,
 		/obj/item/reagent_containers/food/snacks/meat,
@@ -481,6 +504,7 @@
 
 /datum/recipe/microwave/enchiladas
 	name = "Энчилада"
+	reagents = list("sodiumchloride" = 1, "blackpepper" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/cutlet,
 		/obj/item/reagent_containers/food/snacks/grown/chili,
@@ -491,7 +515,7 @@
 
 /datum/recipe/microwave/burrito
 	name = "Буррито"
-	reagents = list("capsaicin" = 5, "rice" = 5)
+	reagents = list("capsaicin" = 5, "rice" = 5, "sodiumchloride" = 1, "blackpepper" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/cutlet,
 		/obj/item/reagent_containers/food/snacks/beans,
@@ -511,6 +535,7 @@
 
 /datum/recipe/microwave/fishandchips
 	name = "Рыба с жареной картошкой"
+	reagents = list("sodiumchloride" = 1, "blackpepper" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/fries,
 		/obj/item/reagent_containers/food/snacks/carpmeat,
@@ -545,7 +570,7 @@
 
 /datum/recipe/microwave/boiledspaghetti
 	name = "Варённые спагетти"
-	reagents = list("water" = 5)
+	reagents = list("water" = 5, "sodiumchloride" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/spaghetti,
 	)
@@ -588,6 +613,7 @@
 
 /datum/recipe/microwave/poppypretzel
 	name = "Крендель с маком"
+	reagents = list("sodiumchloride" = 1, "sugar" = 5)
 	items = list(
 		/obj/item/seeds/poppy,
 		/obj/item/reagent_containers/food/snacks/dough,
@@ -596,7 +622,7 @@
 
 /datum/recipe/microwave/meatballspaggetti
 	name = "Спагетти с тефтелями"
-	reagents = list("water" = 5)
+	reagents = list("water" = 5, "sodiumchloride" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/spaghetti,
 		/obj/item/reagent_containers/food/snacks/meatball,
@@ -606,7 +632,7 @@
 
 /datum/recipe/microwave/spesslaw
 	name = "Спагетти законника"
-	reagents = list("water" = 5)
+	reagents = list("water" = 5, "sodiumchloride" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/spaghetti,
 		/obj/item/reagent_containers/food/snacks/meatball,
@@ -815,6 +841,7 @@
 
 /datum/recipe/microwave/benedict
 	name = "Бенедикт"
+	reagents = list("sodiumchloride" = 1, "blackpepper" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/friedegg,
 		/obj/item/reagent_containers/food/snacks/meatsteak,
@@ -1031,6 +1058,7 @@
 
 /datum/recipe/microwave/taco
 	name = "Тако"
+	reagents = list("sodiumchloride" = 1, "blackpepper" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/doughslice,
 		/obj/item/reagent_containers/food/snacks/cutlet,
@@ -1057,7 +1085,7 @@
 
 /datum/recipe/microwave/pelmeni
 	name = "Пельмени"
-	reagents = list("water" = 5)
+	reagents = list("water" = 5, "sodiumchloride" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/pelmeni,
 	)
@@ -1096,6 +1124,7 @@
 
 /datum/recipe/microwave/chowmein
 	name = "Чоу-мейн"
+	reagents = list("sodiumchloride" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/boiledspaghetti,
 		/obj/item/reagent_containers/food/snacks/cutlet,
@@ -1106,6 +1135,7 @@
 
 /datum/recipe/microwave/beefnoodles
 	name = "Лапша с говядиной"
+	reagents = list("sodiumchloride" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/boiledspaghetti,
 		/obj/item/reagent_containers/food/snacks/cutlet,
@@ -1141,6 +1171,7 @@
 
 /datum/recipe/microwave/cubannachos
 	name = "Кубанские начос"
+	reagents = list("sodiumchloride" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/tortilla,
 		/obj/item/reagent_containers/food/snacks/grown/chili,
@@ -1150,6 +1181,7 @@
 
 /datum/recipe/microwave/carneburrito
 	name = "Мясной буррито"
+	reagents = list("sodiumchloride" = 1, "blackpepper" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/tortilla,
 		/obj/item/reagent_containers/food/snacks/grown/soybeans,
@@ -1160,6 +1192,7 @@
 
 /datum/recipe/microwave/cheeseburrito
 	name = "Сырный буррито"
+	reagents = list("sodiumchloride" = 1, "blackpepper" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/tortilla,
 		/obj/item/reagent_containers/food/snacks/cheesewedge,
@@ -1169,6 +1202,7 @@
 
 /datum/recipe/microwave/plasmaburrito
 	name = "Плазменный буррито"
+	reagents = list("sodiumchloride" = 1, "blackpepper" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/tortilla,
 		/obj/item/reagent_containers/food/snacks/grown/soybeans,
@@ -1197,6 +1231,7 @@
 
 /datum/recipe/microwave/quiche
 	name = "Киш"
+	reagents = list("sodiumchloride" = 1, "blackpepper" = 1)
 	items = list(
 		/obj/item/reagent_containers/food/snacks/cheesewedge,
 		/obj/item/reagent_containers/food/snacks/grown/tomato,
