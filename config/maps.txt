@@ -15,7 +15,7 @@ MAP_VOTE_MODE all
 VOTE_NO_DEAD
 
 ## Default server map
-DEFAULT_MAP /datum/map/delta
+DEFAULT_MAP /datum/map/fast_load_multiz
 
 ## Override away mission map. Spawns it even if it is not mentioned in away_mission_config.txt
 # OVERRIDE_AWAY_MISSION _maps/map_files/RandomZLevels/academy.dmm
@@ -34,13 +34,13 @@ EXTRA_SPACE_RUIN_LEVELS_MAX 8
 LAVALAND_BUDGET 100
 
 ## Disable the loading of "Taipan"
-#DISABLE_TAIPAN
+DISABLE_TAIPAN
 
 ## Disable the loading of Lavaland
-#DISABLE_LAVALAND
+DISABLE_LAVALAND
 
 ## Disable the loading of away missions
-#DISABLE_AWAY_MISSIONS
+DISABLE_AWAY_MISSIONS
 
 ## Disable the loading of space ruins
-#DISABLE_SPACE_RUINS
+DISABLE_SPACE_RUINS

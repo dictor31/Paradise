@@ -1,6 +1,7 @@
 /mob/living/Initialize(mapload)
 	. = ..()
 	AddElement(/datum/element/movetype_handler)
+	AddComponent(/datum/component/magic_seals)
 	register_init_signals()
 	var/datum/atom_hud/data/human/medical/advanced/medhud = GLOB.huds[DATA_HUD_MEDICAL_ADVANCED]
 	medhud.add_atom_to_hud(src)
