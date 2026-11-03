@@ -38,6 +38,10 @@
 	var/magic_energy = MAGIC_ENERGY_INITIAL
 	/// Maximum amount of personal magical energy.
 	var/magic_energy_max = MAGIC_ENERGY_MAX
+	/// Personal HUD orb showing the current magic reserve.
+	var/atom/movable/screen/magic_energy_orb/magic_energy_hud
+	/// Client currently displaying our personal energy orb.
+	var/client/magic_energy_hud_client
 	/// TRUE while the user is actively concentrating to accelerate regeneration.
 	var/is_concentrating = FALSE
 	/// Turf where concentration began; movement interrupts concentration.
@@ -66,6 +70,11 @@
 	if(!magic_user)
 		return
 
+	// Physical attributes are attached only to mobs that opt into Magic Seals.
+	// Ordinary living mobs are not given these attributes automatically.
+	if(!magic_user.GetComponent(/datum/component/doll_attributes))
+		magic_user.AddComponent(/datum/component/doll_attributes)
+
 	// All keyboard bindings use the signal-based path supported by this SS1984 revision.
 	RegisterSignal(magic_user, COMSIG_KB_MOB_MAGIC_SEALS_SEAL_A, PROC_REF(on_keybind_seal_a))
 	RegisterSignal(magic_user, COMSIG_KB_MOB_MAGIC_SEALS_SEAL_B, PROC_REF(on_keybind_seal_b))
@@ -84,6 +93,7 @@
 		/datum/action/magic_seal/show_sequence,
 		/datum/action/magic_seal/check_energy,
 		/datum/action/magic_seal/concentrate,
+		/datum/action/magic_seal/show_attributes,
 	)
 
 	for(var/action_type in action_types)
@@ -92,7 +102,9 @@
 		magic_actions += action
 
 	to_chat(magic_user, span_notice("Магия печатей: Ctrl+Z/X/C/V/B добавляют печати A–E. Быстрое нажатие добавляет знак. Удержание Ctrl+Z в энергетической зоне запускает концентрацию; удержание Ctrl+X рядом с закрытым шлюзом без вашего ID-доступа временно открывает его за [MAGIC_SEAL_DOOR_ENERGY_COST] энергии. Ctrl+N — завершить комбинацию; Ctrl+M — отменить."))
-	to_chat(magic_user, span_notice("Запас магической энергии: [magic_energy]/[magic_energy_max]. Ctrl+G и кнопка HUD пока оставлены как резервный переключатель концентрации."))
+	to_chat(magic_user, span_notice("Запас магической энергии отображается в HUD в виде сферы. Наведите курсор на неё для подсказки."))
+	to_chat(magic_user, span_notice("Физические характеристики куклы можно посмотреть отдельной кнопкой в панели действий."))
+	update_magic_energy_hud()
 	spawn(0)
 		process_magic_energy_regeneration()
 
@@ -100,6 +112,7 @@
 	energy_processing_stopped = TRUE
 	stop_concentration(FALSE)
 	remove_magic_seal_gesture_visual()
+	remove_magic_energy_hud()
 	pressed_seal_token++
 	pressed_seal_id = null
 	if(active_held_action)
@@ -272,6 +285,9 @@
 
 		if(!hold_action_checked && world.time - press_start_time >= MAGIC_SEAL_HOLD_THRESHOLD)
 			hold_action_checked = TRUE
+			// A long press is still a physical seal gesture, so play its sound once
+			// when the hold threshold is reached. It will not also be appended as a tap.
+			play_magic_seal_sound(seal_id)
 			var/list/actions_for_seal = get_actions_for_seal(seal_id)
 			for(var/datum/magic_seal_action/action as anything in actions_for_seal)
 				if(action.is_active(src))
@@ -337,12 +353,32 @@
 	magic_seal_gesture_overlay_active = FALSE
 	return TRUE
 
+/// Play one randomly selected sound from a shared pool for every physical seal gesture.
+/// The audio is intentionally not tied to a seal ID, so recipes cannot be inferred by sound.
+/datum/component/magic_seals/proc/play_magic_seal_sound(seal_id)
+	if(!magic_user || magic_seals_datum_is_deleted(magic_user))
+		return FALSE
+
+	if(seal_id != MAGIC_SEAL_A && seal_id != MAGIC_SEAL_B && seal_id != MAGIC_SEAL_C && seal_id != MAGIC_SEAL_D && seal_id != MAGIC_SEAL_E)
+		return FALSE
+
+	var/gesture_sound = pick(list(
+		'sound/magic_seals/gesture_1.ogg',
+		'sound/magic_seals/gesture_2.ogg',
+		'sound/magic_seals/gesture_3.ogg',
+		'sound/magic_seals/gesture_4.ogg',
+		'sound/magic_seals/gesture_5.ogg'
+	))
+	playsound(magic_user, gesture_sound, MAGIC_SEAL_SOUND_VOLUME, FALSE, MAGIC_SEAL_SOUND_EXTRA_RANGE)
+	return TRUE
+
 /// Add one seal to an unbounded sequence. The full sequence is printed only on request.
 /datum/component/magic_seals/proc/add_seal(seal_id)
 	if(!magic_user || magic_seals_datum_is_deleted(magic_user))
 		return FALSE
 
 	current_sequence += seal_id
+	play_magic_seal_sound(seal_id)
 	show_magic_seal_gesture_visual(seal_id, FALSE)
 	var/seal_name = get_magic_seal_display_name(seal_id)
 	var/gesture_description = get_magic_seal_gesture_description(seal_id)
@@ -576,6 +612,9 @@
 		if(!magic_user || magic_seals_datum_is_deleted(magic_user))
 			return
 
+		// Re-attach if the player logged in or changed client after the component was added.
+		update_magic_energy_hud()
+
 		var/in_energy_zone = is_in_magic_energy_zone()
 		if(in_energy_zone != was_in_magic_energy_zone)
 			was_in_magic_energy_zone = in_energy_zone
@@ -621,6 +660,7 @@
 	if(!can_pay_magic_energy(amount, TRUE))
 		return FALSE
 	magic_energy = max(0, magic_energy - amount)
+	update_magic_energy_hud()
 	if(magic_user && !magic_seals_datum_is_deleted(magic_user))
 		to_chat(magic_user, span_notice("Магическая энергия потрачена на [reason]: [amount]. Остаток: [magic_energy]/[magic_energy_max]."))
 	return TRUE
@@ -636,12 +676,52 @@
 	var/old_energy = magic_energy
 	magic_energy = max(0, min(magic_energy_max, magic_energy + amount))
 	var/actual_change = magic_energy - old_energy
+	if(actual_change)
+		update_magic_energy_hud()
 	if(show_message && actual_change && magic_user && !magic_seals_datum_is_deleted(magic_user))
 		if(actual_change > 0)
 			to_chat(magic_user, span_notice("Вы поглощаете [actual_change] единиц магической энергии. Запас: [magic_energy]/[magic_energy_max]."))
 		else
 			to_chat(magic_user, span_warning("Вы теряете [abs(actual_change)] единиц магической энергии. Запас: [magic_energy]/[magic_energy_max]."))
 	return actual_change
+
+/**
+ * Keep the player's personal energy orb attached to the current client.
+ * The orb is a standard screen object, not a world object, and is only created
+ * for mobs that have the magic_seals component.
+ */
+/datum/component/magic_seals/proc/update_magic_energy_hud()
+	if(!magic_user || magic_seals_datum_is_deleted(magic_user))
+		return FALSE
+
+	var/client/current_client = magic_user.client
+	if(!current_client)
+		return FALSE
+
+	// A client can be replaced when the player reconnects or changes bodies.
+	if(magic_energy_hud && magic_energy_hud_client != current_client)
+		if(magic_energy_hud_client && !magic_seals_datum_is_deleted(magic_energy_hud_client))
+			magic_energy_hud_client.screen -= magic_energy_hud
+		qdel(magic_energy_hud)
+		magic_energy_hud = null
+		magic_energy_hud_client = null
+
+	if(!magic_energy_hud)
+		magic_energy_hud = new
+		magic_energy_hud_client = current_client
+		current_client.screen += magic_energy_hud
+
+	magic_energy_hud.update_energy(magic_energy, magic_energy_max)
+	return TRUE
+
+/datum/component/magic_seals/proc/remove_magic_energy_hud()
+	if(magic_energy_hud_client && magic_energy_hud && !magic_seals_datum_is_deleted(magic_energy_hud_client))
+		magic_energy_hud_client.screen -= magic_energy_hud
+	if(magic_energy_hud && !magic_seals_datum_is_deleted(magic_energy_hud))
+		qdel(magic_energy_hud)
+	magic_energy_hud = null
+	magic_energy_hud_client = null
+	return TRUE
 
 /datum/component/magic_seals/proc/show_energy()
 	if(!magic_user || magic_seals_datum_is_deleted(magic_user))

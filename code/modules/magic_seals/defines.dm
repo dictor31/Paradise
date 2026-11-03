@@ -44,3 +44,11 @@
 // Short-tap glyph lifetime in BYOND deciseconds (12 = 1.2 seconds).
 #define MAGIC_SEAL_VISUAL_TAP_DURATION 12
 #define MAGIC_SEAL_GESTURE_OVERLAY_ID "magic_seal_hand_pose"
+
+// Soft, spatially localized sounds for individual seal gestures.
+#define MAGIC_SEAL_SOUND_VOLUME 28
+#define MAGIC_SEAL_SOUND_EXTRA_RANGE 1
+
+// Personal magic-energy sphere position. Move this if it overlaps your HUD.
+#define MAGIC_ENERGY_HUD_SCREEN_LOC "EAST-1:16,SOUTH+2:16"
+#define MAGIC_ENERGY_HUD_LAYER 20
