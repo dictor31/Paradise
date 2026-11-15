@@ -138,7 +138,7 @@
 		return .
 	if(beaker)
 		eject_beaker()
-	if(virus_food_beaker)
+	else if(virus_food_beaker)
 		virus_food_beaker.forceMove(drop_location())
 		virus_food_beaker = null
 		SStgui.update_uis(src)
