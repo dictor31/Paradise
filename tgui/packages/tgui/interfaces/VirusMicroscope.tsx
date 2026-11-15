@@ -64,8 +64,12 @@ const START_CELLS = 6;
 
 const TICK_INTERVAL = 80;
 const DIVISION_AGE = 240;
-const MAX_LIFETIME = 1050;
-const STRENGTH_DECAY_INTERVAL = 120;
+const STRENGTH_DECAY_INTERVAL = 18;
+const UNCOMFORTABLE_TEMP_DECAY_INTERVAL = 5;
+const COMFORTABLE_TEMP_MIN = 10;
+const COMFORTABLE_TEMP_MAX = 20;
+const MIN_TEMPERATURE = 0;
+const MAX_TEMPERATURE = 30;
 
 const GROWTH_TICKS = 28;
 const STRETCH_TICKS = 24;
@@ -134,10 +138,23 @@ const getSplitOffset = (cell: VirusCell, progress: number) => {
   };
 };
 
-const advanceCells = (cells: VirusCell[]): VirusCell[] => {
+const advanceCells = (
+  cells: VirusCell[],
+  temperature: number,
+): VirusCell[] => {
   const next: VirusCell[] = [];
   const offspring: VirusCell[] = [];
   let nextId = cells.reduce((highest, cell) => Math.max(highest, cell.id), 0) + 1;
+  const comfortable =
+    temperature >= COMFORTABLE_TEMP_MIN &&
+    temperature <= COMFORTABLE_TEMP_MAX;
+  const decayInterval = comfortable
+    ? STRENGTH_DECAY_INTERVAL
+    : UNCOMFORTABLE_TEMP_DECAY_INTERVAL;
+  const alreadyDying = cells.filter((cell) => cell.stage === 'dying').length;
+  let deathSlots = comfortable
+    ? Math.max(0, cells.length - MIN_CELLS - alreadyDying)
+    : cells.length - alreadyDying;
 
   for (const cell of cells) {
     const moved = cell.stage === 'dying' ? cell : moveCell(cell);
@@ -146,13 +163,30 @@ const advanceCells = (cells: VirusCell[]): VirusCell[] => {
     if (
       updated.stage !== 'dying' &&
       updated.age > 0 &&
-      updated.age % STRENGTH_DECAY_INTERVAL === 0
+      updated.age % decayInterval === 0
     ) {
-      updated = updated.with({
-        outerStrength: Math.max(0, updated.outerStrength - 2),
-        innerStrength: Math.max(0, updated.innerStrength - 1),
-        nucleusStrength: Math.max(0, updated.nucleusStrength - 1),
-      });
+      let innerStrength = updated.innerStrength;
+      let nucleusStrength = updated.nucleusStrength;
+
+      // Стареет сначала внутренний слой, и только после его разрушения — ядро.
+      // В комфортной среде ядро не опускается ниже 1%, пока популяция на минимуме.
+      if (innerStrength > 0) {
+        innerStrength = Math.max(0, innerStrength - 1);
+      } else if (nucleusStrength > 0 && (!comfortable || deathSlots > 0)) {
+        nucleusStrength = Math.max(0, nucleusStrength - 1);
+      }
+
+      updated = updated.with({ innerStrength, nucleusStrength });
+    }
+
+    if (
+      updated.stage !== 'dying' &&
+      updated.innerStrength === 0 &&
+      updated.nucleusStrength === 0 &&
+      deathSlots > 0
+    ) {
+      updated = updated.with({ stage: 'dying', stageTicks: 0 });
+      deathSlots--;
     }
 
     if (updated.stage === 'dying') {
@@ -258,25 +292,7 @@ const advanceCells = (cells: VirusCell[]): VirusCell[] => {
 
   next.push(...offspring);
 
-  let dyingIndex = next.findIndex((cell) => cell.stage === 'dying');
-  if (dyingIndex === -1 && next.length > MIN_CELLS) {
-    const oldestCell = next
-      .map((cell, index) => ({ cell, index }))
-      .filter(
-        ({ cell }) =>
-          cell.stage === 'normal' && cell.age >= MAX_LIFETIME,
-      )
-      .sort((a, b) => b.cell.age - a.cell.age)[0];
-
-    if (oldestCell) {
-      dyingIndex = oldestCell.index;
-      next[dyingIndex] = oldestCell.cell.with({
-        stage: 'dying',
-        stageTicks: 0,
-      });
-    }
-  }
-
+  const hasDyingCell = next.some((cell) => cell.stage === 'dying');
   const divisionInProgress = next.some(
     (cell) =>
       cell.stage === 'growing' ||
@@ -285,7 +301,8 @@ const advanceCells = (cells: VirusCell[]): VirusCell[] => {
   );
 
   if (
-    dyingIndex === -1 &&
+    comfortable &&
+    !hasDyingCell &&
     !divisionInProgress &&
     next.length < MAX_CELLS
   ) {
@@ -411,15 +428,21 @@ const StrengthMeter = ({
 export const VirusMicroscope = (_props: unknown) => {
   const [cells, setCells] = useState<VirusCell[]>(createInitialCells);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [temperature, setTemperature] = useState(15);
   const selectedCell = cells.find((cell) => cell.id === selectedId);
+  const comfortableTemperature =
+    temperature >= COMFORTABLE_TEMP_MIN &&
+    temperature <= COMFORTABLE_TEMP_MAX;
+  const thermometerFillHeight =
+    (temperature / MAX_TEMPERATURE) * 22;
 
   useEffect(() => {
     const interval = window.setInterval(() => {
-      setCells(advanceCells);
+      setCells((currentCells) => advanceCells(currentCells, temperature));
     }, TICK_INTERVAL);
 
     return () => window.clearInterval(interval);
-  }, []);
+  }, [temperature]);
 
   return (
     <Window
@@ -567,6 +590,109 @@ export const VirusMicroscope = (_props: unknown) => {
             }}
           >
             Клеток: {cells.length} / {MAX_CELLS}
+          </div>
+
+          <div
+            style={{
+              position: 'absolute',
+              top: '10px',
+              right: '10px',
+              width: '210px',
+              padding: '10px',
+              color: '#e5eaf2',
+              backgroundColor: 'rgba(8, 15, 27, 0.94)',
+              border: '1px solid #51627a',
+              borderRadius: '4px',
+              pointerEvents: 'auto',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '9px',
+              }}
+            >
+              <svg
+                width="22"
+                height="44"
+                viewBox="0 0 22 44"
+                aria-hidden="true"
+              >
+                <rect
+                  x="7"
+                  y="2"
+                  width="8"
+                  height="30"
+                  rx="4"
+                  fill="none"
+                  stroke="#9aabc1"
+                  strokeWidth="2"
+                />
+                <rect
+                  x="10"
+                  y={30 - thermometerFillHeight}
+                  width="2"
+                  height={thermometerFillHeight}
+                  rx="1"
+                  fill={comfortableTemperature ? '#e16a74' : '#6c9bd7'}
+                />
+                <circle
+                  cx="11"
+                  cy="34"
+                  r="7"
+                  fill={comfortableTemperature ? '#e16a74' : '#6c9bd7'}
+                />
+                <circle cx="11" cy="34" r="3" fill="#f4d7da" />
+              </svg>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '11px', color: '#b8c6d8' }}>
+                  Температура среды
+                </div>
+                <div style={{ fontSize: '17px', fontWeight: 'bold' }}>
+                  {temperature}°C
+                </div>
+                <div
+                  style={{
+                    fontSize: '10px',
+                    color: comfortableTemperature ? '#85c99a' : '#e58a8a',
+                  }}
+                >
+                  {comfortableTemperature
+                    ? 'Комфортная зона размножения'
+                    : 'Неблагоприятная температура'}
+                </div>
+              </div>
+            </div>
+            <input
+              aria-label="Настройка температуры среды"
+              type="range"
+              min={MIN_TEMPERATURE}
+              max={MAX_TEMPERATURE}
+              step="1"
+              value={temperature}
+              onChange={(event) =>
+                setTemperature(Number(event.currentTarget.value))
+              }
+              style={{
+                width: '100%',
+                margin: '8px 0 2px',
+                accentColor: comfortableTemperature ? '#e16a74' : '#6c9bd7',
+                cursor: 'pointer',
+              }}
+            />
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                fontSize: '9px',
+                color: '#91a1b5',
+              }}
+            >
+              <span>0°C</span>
+              <span>10–20°C — норма</span>
+              <span>30°C</span>
+            </div>
           </div>
 
           <div
