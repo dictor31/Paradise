@@ -9,6 +9,8 @@ type PandemicSuperData = {
   blood_data: PandemicSuperBloodData;
   diseases: PandemicSuperDiseaseData[];
   antibodies: PandemicSuperAntibodyData[];
+  microscope_food_receiver_loaded: boolean;
+  microscope_food_amount: number;
 };
 
 type PandemicSuperBloodData = {
@@ -37,8 +39,15 @@ type PandemicSuperAntibodyData = {
 
 export const PandemicSuper = (_props: unknown) => {
   const { act, data } = useBackend<PandemicSuperData>();
-  const { error_message, beaker_exists, blood_data, diseases, antibodies } =
-    data;
+  const {
+    error_message,
+    beaker_exists,
+    blood_data,
+    diseases,
+    antibodies,
+    microscope_food_receiver_loaded,
+    microscope_food_amount,
+  } = data;
 
   const blocks: React.JSX.Element[] = [];
   if (error_message !== null) {
@@ -218,6 +227,25 @@ export const PandemicSuper = (_props: unknown) => {
       <ComplexModal />
       <Window.Content scrollable>
         <Stack fill vertical>
+          <Stack.Item>
+            <Section title="Приёмник питательной среды">
+              {microscope_food_receiver_loaded ? (
+                <Box>
+                  <span>
+                    Запас питания: {microscope_food_amount.toFixed(1)} ед.
+                  </span>
+                  <Button
+                    icon="eject"
+                    onClick={() => act('extractVirusFood')}
+                  >
+                    Извлечь
+                  </Button>
+                </Box>
+              ) : (
+                <b>Не загружен. Вставьте ёмкость с питательной средой.</b>
+              )}
+            </Section>
+          </Stack.Item>
           <Stack.Item>
             <Button fluid icon="microscope" onClick={() => act('openMicroscope')}>
               Открыть микроскоп
