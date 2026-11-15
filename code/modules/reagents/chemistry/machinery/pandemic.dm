@@ -432,7 +432,7 @@
 				return TRUE
 			virus_food_beaker.reagents.remove_reagent(
 				/datum/reagent/consumable/virus_food,
-				min(1, food_to_consume.volume),
+				min(1, food_to_consume.volume)
 			)
 			SStgui.update_uis(src)
 			return TRUE
