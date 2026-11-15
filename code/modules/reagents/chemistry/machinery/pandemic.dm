@@ -247,6 +247,10 @@
 		return TRUE
 	. = TRUE
 	switch(action)
+		if("openMicroscope")
+			var/datum/tgui/microscope_ui = new(usr, src, "VirusMicroscope")
+			microscope_ui.open()
+
 		if("extractBeaker")
 			eject_beaker()
 
