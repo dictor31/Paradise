@@ -170,7 +170,7 @@ const createReagentParticles = (
   for (const reagent of reagents) {
     const count = Math.min(
       MAX_REAGENT_PARTICLES - particles.length,
-      Math.max(0, Math.round(reagent.amount * PARTICLES_PER_UNIT)),
+      Math.floor(reagent.amount * PARTICLES_PER_UNIT),
     );
 
     for (let index = 0; index < count; index++) {
@@ -813,8 +813,8 @@ export const VirusMicroscope = (_props: unknown) => {
             {particles.map((particle) => (
               <rect
                 key={particle.id}
-                x={particle.x - particle.radius}
-                y={particle.y - particle.radius}
+                x={Math.round(particle.x) - particle.radius}
+                y={Math.round(particle.y) - particle.radius}
                 width={particle.radius * 2}
                 height={particle.radius * 2}
                 fill="#42e58d"
