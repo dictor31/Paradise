@@ -287,7 +287,7 @@
 					selected_reagent = reagent
 					break
 
-			if(!selected_reagent || selected_reagent.volume < 1)
+			if(!selected_reagent || selected_reagent.volume <= 0)
 				balloon_alert(usr, "недостаточно реагента")
 				return TRUE
 
@@ -295,9 +295,10 @@
 			var/reagent_type = selected_reagent.type
 			var/reagent_sample_id = selected_reagent.id
 			var/reagent_sample_name = selected_reagent.name
+			var/transfer_amount = min(1, selected_reagent.volume)
 
-			// Add a one-unit aliquot to the microscope and remove it from the beaker.
-			beaker.reagents.remove_reagent(reagent_type, 1)
+			// Add up to one unit to the microscope, including a smaller remainder.
+			beaker.reagents.remove_reagent(reagent_type, transfer_amount)
 
 			var/list/existing_sample
 			for(var/list/sample in microscope_reagents)
@@ -306,12 +307,12 @@
 					break
 
 			if(existing_sample)
-				existing_sample["amount"] += 1
+				existing_sample["amount"] += transfer_amount
 			else
 				microscope_reagents += list(list(
 					"id" = reagent_sample_id,
 					"name" = reagent_sample_name,
-					"amount" = 1,
+					"amount" = transfer_amount,
 				))
 
 			SStgui.update_uis(src)
