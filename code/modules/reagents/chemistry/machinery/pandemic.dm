@@ -28,7 +28,10 @@
 		. += span_notice("Панель техобслуживания открыта.")
 	if(virus_food_beaker?.reagents)
 		var/datum/reagent/virus_food = virus_food_beaker.reagents.get_reagent(/datum/reagent/consumable/virus_food)
-		. += span_notice("Приёмник питательной среды загружен[virus_food ? ": [round(virus_food.volume, 0.1)] ед." : ", но пуст"].")
+		if(virus_food)
+			. += span_notice("В приёмнике питательной среды: [round(virus_food.volume, 0.1)] ед.")
+		else
+			. += span_notice("Приёмник питательной среды загружен, но пуст.")
 	else
 		. += span_notice("Приёмник питательной среды свободен.")
 
@@ -126,16 +129,16 @@
 
 /obj/machinery/computer/pandemic/screwdriver_act(mob/user, obj/item/item)
 	. = TRUE
-	if(!beaker)
+	if(!beaker && !virus_food_beaker)
 		add_fingerprint(user)
 		balloon_alert(user, "ёмкость отсутствует!")
-		to_chat(user, span_warning("Ёмкость не установлена."))
+		to_chat(user, span_warning("Ни одна ёмкость не установлена."))
 		return .
 	if(!item.use_tool(src, user, volume = item.tool_volume))
 		return .
 	if(beaker)
 		eject_beaker()
-	else if(virus_food_beaker)
+	if(virus_food_beaker)
 		virus_food_beaker.forceMove(drop_location())
 		virus_food_beaker = null
 		SStgui.update_uis(src)
