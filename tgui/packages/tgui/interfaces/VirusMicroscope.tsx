@@ -106,9 +106,9 @@ const MIN_TEMPERATURE = 0;
 const MAX_TEMPERATURE = 30;
 const WATER_REAGENT_ID = 'water';
 const WATER_SHELL_DAMAGE = 8;
-const PARTICLES_PER_UNIT = 8;
+const PARTICLES_PER_UNIT = 2;
 const MAX_REAGENT_PARTICLES = 80;
-const PARTICLE_RADIUS = 3;
+const PARTICLE_RADIUS = 1;
 
 const GROWTH_TICKS = 28;
 const STRETCH_TICKS = 24;
@@ -164,7 +164,7 @@ const createReagentParticles = (
 
     for (let index = 0; index < count; index++) {
       const angle = Math.random() * Math.PI * 2;
-      const speed = 1.4 + Math.random() * 1.8;
+      const speed = 4.5 + Math.random() * 4;
       particles.push({
         id: nextId++,
         reagentId: reagent.id,
@@ -593,6 +593,11 @@ export const VirusMicroscope = (_props: unknown) => {
   }, [temperature]);
 
   const startReagentSimulation = () => {
+    if (!addedReagents.length) {
+      return;
+    }
+
+    act('startMicroscopeSimulation');
     setSimulation((current) => ({
       ...current,
       particles: createReagentParticles(addedReagents),
@@ -729,14 +734,14 @@ export const VirusMicroscope = (_props: unknown) => {
               );
             })}
             {particles.map((particle) => (
-              <circle
+              <rect
                 key={particle.id}
-                cx={particle.x}
-                cy={particle.y}
-                r={particle.radius}
+                x={particle.x - particle.radius}
+                y={particle.y - particle.radius}
+                width={particle.radius * 2}
+                height={particle.radius * 2}
                 fill="#42e58d"
-                stroke="#c2ffdc"
-                strokeWidth="1"
+                shapeRendering="crispEdges"
                 pointerEvents="none"
               />
             ))}
@@ -891,16 +896,28 @@ export const VirusMicroscope = (_props: unknown) => {
                     }}
                   >
                     <span>
-                      {reagent.name} ({reagent.volume.toFixed(1)})
+                      {reagent.name} (
+                      {Math.max(
+                        0,
+                        reagent.volume -
+                          (addedReagents.find((sample) => sample.id === reagent.id)
+                            ?.amount || 0),
+                      ).toFixed(1)}{' '}
+                      доступно)
                     </span>
                     <Button
                       icon="plus"
                       compact
+                      disabled={
+                        reagent.volume <=
+                        (addedReagents.find((sample) => sample.id === reagent.id)
+                          ?.amount || 0)
+                      }
                       onClick={() =>
                         act('addMicroscopeReagent', { id: reagent.id })
                       }
                     >
-                      Добавить порцию
+                      Выбрать порцию
                     </Button>
                   </div>
                 ))
