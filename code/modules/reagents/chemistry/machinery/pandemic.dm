@@ -133,6 +133,7 @@
 				"id" = microscope_reagent.id,
 				"name" = microscope_reagent.name,
 				"volume" = microscope_reagent.volume,
+				"is_vaccine" = istype(microscope_reagent, /datum/reagent/vaccine),
 			))
 	data["microscope_available_reagents"] = available_microscope_reagents
 
@@ -142,6 +143,7 @@
 			"id" = added_reagent["id"],
 			"name" = added_reagent["name"],
 			"amount" = added_reagent["amount"],
+			"is_vaccine" = added_reagent["is_vaccine"],
 		))
 	data["microscope_added_reagents"] = added_microscope_reagents
 
@@ -293,6 +295,7 @@
 
 			var/reagent_sample_id = selected_reagent.id
 			var/reagent_sample_name = selected_reagent.name
+			var/reagent_is_vaccine = istype(selected_reagent, /datum/reagent/vaccine)
 			var/selected_amount = 0
 
 			// Reserve at most one additional unit without removing it from the beaker yet.
@@ -316,11 +319,13 @@
 
 			if(existing_sample)
 				existing_sample["amount"] += transfer_amount
+				existing_sample["is_vaccine"] = reagent_is_vaccine
 			else
 				microscope_reagents += list(list(
 					"id" = reagent_sample_id,
 					"name" = reagent_sample_name,
 					"amount" = transfer_amount,
+					"is_vaccine" = reagent_is_vaccine,
 				))
 
 			SStgui.update_uis(src)
