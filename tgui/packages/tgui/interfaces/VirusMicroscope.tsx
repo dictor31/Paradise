@@ -138,19 +138,22 @@ export const VirusMicroscope = (_props: unknown) => {
                 key={cell.id}
                 transform={`translate(${cell.x} ${cell.y}) scale(${cell.size / 20})`}
               >
+                {/* Outer membrane: a dark, one-pixel-thick stepped ring. */}
                 <path
-                  d="M -7 -20 H 7 V -16 H 15 V -8 H 19 V 8 H 15 V 16 H 7 V 20 H -7 V 16 H -15 V 8 H -19 V -8 H -15 V -16 H -7 Z"
-                  fill="#a92339"
-                  stroke="#641829"
-                  strokeWidth="3"
+                  d="M -8 -20 H 8 V -16 H 16 V -8 H 20 V 8 H 16 V 16 H 8 V 20 H -8 V 16 H -16 V 8 H -20 V -8 H -16 V -16 H -8 Z"
+                  fill="#741b2c"
                 />
+                {/* Inner cell layer: a flat, bright red fill. */}
                 <path
-                  d="M -6 -14 H 6 V -10 H 11 V 6 H 7 V 11 H -6 V 7 H -11 V -7 H -6 Z"
-                  fill="#e74459"
+                  d="M -8 -16 H 8 V -12 H 12 V -8 H 16 V 8 H 12 V 12 H 8 V 16 H -8 V 12 H -12 V 8 H -16 V -8 H -12 V -12 H -8 Z"
+                  fill="#df4b5b"
                 />
-                <rect x="-5" y="-5" width="10" height="10" fill="#9d2035" />
-                <rect x="-10" y="-10" width="4" height="4" fill="#ff9aa5" />
-                <rect x="7" y="6" width="4" height="4" fill="#ff8291" />
+                {/* Nucleus: a small, clearly separated dark center. */}
+                <path
+                  d="M -4 -8 H 4 V -4 H 8 V 4 H 4 V 8 H -4 V 4 H -8 V -4 H -4 Z"
+                  fill="#641629"
+                />
+                <rect x="-4" y="-4" width="4" height="4" fill="#a92e43" />
               </g>
             ))}
           </svg>
