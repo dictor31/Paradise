@@ -1,4 +1,4 @@
-import { Button } from 'tgui-core/components';
+import { Button, Slider } from 'tgui-core/components';
 import { useBackend } from '../backend';
 import { useEffect, useRef, useState } from 'react';
 import { Window } from '../layouts';
@@ -7,6 +7,7 @@ type MicroscopeReagent = {
   id: string;
   name: string;
   volume: number;
+  color: string;
   is_vaccine: boolean;
 };
 
@@ -14,18 +15,22 @@ type MicroscopeAddedReagent = {
   id: string;
   name: string;
   amount: number;
+  color: string;
   is_vaccine: boolean;
 };
 
 type VirusMicroscopeData = {
   microscope_available_reagents: MicroscopeReagent[];
   microscope_added_reagents: MicroscopeAddedReagent[];
+  microscope_food_receiver_loaded: boolean;
+  microscope_food_amount: number;
 };
 
 type ReagentParticle = {
   id: number;
   reagentId: string;
   isVaccine: boolean;
+  color: string;
   x: number;
   y: number;
   vx: number;
@@ -98,7 +103,6 @@ class VirusCell {
 const AREA_WIDTH = 800;
 const AREA_HEIGHT = 460;
 
-const MIN_CELLS = 5;
 const MAX_CELLS = 10;
 const START_CELLS = 6;
 
@@ -167,13 +171,18 @@ const createInitialCells = (): VirusCell[] => {
 
 const createReagentParticles = (
   reagents: MicroscopeAddedReagent[],
+  existingParticles: ReagentParticle[] = [],
 ): ReagentParticle[] => {
   const particles: ReagentParticle[] = [];
-  let nextId = 1;
+  let nextId =
+    existingParticles.reduce(
+      (highest, particle) => Math.max(highest, particle.id),
+      0,
+    ) + 1;
 
   for (const reagent of reagents) {
     const count = Math.min(
-      MAX_REAGENT_PARTICLES - particles.length,
+      MAX_REAGENT_PARTICLES - existingParticles.length - particles.length,
       Math.floor(reagent.amount * PARTICLES_PER_UNIT),
     );
 
@@ -184,6 +193,7 @@ const createReagentParticles = (
         id: nextId++,
         reagentId: reagent.id,
         isVaccine: reagent.is_vaccine,
+        color: reagent.is_vaccine ? '#4b9cff' : reagent.color || '#42e58d',
         x: 12 + Math.random() * (AREA_WIDTH - 24),
         y: 12 + Math.random() * (AREA_HEIGHT - 24),
         vx: Math.cos(angle) * speed,
@@ -237,11 +247,6 @@ const advanceCells = (
   const comfortable =
     temperature >= COMFORTABLE_TEMP_MIN &&
     temperature <= COMFORTABLE_TEMP_MAX;
-  const alreadyDying = cells.filter((cell) => cell.stage === 'dying').length;
-  let deathSlots = comfortable
-    ? Math.max(0, cells.length - MIN_CELLS - alreadyDying)
-    : cells.length - alreadyDying;
-
   for (const cell of cells) {
     const moved = cell.stage === 'dying' ? cell : moveCell(cell);
     let updated = moved.with({ age: cell.age + 1 });
@@ -264,8 +269,7 @@ const advanceCells = (
       } else if (
         innerStrength === 0 &&
         nucleusStrength > 0 &&
-        updated.age % nucleusDecayInterval === 0 &&
-        (!comfortable || deathSlots > 0)
+        updated.age % nucleusDecayInterval === 0
       ) {
         nucleusStrength = Math.max(0, nucleusStrength - 1);
       }
@@ -276,11 +280,9 @@ const advanceCells = (
     if (
       updated.stage !== 'dying' &&
       updated.innerStrength === 0 &&
-      updated.nucleusStrength === 0 &&
-      deathSlots > 0
+      updated.nucleusStrength === 0
     ) {
       updated = updated.with({ stage: 'dying', stageTicks: 0 });
-      deathSlots--;
     }
 
     if (updated.stage === 'dying') {
@@ -624,6 +626,8 @@ export const VirusMicroscope = (_props: unknown) => {
   const { act, data } = useBackend<VirusMicroscopeData>();
   const availableReagents = data.microscope_available_reagents || [];
   const addedReagents = data.microscope_added_reagents || [];
+  const foodReceiverLoaded = !!data.microscope_food_receiver_loaded;
+  const foodReceiverAmount = data.microscope_food_amount || 0;
   const [simulation, setSimulation] = useState<MicroscopeSimulation>(() => ({
     cells: createInitialCells(),
     particles: [],
@@ -686,6 +690,35 @@ export const VirusMicroscope = (_props: unknown) => {
     return () => window.cancelAnimationFrame(animationFrame);
   }, []);
 
+  useEffect(() => {
+    if (!foodReceiverLoaded || foodReceiverAmount <= 0) {
+      return;
+    }
+
+    const feedingInterval = window.setInterval(() => {
+      act('feedMicroscopeCells');
+      const foodPulse: MicroscopeAddedReagent[] = [
+        {
+          id: VIRUS_FOOD_REAGENT_ID,
+          name: 'Питательная среда',
+          amount: 1,
+          color: '#ffffff',
+          is_vaccine: false,
+        },
+      ];
+
+      setSimulation((current) => ({
+        ...current,
+        particles: [
+          ...current.particles,
+          ...createReagentParticles(foodPulse, current.particles),
+        ],
+      }));
+    }, 3000);
+
+    return () => window.clearInterval(feedingInterval);
+  }, [act, foodReceiverAmount, foodReceiverLoaded]);
+
   const startReagentSimulation = () => {
     if (!addedReagents.length) {
       return;
@@ -694,7 +727,10 @@ export const VirusMicroscope = (_props: unknown) => {
     act('startMicroscopeSimulation');
     setSimulation((current) => ({
       ...current,
-      particles: createReagentParticles(addedReagents),
+      particles: [
+        ...current.particles,
+        ...createReagentParticles(addedReagents, current.particles),
+      ],
     }));
   };
 
@@ -834,13 +870,7 @@ export const VirusMicroscope = (_props: unknown) => {
                 y={Math.round(particle.y) - particle.radius}
                 width={particle.radius * 2}
                 height={particle.radius * 2}
-                fill={
-                  particle.isVaccine
-                    ? '#4b9cff'
-                    : particle.reagentId === VIRUS_FOOD_REAGENT_ID
-                      ? '#ffffff'
-                      : '#42e58d'
-                }
+                fill={particle.color}
                 shapeRendering="crispEdges"
                 pointerEvents="none"
               />
@@ -862,6 +892,11 @@ export const VirusMicroscope = (_props: unknown) => {
             }}
           >
             Клеток: {cells.length} / {MAX_CELLS}
+            {foodReceiverLoaded && (
+              <div style={{ color: '#ffffff', marginTop: '2px' }}>
+                Питательная среда: {foodReceiverAmount.toFixed(1)} ед.
+              </div>
+            )}
           </div>
 
           <div
@@ -926,23 +961,15 @@ export const VirusMicroscope = (_props: unknown) => {
                 </div>
               </div>
             </div>
-            <input
-              aria-label="Настройка температуры среды"
-              type="range"
-              min={MIN_TEMPERATURE}
-              max={MAX_TEMPERATURE}
-              step="1"
-              value={temperature}
-              onChange={(event) =>
-                setTemperature(Number(event.currentTarget.value))
-              }
-              style={{
-                width: '100%',
-                margin: '8px 0 2px',
-                accentColor: thermometerColor,
-                cursor: 'pointer',
-              }}
-            />
+            <div style={{ marginTop: '8px' }}>
+              <Slider
+                value={temperature}
+                minValue={MIN_TEMPERATURE}
+                maxValue={MAX_TEMPERATURE}
+                stepPixelSize={8}
+                onChange={(_event, value) => setTemperature(value)}
+              />
+            </div>
             <div
               style={{
                 display: 'flex',
@@ -1045,9 +1072,7 @@ export const VirusMicroscope = (_props: unknown) => {
                         style={{
                           color: reagent.is_vaccine
                             ? '#4b9cff'
-                            : reagent.id === VIRUS_FOOD_REAGENT_ID
-                              ? '#ffffff'
-                              : '#42e58d',
+                            : reagent.color,
                         }}
                       >
                         ●
@@ -1134,22 +1159,7 @@ export const VirusMicroscope = (_props: unknown) => {
                     {selectedCell.food.toFixed(1)} / {FOOD_FOR_DIVISION} ед.
                   </div>
                 </div>
-                <div
-                  style={{
-                    marginTop: '8px',
-                    paddingTop: '7px',
-                    borderTop: '1px solid #293b54',
-                    fontSize: '10px',
-                    lineHeight: '15px',
-                  }}
-                >
-                  <div style={{ fontWeight: 'bold', marginBottom: '3px' }}>
-                    Слабости клетки
-                  </div>
-                  <div>Оболочка — вода</div>
-                  <div>Внутренний слой — серная кислота</div>
-                  <div>Ядро — фторсерная кислота</div>
-                </div>
+
               </>
             ) : (
               <div style={{ fontSize: '11px', lineHeight: '16px' }}>
