@@ -218,6 +218,11 @@ export const PandemicSuper = (_props: unknown) => {
       <ComplexModal />
       <Window.Content scrollable>
         <Stack fill vertical>
+          <Stack.Item>
+            <Button fluid icon="microscope" onClick={() => act('openMicroscope')}>
+              Открыть микроскоп
+            </Button>
+          </Stack.Item>
           {blocks}
         </Stack>
       </Window.Content>
