@@ -1,5 +1,39 @@
+import { Button } from 'tgui-core/components';
+import { useBackend } from '../backend';
 import { useEffect, useState } from 'react';
 import { Window } from '../layouts';
+
+type MicroscopeReagent = {
+  id: string;
+  name: string;
+  volume: number;
+};
+
+type MicroscopeAddedReagent = {
+  id: string;
+  name: string;
+  amount: number;
+};
+
+type VirusMicroscopeData = {
+  microscope_available_reagents: MicroscopeReagent[];
+  microscope_added_reagents: MicroscopeAddedReagent[];
+};
+
+type ReagentParticle = {
+  id: number;
+  reagentId: string;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  radius: number;
+};
+
+type MicroscopeSimulation = {
+  cells: VirusCell[];
+  particles: ReagentParticle[];
+};
 
 type CellStage = 'normal' | 'growing' | 'stretching' | 'splitting' | 'dying';
 
@@ -70,6 +104,11 @@ const COMFORTABLE_TEMP_MIN = 10;
 const COMFORTABLE_TEMP_MAX = 20;
 const MIN_TEMPERATURE = 0;
 const MAX_TEMPERATURE = 30;
+const WATER_REAGENT_ID = 'water';
+const WATER_SHELL_DAMAGE = 8;
+const PARTICLES_PER_UNIT = 8;
+const MAX_REAGENT_PARTICLES = 80;
+const PARTICLE_RADIUS = 3;
 
 const GROWTH_TICKS = 28;
 const STRETCH_TICKS = 24;
@@ -109,6 +148,40 @@ const createInitialCells = (): VirusCell[] => {
       stageTicks: 0,
     });
   });
+};
+
+const createReagentParticles = (
+  reagents: MicroscopeAddedReagent[],
+): ReagentParticle[] => {
+  const particles: ReagentParticle[] = [];
+  let nextId = 1;
+
+  for (const reagent of reagents) {
+    const count = Math.min(
+      MAX_REAGENT_PARTICLES - particles.length,
+      Math.max(0, Math.floor(reagent.amount * PARTICLES_PER_UNIT)),
+    );
+
+    for (let index = 0; index < count; index++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 1.4 + Math.random() * 1.8;
+      particles.push({
+        id: nextId++,
+        reagentId: reagent.id,
+        x: 12 + Math.random() * (AREA_WIDTH - 24),
+        y: 12 + Math.random() * (AREA_HEIGHT - 24),
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        radius: PARTICLE_RADIUS,
+      });
+    }
+
+    if (particles.length >= MAX_REAGENT_PARTICLES) {
+      break;
+    }
+  }
+
+  return particles;
 };
 
 const moveCell = (cell: VirusCell): VirusCell => {
@@ -325,6 +398,59 @@ const advanceCells = (
   return next;
 };
 
+const advanceReagentParticles = (
+  particles: ReagentParticle[],
+  cells: VirusCell[],
+): MicroscopeSimulation => {
+  const nextParticles: ReagentParticle[] = [];
+  const damageByCell = new Map<number, number>();
+
+  for (const particle of particles) {
+    let x = particle.x + particle.vx;
+    let y = particle.y + particle.vy;
+    let vx = particle.vx;
+    let vy = particle.vy;
+
+    if (x < particle.radius || x > AREA_WIDTH - particle.radius) {
+      vx *= -1;
+      x = clamp(x, particle.radius, AREA_WIDTH - particle.radius);
+    }
+    if (y < particle.radius || y > AREA_HEIGHT - particle.radius) {
+      vy *= -1;
+      y = clamp(y, particle.radius, AREA_HEIGHT - particle.radius);
+    }
+
+    const touchedCell = cells.find(
+      (cell) =>
+        cell.stage !== 'dying' &&
+        Math.hypot(x - cell.x, y - cell.y) <= cell.size + particle.radius,
+    );
+
+    if (touchedCell && particle.reagentId === WATER_REAGENT_ID) {
+      damageByCell.set(
+        touchedCell.id,
+        (damageByCell.get(touchedCell.id) || 0) + WATER_SHELL_DAMAGE,
+      );
+      continue;
+    }
+
+    nextParticles.push({ ...particle, x, y, vx, vy });
+  }
+
+  const damagedCells = cells.map((cell) => {
+    const damage = damageByCell.get(cell.id) || 0;
+    if (!damage) {
+      return cell;
+    }
+
+    return cell.with({
+      outerStrength: Math.max(0, cell.outerStrength - damage),
+    });
+  });
+
+  return { cells: damagedCells, particles: nextParticles };
+};
+
 const renderCellSprite = (
   cell: VirusCell,
   x: number,
@@ -365,7 +491,14 @@ const renderCellSprite = (
     )}
     <path
       d="M -8 -20 H 8 V -16 H 16 V -8 H 20 V 8 H 16 V 16 H 8 V 20 H -8 V 16 H -16 V 8 H -20 V -8 H -16 V -16 H -8 Z"
-      fill="#741b2c"
+      fill={
+        cell.outerStrength > 65
+          ? '#741b2c'
+          : cell.outerStrength > 30
+            ? '#a34c35'
+            : '#626b7a'
+      }
+      opacity={0.35 + cell.outerStrength / 150}
     />
     <path
       d="M -8 -16 H 8 V -12 H 12 V -8 H 16 V 8 H 12 V 12 H 8 V 16 H -8 V 12 H -12 V 8 H -16 V -8 H -12 V -12 H -8 Z"
@@ -426,23 +559,45 @@ const StrengthMeter = ({
 };
 
 export const VirusMicroscope = (_props: unknown) => {
-  const [cells, setCells] = useState<VirusCell[]>(createInitialCells);
+  const { act, data } = useBackend<VirusMicroscopeData>();
+  const availableReagents = data.microscope_available_reagents || [];
+  const addedReagents = data.microscope_added_reagents || [];
+  const [simulation, setSimulation] = useState<MicroscopeSimulation>(() => ({
+    cells: createInitialCells(),
+    particles: [],
+  }));
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [temperature, setTemperature] = useState(15);
+  const cells = simulation.cells;
+  const particles = simulation.particles;
   const selectedCell = cells.find((cell) => cell.id === selectedId);
-  const comfortableTemperature =
-    temperature >= COMFORTABLE_TEMP_MIN &&
-    temperature <= COMFORTABLE_TEMP_MAX;
+  const temperatureMidpoint = (MIN_TEMPERATURE + MAX_TEMPERATURE) / 2;
+  const thermometerColor =
+    temperature > temperatureMidpoint
+      ? '#e16a74'
+      : temperature < temperatureMidpoint
+        ? '#6c9bd7'
+        : '#9aabc1';
   const thermometerFillHeight =
     (temperature / MAX_TEMPERATURE) * 22;
 
   useEffect(() => {
     const interval = window.setInterval(() => {
-      setCells((currentCells) => advanceCells(currentCells, temperature));
+      setSimulation((current) => {
+        const movedCells = advanceCells(current.cells, temperature);
+        return advanceReagentParticles(current.particles, movedCells);
+      });
     }, TICK_INTERVAL);
 
     return () => window.clearInterval(interval);
   }, [temperature]);
+
+  const startReagentSimulation = () => {
+    setSimulation((current) => ({
+      ...current,
+      particles: createReagentParticles(addedReagents),
+    }));
+  };
 
   return (
     <Window
@@ -573,6 +728,17 @@ export const VirusMicroscope = (_props: unknown) => {
                 'main',
               );
             })}
+            {particles.map((particle) => (
+              <circle
+                key={particle.id}
+                cx={particle.x}
+                cy={particle.y}
+                r={particle.radius}
+                fill="#42e58d"
+                stroke="#c2ffdc"
+                strokeWidth="1"
+              />
+            ))}
           </svg>
 
           <div
@@ -635,13 +801,13 @@ export const VirusMicroscope = (_props: unknown) => {
                   width="2"
                   height={thermometerFillHeight}
                   rx="1"
-                  fill={comfortableTemperature ? '#e16a74' : '#6c9bd7'}
+                  fill={thermometerColor}
                 />
                 <circle
                   cx="11"
                   cy="34"
                   r="7"
-                  fill={comfortableTemperature ? '#e16a74' : '#6c9bd7'}
+                  fill={thermometerColor}
                 />
                 <circle cx="11" cy="34" r="3" fill="#f4d7da" />
               </svg>
@@ -651,16 +817,6 @@ export const VirusMicroscope = (_props: unknown) => {
                 </div>
                 <div style={{ fontSize: '17px', fontWeight: 'bold' }}>
                   {temperature}°C
-                </div>
-                <div
-                  style={{
-                    fontSize: '10px',
-                    color: comfortableTemperature ? '#85c99a' : '#e58a8a',
-                  }}
-                >
-                  {comfortableTemperature
-                    ? 'Комфортная зона размножения'
-                    : 'Неблагоприятная температура'}
                 </div>
               </div>
             </div>
@@ -677,7 +833,7 @@ export const VirusMicroscope = (_props: unknown) => {
               style={{
                 width: '100%',
                 margin: '8px 0 2px',
-                accentColor: comfortableTemperature ? '#e16a74' : '#6c9bd7',
+                accentColor: thermometerColor,
                 cursor: 'pointer',
               }}
             />
@@ -690,8 +846,112 @@ export const VirusMicroscope = (_props: unknown) => {
               }}
             >
               <span>0°C</span>
-              <span>10–20°C — норма</span>
               <span>30°C</span>
+            </div>
+          </div>
+
+          <div
+            style={{
+              position: 'absolute',
+              left: '10px',
+              bottom: '10px',
+              width: '250px',
+              maxHeight: '175px',
+              padding: '9px',
+              color: '#e5eaf2',
+              backgroundColor: 'rgba(8, 15, 27, 0.96)',
+              border: '1px solid #51627a',
+              borderRadius: '4px',
+              pointerEvents: 'auto',
+              overflow: 'hidden',
+              fontSize: '11px',
+            }}
+          >
+            <div
+              style={{
+                fontWeight: 'bold',
+                paddingBottom: '5px',
+                borderBottom: '1px solid #293b54',
+              }}
+            >
+              Реагенты в бикере
+            </div>
+            <div style={{ maxHeight: '58px', overflowY: 'auto' }}>
+              {availableReagents.length ? (
+                availableReagents.map((reagent) => (
+                  <div
+                    key={reagent.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '6px',
+                      paddingTop: '4px',
+                    }}
+                  >
+                    <span>
+                      {reagent.name} ({reagent.volume.toFixed(1)})
+                    </span>
+                    <Button
+                      icon="plus"
+                      compact
+                      onClick={() =>
+                        act('addMicroscopeReagent', { id: reagent.id })
+                      }
+                    >
+                      Добавить 1
+                    </Button>
+                  </div>
+                ))
+              ) : (
+                <div style={{ color: '#9eacbf', padding: '5px 0' }}>
+                  Установите бикер с реагентами в Пандемик
+                </div>
+              )}
+            </div>
+            <div
+              style={{
+                marginTop: '5px',
+                paddingTop: '5px',
+                borderTop: '1px solid #293b54',
+              }}
+            >
+              <div style={{ color: '#b8c6d8', marginBottom: '3px' }}>
+                Добавлено в микроскоп
+              </div>
+              {addedReagents.length ? (
+                <div style={{ maxHeight: '35px', overflowY: 'auto' }}>
+                  {addedReagents.map((reagent) => (
+                    <div key={reagent.id}>
+                      <span style={{ color: '#42e58d' }}>●</span>{' '}
+                      {reagent.name}: {reagent.amount.toFixed(1)} ед.
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ color: '#9eacbf', marginBottom: '4px' }}>
+                  Пока пусто
+                </div>
+              )}
+              <Button
+                fluid
+                icon="play"
+                disabled={!addedReagents.length}
+                onClick={startReagentSimulation}
+              >
+                Старт
+              </Button>
+              {particles.length > 0 && (
+                <div
+                  style={{
+                    textAlign: 'center',
+                    color: '#42e58d',
+                    marginTop: '3px',
+                  }}
+                >
+                  Частиц: {particles.length}
+                </div>
+              )}
             </div>
           </div>
 
