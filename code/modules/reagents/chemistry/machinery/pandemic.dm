@@ -291,14 +291,22 @@
 				balloon_alert(usr, "недостаточно реагента")
 				return TRUE
 
-			// Store identity before removing it: an empty reagent datum can be deleted by update_total().
-			var/reagent_type = selected_reagent.type
 			var/reagent_sample_id = selected_reagent.id
 			var/reagent_sample_name = selected_reagent.name
-			var/transfer_amount = min(1, selected_reagent.volume)
+			var/selected_amount = 0
 
-			// Add up to one unit to the microscope, including a smaller remainder.
-			beaker.reagents.remove_reagent(reagent_type, transfer_amount)
+			// Reserve at most one additional unit without removing it from the beaker yet.
+			for(var/list/sample in microscope_reagents)
+				if(sample["id"] == reagent_sample_id)
+					selected_amount = sample["amount"]
+					break
+
+			var/available_amount = selected_reagent.volume - selected_amount
+			if(available_amount <= 0)
+				balloon_alert(usr, "весь реагент уже выбран")
+				return TRUE
+
+			var/transfer_amount = min(1, available_amount)
 
 			var/list/existing_sample
 			for(var/list/sample in microscope_reagents)
@@ -315,6 +323,38 @@
 					"amount" = transfer_amount,
 				))
 
+			SStgui.update_uis(src)
+			return TRUE
+
+		if("startMicroscopeSimulation")
+			if(!beaker?.reagents)
+				balloon_alert(usr, "сначала установите бикер")
+				return TRUE
+			if(!length(microscope_reagents))
+				return TRUE
+
+			for(var/list/sample in microscope_reagents.Copy())
+				var/reagent_id = sample["id"]
+				var/selected_amount = sample["amount"]
+				if(!istext(reagent_id) || !isnum(selected_amount) || selected_amount <= 0)
+					continue
+
+				var/datum/reagent/available_reagent
+				for(var/datum/reagent/reagent as anything in beaker.reagents.reagent_list)
+					if(reagent.id == reagent_id)
+						available_reagent = reagent
+						break
+
+				if(!available_reagent)
+					continue
+
+				var/reagent_type = available_reagent.type
+				var/actual_amount = min(selected_amount, available_reagent.volume)
+				if(actual_amount > 0)
+					beaker.reagents.remove_reagent(reagent_type, actual_amount)
+
+			// The queued quantities are consumed once and cannot be started a second time.
+			microscope_reagents = list()
 			SStgui.update_uis(src)
 			return TRUE
 
