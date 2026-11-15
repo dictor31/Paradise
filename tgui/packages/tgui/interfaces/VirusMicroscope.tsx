@@ -7,12 +7,14 @@ type MicroscopeReagent = {
   id: string;
   name: string;
   volume: number;
+  is_vaccine: boolean;
 };
 
 type MicroscopeAddedReagent = {
   id: string;
   name: string;
   amount: number;
+  is_vaccine: boolean;
 };
 
 type VirusMicroscopeData = {
@@ -23,6 +25,7 @@ type VirusMicroscopeData = {
 type ReagentParticle = {
   id: number;
   reagentId: string;
+  isVaccine: boolean;
   x: number;
   y: number;
   vx: number;
@@ -112,6 +115,7 @@ const VIRUS_FOOD_REAGENT_ID = 'virusfood';
 const OUTER_LAYER_REAGENT_ID = 'water';
 const INNER_LAYER_REAGENT_ID = 'sacid';
 const NUCLEUS_LAYER_REAGENT_ID = 'facid';
+const VACCINE_NUCLEUS_DAMAGE = 35;
 const LAYER_DAMAGE_PER_PARTICLE = 8;
 const FOOD_PER_PARTICLE = 0.5;
 const FOOD_FOR_DIVISION = 5;
@@ -179,6 +183,7 @@ const createReagentParticles = (
       particles.push({
         id: nextId++,
         reagentId: reagent.id,
+        isVaccine: reagent.is_vaccine,
         x: 12 + Math.random() * (AREA_WIDTH - 24),
         y: 12 + Math.random() * (AREA_HEIGHT - 24),
         vx: Math.cos(angle) * speed,
@@ -447,6 +452,18 @@ const advanceReagentParticles = (
       if (particle.reagentId === VIRUS_FOOD_REAGENT_ID) {
         nextCells[touchedCellIndex] = touchedCell.with({
           food: clamp(touchedCell.food + FOOD_PER_PARTICLE, 0, MAX_CELL_FOOD),
+        });
+        particleConsumed = true;
+      } else if (particle.isVaccine && touchedCell.nucleusStrength > 0) {
+        const nucleusStrength = Math.max(
+          0,
+          touchedCell.nucleusStrength - VACCINE_NUCLEUS_DAMAGE,
+        );
+        nextCells[touchedCellIndex] = touchedCell.with({
+          nucleusStrength,
+          ...(nucleusStrength === 0
+            ? { stage: 'dying' as const, stageTicks: 0 }
+            : {}),
         });
         particleConsumed = true;
       } else if (
@@ -817,7 +834,13 @@ export const VirusMicroscope = (_props: unknown) => {
                 y={Math.round(particle.y) - particle.radius}
                 width={particle.radius * 2}
                 height={particle.radius * 2}
-                fill="#42e58d"
+                fill={
+                  particle.isVaccine
+                    ? '#4b9cff'
+                    : particle.reagentId === VIRUS_FOOD_REAGENT_ID
+                      ? '#ffffff'
+                      : '#42e58d'
+                }
                 shapeRendering="crispEdges"
                 pointerEvents="none"
               />
@@ -1018,7 +1041,17 @@ export const VirusMicroscope = (_props: unknown) => {
                 <div style={{ maxHeight: '35px', overflowY: 'auto' }}>
                   {addedReagents.map((reagent) => (
                     <div key={reagent.id}>
-                      <span style={{ color: '#42e58d' }}>●</span>{' '}
+                      <span
+                        style={{
+                          color: reagent.is_vaccine
+                            ? '#4b9cff'
+                            : reagent.id === VIRUS_FOOD_REAGENT_ID
+                              ? '#ffffff'
+                              : '#42e58d',
+                        }}
+                      >
+                        ●
+                      </span>{' '}
                       {reagent.name}: {reagent.amount.toFixed(1)} ед.
                     </div>
                   ))}
