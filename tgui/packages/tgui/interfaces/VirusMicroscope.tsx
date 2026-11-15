@@ -240,6 +240,7 @@ const getSplitOffset = (cell: VirusCell, progress: number) => {
 const advanceCells = (
   cells: VirusCell[],
   temperature: number,
+  foodAvailable: boolean,
 ): VirusCell[] => {
   const next: VirusCell[] = [];
   const offspring: VirusCell[] = [];
@@ -394,6 +395,7 @@ const advanceCells = (
 
   if (
     comfortable &&
+    foodAvailable &&
     !hasDyingCell &&
     !divisionInProgress &&
     next.length < MAX_CELLS
@@ -657,12 +659,16 @@ export const VirusMicroscope = (_props: unknown) => {
     const interval = window.setInterval(() => {
       setSimulation((current) => ({
         ...current,
-        cells: advanceCells(current.cells, temperature),
+        cells: advanceCells(
+          current.cells,
+          temperature,
+          foodReceiverLoaded && foodReceiverAmount > 0,
+        ),
       }));
     }, TICK_INTERVAL);
 
     return () => window.clearInterval(interval);
-  }, [temperature]);
+  }, [foodReceiverAmount, foodReceiverLoaded, temperature]);
 
   useEffect(() => {
     let animationFrame = 0;
