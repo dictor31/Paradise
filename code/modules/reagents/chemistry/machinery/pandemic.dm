@@ -7,6 +7,7 @@
 	idle_power_usage = 20
 	resistance_flags = ACID_PROOF
 	var/obj/item/reagent_containers/beaker = null
+	var/obj/item/reagent_containers/virus_food_beaker = null
 	var/list/microscope_reagents = list()
 	var/wait = null
 	var/printing = null
@@ -25,6 +26,11 @@
 	. = ..()
 	if(panel_open)
 		. += span_notice("Панель техобслуживания открыта.")
+	if(virus_food_beaker?.reagents)
+		var/datum/reagent/virus_food = virus_food_beaker.reagents.get_reagent(/datum/reagent/consumable/virus_food)
+		. += span_notice("Приёмник питательной среды загружен[virus_food ? ": [round(virus_food.volume, 0.1)] ед." : ", но пуст"].")
+	else
+		. += span_notice("Приёмник питательной среды свободен.")
 
 /obj/machinery/computer/pandemic/Initialize(mapload)
 	. = ..()
@@ -75,12 +81,33 @@
 		if(!(item.container_type & OPENCONTAINER))
 			balloon_alert(user, "несовместимо!")
 			return ATTACK_CHAIN_PROCEED
+
+		var/obj/item/reagent_containers/container = item
+		var/contains_virus_food = FALSE
+		if(container.reagents)
+			for(var/datum/reagent/container_reagent in container.reagents.reagent_list)
+				if(istype(container_reagent, /datum/reagent/consumable/virus_food))
+					contains_virus_food = TRUE
+					break
+
+		// Containers with virus food use the dedicated feeding receiver.
+		if(contains_virus_food)
+			if(virus_food_beaker)
+				balloon_alert(user, "приёмник питания занят!")
+				return ATTACK_CHAIN_PROCEED
+			if(!user.drop_transfer_item_to_loc(item, src))
+				return ..()
+			virus_food_beaker = container
+			balloon_alert(user, "питательная среда загружена")
+			SStgui.update_uis(src)
+			return ATTACK_CHAIN_BLOCKED_ALL
+
 		if(beaker)
 			balloon_alert(user, "слот для ёмкости занят!")
 			return ATTACK_CHAIN_PROCEED
 		if(!user.drop_transfer_item_to_loc(item, src))
 			return ..()
-		beaker = item
+		beaker = container
 		balloon_alert(user, "ёмкость вставлена")
 		var/datum/reagents/reagents = beaker.reagents
 		for(var/datum/reagent/reagent as anything in reagents.reagent_list)
@@ -106,8 +133,12 @@
 		return .
 	if(!item.use_tool(src, user, volume = item.tool_volume))
 		return .
-	beaker.forceMove(drop_location())
-	beaker = null
+	if(beaker)
+		eject_beaker()
+	else if(virus_food_beaker)
+		virus_food_beaker.forceMove(drop_location())
+		virus_food_beaker = null
+		SStgui.update_uis(src)
 	update_icon(UPDATE_ICON_STATE)
 
 /obj/machinery/computer/pandemic/wrench_act(mob/living/user, obj/item/item)
@@ -129,13 +160,22 @@
 	var/list/available_microscope_reagents = list()
 	if(beaker?.reagents)
 		for(var/datum/reagent/microscope_reagent in beaker.reagents.reagent_list)
+			if(istype(microscope_reagent, /datum/reagent/consumable/virus_food))
+				continue
 			available_microscope_reagents += list(list(
 				"id" = microscope_reagent.id,
 				"name" = microscope_reagent.name,
 				"volume" = microscope_reagent.volume,
+				"color" = microscope_reagent.color,
 				"is_vaccine" = istype(microscope_reagent, /datum/reagent/vaccine),
 			))
 	data["microscope_available_reagents"] = available_microscope_reagents
+
+	data["microscope_food_receiver_loaded"] = !!virus_food_beaker
+	var/datum/reagent/available_virus_food
+	if(virus_food_beaker?.reagents)
+		available_virus_food = virus_food_beaker.reagents.get_reagent(/datum/reagent/consumable/virus_food)
+	data["microscope_food_amount"] = available_virus_food ? available_virus_food.volume : 0
 
 	var/list/added_microscope_reagents = list()
 	for(var/list/added_reagent in microscope_reagents)
@@ -143,6 +183,7 @@
 			"id" = added_reagent["id"],
 			"name" = added_reagent["name"],
 			"amount" = added_reagent["amount"],
+			"color" = added_reagent["color"],
 			"is_vaccine" = added_reagent["is_vaccine"],
 		))
 	data["microscope_added_reagents"] = added_microscope_reagents
@@ -294,7 +335,12 @@
 				return TRUE
 
 			var/reagent_sample_id = selected_reagent.id
+			if(istype(selected_reagent, /datum/reagent/consumable/virus_food))
+				balloon_alert(usr, "питательная среда загружается в отдельный приёмник")
+				return TRUE
+
 			var/reagent_sample_name = selected_reagent.name
+			var/reagent_sample_color = selected_reagent.color
 			var/reagent_is_vaccine = istype(selected_reagent, /datum/reagent/vaccine)
 			var/selected_amount = 0
 
@@ -319,12 +365,14 @@
 
 			if(existing_sample)
 				existing_sample["amount"] += transfer_amount
+				existing_sample["color"] = reagent_sample_color
 				existing_sample["is_vaccine"] = reagent_is_vaccine
 			else
 				microscope_reagents += list(list(
 					"id" = reagent_sample_id,
 					"name" = reagent_sample_name,
 					"amount" = transfer_amount,
+					"color" = reagent_sample_color,
 					"is_vaccine" = reagent_is_vaccine,
 				))
 
@@ -365,6 +413,26 @@
 
 		if("extractBeaker")
 			eject_beaker()
+
+		if("extractVirusFood")
+			if(virus_food_beaker)
+				virus_food_beaker.forceMove(drop_location())
+				virus_food_beaker = null
+				SStgui.update_uis(src)
+			return TRUE
+
+		if("feedMicroscopeCells")
+			if(!virus_food_beaker?.reagents)
+				return TRUE
+			var/datum/reagent/food_to_consume = virus_food_beaker.reagents.get_reagent(/datum/reagent/consumable/virus_food)
+			if(!food_to_consume || food_to_consume.volume <= 0)
+				return TRUE
+			virus_food_beaker.reagents.remove_reagent(
+				/datum/reagent/consumable/virus_food,
+				min(1, food_to_consume.volume),
+			)
+			SStgui.update_uis(src)
+			return TRUE
 
 		if("clearAndExtractBeaker")
 			beaker.reagents.clear_reagents()
@@ -471,9 +539,13 @@
 
 // MARK: Actions
 /obj/machinery/computer/pandemic/proc/eject_beaker()
-	beaker.forceMove(loc)
+	if(!beaker)
+		return
+	beaker.forceMove(drop_location())
 	beaker = null
-	icon_state = "mixer0"
+	microscope_reagents = list()
+	update_icon(UPDATE_ICON_STATE)
+	SStgui.update_uis(src)
 
 
 //Prints a nice virus release form. Props to Urbanliner for the layout
