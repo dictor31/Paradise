@@ -291,12 +291,17 @@
 				balloon_alert(usr, "недостаточно реагента")
 				return TRUE
 
+			// Store identity before removing it: an empty reagent datum can be deleted by update_total().
+			var/reagent_type = selected_reagent.type
+			var/reagent_sample_id = selected_reagent.id
+			var/reagent_sample_name = selected_reagent.name
+
 			// Add a one-unit aliquot to the microscope and remove it from the beaker.
-			beaker.reagents.remove_reagent(selected_reagent.type, 1)
+			beaker.reagents.remove_reagent(reagent_type, 1)
 
 			var/list/existing_sample
 			for(var/list/sample in microscope_reagents)
-				if(sample["id"] == selected_reagent.id)
+				if(sample["id"] == reagent_sample_id)
 					existing_sample = sample
 					break
 
@@ -304,8 +309,8 @@
 				existing_sample["amount"] += 1
 			else
 				microscope_reagents += list(list(
-					"id" = selected_reagent.id,
-					"name" = selected_reagent.name,
+					"id" = reagent_sample_id,
+					"name" = reagent_sample_name,
 					"amount" = 1,
 				))
 
