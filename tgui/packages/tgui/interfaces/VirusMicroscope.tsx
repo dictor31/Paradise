@@ -159,7 +159,7 @@ const createReagentParticles = (
   for (const reagent of reagents) {
     const count = Math.min(
       MAX_REAGENT_PARTICLES - particles.length,
-      Math.max(0, Math.floor(reagent.amount * PARTICLES_PER_UNIT)),
+      Math.max(1, Math.floor(reagent.amount * PARTICLES_PER_UNIT)),
     );
 
     for (let index = 0; index < count; index++) {
@@ -737,6 +737,7 @@ export const VirusMicroscope = (_props: unknown) => {
                 fill="#42e58d"
                 stroke="#c2ffdc"
                 strokeWidth="1"
+                pointerEvents="none"
               />
             ))}
           </svg>
@@ -899,7 +900,7 @@ export const VirusMicroscope = (_props: unknown) => {
                         act('addMicroscopeReagent', { id: reagent.id })
                       }
                     >
-                      Добавить 1
+                      Добавить порцию
                     </Button>
                   </div>
                 ))
