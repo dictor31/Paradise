@@ -122,6 +122,7 @@ const NUCLEUS_LAYER_REAGENT_ID = 'facid';
 const VACCINE_NUCLEUS_DAMAGE = 35;
 const LAYER_DAMAGE_PER_PARTICLE = 8;
 const FOOD_PER_PARTICLE = 0.5;
+const FOOD_PER_FEED_TICK = 0.5;
 const FOOD_FOR_DIVISION = 5;
 const MAX_CELL_FOOD = 5;
 const PARTICLES_PER_UNIT = 2;
@@ -453,12 +454,7 @@ const advanceReagentParticles = (
     if (touchedCellIndex !== -1) {
       const touchedCell = nextCells[touchedCellIndex];
 
-      if (particle.reagentId === VIRUS_FOOD_REAGENT_ID) {
-        nextCells[touchedCellIndex] = touchedCell.with({
-          food: clamp(touchedCell.food + FOOD_PER_PARTICLE, 0, MAX_CELL_FOOD),
-        });
-        particleConsumed = true;
-      } else if (particle.isVaccine && touchedCell.nucleusStrength > 0) {
+      if (particle.isVaccine && touchedCell.nucleusStrength > 0) {
         const nucleusStrength = Math.max(
           0,
           touchedCell.nucleusStrength - VACCINE_NUCLEUS_DAMAGE,
@@ -714,7 +710,17 @@ export const VirusMicroscope = (_props: unknown) => {
       ];
 
       setSimulation((current) => ({
-        ...current,
+        cells: current.cells.map((cell) =>
+          cell.stage === 'dying'
+            ? cell
+            : cell.with({
+                food: clamp(
+                  cell.food + FOOD_PER_FEED_TICK,
+                  0,
+                  MAX_CELL_FOOD,
+                ),
+              }),
+        ),
         particles: [
           ...current.particles,
           ...createReagentParticles(foodPulse, current.particles),
