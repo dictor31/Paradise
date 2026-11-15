@@ -102,8 +102,8 @@ const START_CELLS = 6;
 const TICK_INTERVAL = 80;
 const INNER_STRENGTH_DECAY_INTERVAL = 18;
 const UNCOMFORTABLE_INNER_DECAY_INTERVAL = 5;
-const NUCLEUS_STRENGTH_DECAY_INTERVAL = 240;
-const UNCOMFORTABLE_NUCLEUS_DECAY_INTERVAL = 60;
+const NUCLEUS_STRENGTH_DECAY_INTERVAL = 54;
+const UNCOMFORTABLE_NUCLEUS_DECAY_INTERVAL = 15;
 const COMFORTABLE_TEMP_MIN = 10;
 const COMFORTABLE_TEMP_MAX = 20;
 const MIN_TEMPERATURE = 0;
@@ -232,9 +232,6 @@ const advanceCells = (
   const comfortable =
     temperature >= COMFORTABLE_TEMP_MIN &&
     temperature <= COMFORTABLE_TEMP_MAX;
-  const decayInterval = comfortable
-    ? STRENGTH_DECAY_INTERVAL
-    : UNCOMFORTABLE_TEMP_DECAY_INTERVAL;
   const alreadyDying = cells.filter((cell) => cell.stage === 'dying').length;
   let deathSlots = comfortable
     ? Math.max(0, cells.length - MIN_CELLS - alreadyDying)
