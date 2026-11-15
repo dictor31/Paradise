@@ -7,6 +7,7 @@
 	idle_power_usage = 20
 	resistance_flags = ACID_PROOF
 	var/obj/item/reagent_containers/beaker = null
+	var/list/microscope_reagents = list()
 	var/wait = null
 	var/printing = null
 
@@ -123,8 +124,28 @@
 	var/list/data = list()
 	// Transfer modal information if there is one
 	data["modal"] = ui_modal_data(src)
-	. = data
 
+	// Reagent data for the microscope is independent of the blood-analysis screen.
+	var/list/available_microscope_reagents = list()
+	if(beaker?.reagents)
+		for(var/datum/reagent/microscope_reagent in beaker.reagents.reagent_list)
+			available_microscope_reagents += list(list(
+				"id" = microscope_reagent.id,
+				"name" = microscope_reagent.name,
+				"volume" = microscope_reagent.volume,
+			))
+	data["microscope_available_reagents"] = available_microscope_reagents
+
+	var/list/added_microscope_reagents = list()
+	for(var/list/added_reagent in microscope_reagents)
+		added_microscope_reagents += list(list(
+			"id" = added_reagent["id"],
+			"name" = added_reagent["name"],
+			"amount" = added_reagent["amount"],
+		))
+	data["microscope_added_reagents"] = added_microscope_reagents
+
+	. = data
 	data["error_message"] = null
 	if(!beaker)
 		data["error_message"] = "Ёмкость отсутствует!"
@@ -250,6 +271,46 @@
 		if("openMicroscope")
 			var/datum/tgui/microscope_ui = new(usr, src, "VirusMicroscope")
 			microscope_ui.open()
+
+		if("addMicroscopeReagent")
+			if(!beaker?.reagents)
+				balloon_alert(usr, "сначала установите бикер")
+				return TRUE
+
+			var/reagent_id = params["id"]
+			if(!istext(reagent_id) || !length(reagent_id))
+				return TRUE
+
+			var/datum/reagent/selected_reagent
+			for(var/datum/reagent/reagent as anything in beaker.reagents.reagent_list)
+				if(reagent.id == reagent_id)
+					selected_reagent = reagent
+					break
+
+			if(!selected_reagent || selected_reagent.volume < 1)
+				balloon_alert(usr, "недостаточно реагента")
+				return TRUE
+
+			// Add a one-unit aliquot to the microscope and remove it from the beaker.
+			beaker.reagents.remove_reagent(selected_reagent.type, 1)
+
+			var/list/existing_sample
+			for(var/list/sample in microscope_reagents)
+				if(sample["id"] == selected_reagent.id)
+					existing_sample = sample
+					break
+
+			if(existing_sample)
+				existing_sample["amount"] += 1
+			else
+				microscope_reagents += list(list(
+					"id" = selected_reagent.id,
+					"name" = selected_reagent.name,
+					"amount" = 1,
+				))
+
+			SStgui.update_uis(src)
+			return TRUE
 
 		if("extractBeaker")
 			eject_beaker()
