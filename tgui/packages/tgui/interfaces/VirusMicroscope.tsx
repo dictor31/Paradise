@@ -1,6 +1,6 @@
 import { Button } from 'tgui-core/components';
 import { useBackend } from '../backend';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Window } from '../layouts';
 
 type MicroscopeReagent = {
@@ -46,6 +46,7 @@ type VirusCellData = {
   vy: number;
   age: number;
   size: number;
+  food: number;
   outerStrength: number;
   innerStrength: number;
   nucleusStrength: number;
@@ -62,6 +63,7 @@ class VirusCell {
   vy: number;
   age: number;
   size: number;
+  food: number;
   outerStrength: number;
   innerStrength: number;
   nucleusStrength: number;
@@ -77,6 +79,7 @@ class VirusCell {
     this.vy = properties.vy;
     this.age = properties.age;
     this.size = properties.size;
+    this.food = properties.food;
     this.outerStrength = properties.outerStrength;
     this.innerStrength = properties.innerStrength;
     this.nucleusStrength = properties.nucleusStrength;
@@ -97,15 +100,22 @@ const MAX_CELLS = 10;
 const START_CELLS = 6;
 
 const TICK_INTERVAL = 80;
-const DIVISION_AGE = 240;
-const STRENGTH_DECAY_INTERVAL = 18;
-const UNCOMFORTABLE_TEMP_DECAY_INTERVAL = 5;
+const INNER_STRENGTH_DECAY_INTERVAL = 18;
+const UNCOMFORTABLE_INNER_DECAY_INTERVAL = 5;
+const NUCLEUS_STRENGTH_DECAY_INTERVAL = 240;
+const UNCOMFORTABLE_NUCLEUS_DECAY_INTERVAL = 60;
 const COMFORTABLE_TEMP_MIN = 10;
 const COMFORTABLE_TEMP_MAX = 20;
 const MIN_TEMPERATURE = 0;
 const MAX_TEMPERATURE = 30;
-const WATER_REAGENT_ID = 'water';
-const WATER_SHELL_DAMAGE = 8;
+const VIRUS_FOOD_REAGENT_ID = 'virusfood';
+const OUTER_LAYER_REAGENT_ID = 'water';
+const INNER_LAYER_REAGENT_ID = 'sacid';
+const NUCLEUS_LAYER_REAGENT_ID = 'facid';
+const LAYER_DAMAGE_PER_PARTICLE = 8;
+const FOOD_PER_PARTICLE = 0.5;
+const FOOD_FOR_DIVISION = 5;
+const MAX_CELL_FOOD = 5;
 const PARTICLES_PER_UNIT = 2;
 const MAX_REAGENT_PARTICLES = 80;
 const PARTICLE_RADIUS = 1;
@@ -113,7 +123,7 @@ const PARTICLE_RADIUS = 1;
 const GROWTH_TICKS = 28;
 const STRETCH_TICKS = 24;
 const SPLIT_TICKS = 18;
-const DYING_TICKS = 20;
+const DYING_TICKS = 60;
 
 const clamp = (value: number, min: number, max: number) =>
   Math.max(min, Math.min(max, value));
@@ -141,6 +151,7 @@ const createInitialCells = (): VirusCell[] => {
       vy: (Math.random() - 0.5) * 2.2,
       age: 0,
       size: 17 + Math.round(Math.random() * 3),
+      food: 0,
       outerStrength: randomStrength(),
       innerStrength: randomStrength(),
       nucleusStrength: randomStrength(),
@@ -159,7 +170,7 @@ const createReagentParticles = (
   for (const reagent of reagents) {
     const count = Math.min(
       MAX_REAGENT_PARTICLES - particles.length,
-      Math.max(1, Math.floor(reagent.amount * PARTICLES_PER_UNIT)),
+      Math.max(0, Math.round(reagent.amount * PARTICLES_PER_UNIT)),
     );
 
     for (let index = 0; index < count; index++) {
@@ -233,19 +244,27 @@ const advanceCells = (
     const moved = cell.stage === 'dying' ? cell : moveCell(cell);
     let updated = moved.with({ age: cell.age + 1 });
 
-    if (
-      updated.stage !== 'dying' &&
-      updated.age > 0 &&
-      updated.age % decayInterval === 0
-    ) {
+    if (updated.stage !== 'dying' && updated.age > 0) {
       let innerStrength = updated.innerStrength;
       let nucleusStrength = updated.nucleusStrength;
 
-      // Стареет сначала внутренний слой, и только после его разрушения — ядро.
-      // В комфортной среде ядро не опускается ниже 1%, пока популяция на минимуме.
-      if (innerStrength > 0) {
+      const innerDecayInterval = comfortable
+        ? INNER_STRENGTH_DECAY_INTERVAL
+        : UNCOMFORTABLE_INNER_DECAY_INTERVAL;
+      const nucleusDecayInterval = comfortable
+        ? NUCLEUS_STRENGTH_DECAY_INTERVAL
+        : UNCOMFORTABLE_NUCLEUS_DECAY_INTERVAL;
+
+      // Старение ядра намного медленнее, чтобы после разрушения внутреннего слоя
+      // оставалось время испытать реагент, воздействующий на ядро.
+      if (innerStrength > 0 && updated.age % innerDecayInterval === 0) {
         innerStrength = Math.max(0, innerStrength - 1);
-      } else if (nucleusStrength > 0 && (!comfortable || deathSlots > 0)) {
+      } else if (
+        innerStrength === 0 &&
+        nucleusStrength > 0 &&
+        updated.age % nucleusDecayInterval === 0 &&
+        (!comfortable || deathSlots > 0)
+      ) {
         nucleusStrength = Math.max(0, nucleusStrength - 1);
       }
 
@@ -314,6 +333,10 @@ const advanceCells = (
             vx: updated.vx - directionX * 0.35,
             vy: updated.vy - directionY * 0.35,
             age: 0,
+            food: 0,
+            outerStrength: 100,
+            innerStrength: 100,
+            nucleusStrength: 100,
             stage: 'normal',
             stageTicks: 0,
           }),
@@ -337,18 +360,10 @@ const advanceCells = (
               vx: updated.vx + directionX * 0.35,
               vy: updated.vy + directionY * 0.35,
               age: 0,
-              outerStrength: Math.max(
-                25,
-                updated.outerStrength - Math.round(Math.random() * 4),
-              ),
-              innerStrength: Math.max(
-                25,
-                updated.innerStrength - Math.round(Math.random() * 4),
-              ),
-              nucleusStrength: Math.max(
-                25,
-                updated.nucleusStrength - Math.round(Math.random() * 4),
-              ),
+              food: 0,
+              outerStrength: 100,
+              innerStrength: 100,
+              nucleusStrength: 100,
               stage: 'normal',
               stageTicks: 0,
             }),
@@ -383,12 +398,13 @@ const advanceCells = (
       .map((cell, index) => ({ cell, index }))
       .filter(
         ({ cell }) =>
-          cell.stage === 'normal' && cell.age >= DIVISION_AGE,
+          cell.stage === 'normal' && cell.food >= FOOD_FOR_DIVISION,
       )
-      .sort((a, b) => b.cell.age - a.cell.age)[0];
+      .sort((a, b) => b.cell.food - a.cell.food)[0];
 
     if (readyCell) {
       next[readyCell.index] = readyCell.cell.with({
+        food: Math.max(0, readyCell.cell.food - FOOD_FOR_DIVISION),
         stage: 'growing',
         stageTicks: 0,
       });
@@ -401,13 +417,14 @@ const advanceCells = (
 const advanceReagentParticles = (
   particles: ReagentParticle[],
   cells: VirusCell[],
+  deltaScale: number,
 ): MicroscopeSimulation => {
   const nextParticles: ReagentParticle[] = [];
-  const damageByCell = new Map<number, number>();
+  const nextCells = cells.slice();
 
   for (const particle of particles) {
-    let x = particle.x + particle.vx;
-    let y = particle.y + particle.vy;
+    let x = particle.x + particle.vx * deltaScale;
+    let y = particle.y + particle.vy * deltaScale;
     let vx = particle.vx;
     let vy = particle.vy;
 
@@ -420,35 +437,66 @@ const advanceReagentParticles = (
       y = clamp(y, particle.radius, AREA_HEIGHT - particle.radius);
     }
 
-    const touchedCell = cells.find(
+    const touchedCellIndex = nextCells.findIndex(
       (cell) =>
         cell.stage !== 'dying' &&
         Math.hypot(x - cell.x, y - cell.y) <= cell.size + particle.radius,
     );
 
-    if (touchedCell && particle.reagentId === WATER_REAGENT_ID) {
-      damageByCell.set(
-        touchedCell.id,
-        (damageByCell.get(touchedCell.id) || 0) + WATER_SHELL_DAMAGE,
-      );
-      continue;
+    let particleConsumed = false;
+    if (touchedCellIndex !== -1) {
+      const touchedCell = nextCells[touchedCellIndex];
+
+      if (particle.reagentId === VIRUS_FOOD_REAGENT_ID) {
+        nextCells[touchedCellIndex] = touchedCell.with({
+          food: clamp(touchedCell.food + FOOD_PER_PARTICLE, 0, MAX_CELL_FOOD),
+        });
+        particleConsumed = true;
+      } else if (
+        particle.reagentId === OUTER_LAYER_REAGENT_ID &&
+        touchedCell.outerStrength > 0
+      ) {
+        nextCells[touchedCellIndex] = touchedCell.with({
+          outerStrength: Math.max(
+            0,
+            touchedCell.outerStrength - LAYER_DAMAGE_PER_PARTICLE,
+          ),
+        });
+        particleConsumed = true;
+      } else if (
+        particle.reagentId === INNER_LAYER_REAGENT_ID &&
+        touchedCell.outerStrength <= 0 &&
+        touchedCell.innerStrength > 0
+      ) {
+        nextCells[touchedCellIndex] = touchedCell.with({
+          innerStrength: Math.max(
+            0,
+            touchedCell.innerStrength - LAYER_DAMAGE_PER_PARTICLE,
+          ),
+        });
+        particleConsumed = true;
+      } else if (
+        particle.reagentId === NUCLEUS_LAYER_REAGENT_ID &&
+        touchedCell.outerStrength <= 0 &&
+        touchedCell.innerStrength <= 0 &&
+        touchedCell.nucleusStrength > 0
+      ) {
+        nextCells[touchedCellIndex] = touchedCell.with({
+          nucleusStrength: Math.max(
+            0,
+            touchedCell.nucleusStrength - LAYER_DAMAGE_PER_PARTICLE,
+          ),
+        });
+        particleConsumed = true;
+      }
     }
 
-    nextParticles.push({ ...particle, x, y, vx, vy });
+    if (!particleConsumed) {
+      nextParticles.push({ ...particle, x, y, vx, vy });
+    }
   }
 
-  const damagedCells = cells.map((cell) => {
-    const damage = damageByCell.get(cell.id) || 0;
-    if (!damage) {
-      return cell;
-    }
-
-    return cell.with({
-      outerStrength: Math.max(0, cell.outerStrength - damage),
-    });
-  });
-
-  return { cells: damagedCells, particles: nextParticles };
+  return { cells: nextCells, particles: nextParticles };
 };
 
 const renderCellSprite = (
@@ -581,16 +629,48 @@ export const VirusMicroscope = (_props: unknown) => {
   const thermometerFillHeight =
     (temperature / MAX_TEMPERATURE) * 22;
 
+  const particlesRef = useRef(particles);
+
+  useEffect(() => {
+    particlesRef.current = particles;
+  }, [particles]);
+
   useEffect(() => {
     const interval = window.setInterval(() => {
-      setSimulation((current) => {
-        const movedCells = advanceCells(current.cells, temperature);
-        return advanceReagentParticles(current.particles, movedCells);
-      });
+      setSimulation((current) => ({
+        ...current,
+        cells: advanceCells(current.cells, temperature),
+      }));
     }, TICK_INTERVAL);
 
     return () => window.clearInterval(interval);
   }, [temperature]);
+
+  useEffect(() => {
+    let animationFrame = 0;
+    let previousFrameTime: number | null = null;
+
+    const animateParticles = (frameTime: number) => {
+      if (previousFrameTime !== null && particlesRef.current.length > 0) {
+        const elapsed = Math.min(frameTime - previousFrameTime, 50);
+        const deltaScale = elapsed / TICK_INTERVAL;
+
+        setSimulation((current) =>
+          advanceReagentParticles(
+            current.particles,
+            current.cells,
+            deltaScale,
+          ),
+        );
+      }
+
+      previousFrameTime = frameTime;
+      animationFrame = window.requestAnimationFrame(animateParticles);
+    };
+
+    animationFrame = window.requestAnimationFrame(animateParticles);
+    return () => window.cancelAnimationFrame(animationFrame);
+  }, []);
 
   const startReagentSimulation = () => {
     if (!addedReagents.length) {
@@ -1011,6 +1091,35 @@ export const VirusMicroscope = (_props: unknown) => {
                   label="Ядро"
                   value={selectedCell.nucleusStrength}
                 />
+                <div
+                  style={{
+                    marginTop: '10px',
+                    paddingTop: '7px',
+                    borderTop: '1px solid #293b54',
+                    fontSize: '11px',
+                  }}
+                >
+                  <b>Питание для деления</b>
+                  <div style={{ color: '#42e58d', marginTop: '3px' }}>
+                    {selectedCell.food.toFixed(1)} / {FOOD_FOR_DIVISION} ед.
+                  </div>
+                </div>
+                <div
+                  style={{
+                    marginTop: '8px',
+                    paddingTop: '7px',
+                    borderTop: '1px solid #293b54',
+                    fontSize: '10px',
+                    lineHeight: '15px',
+                  }}
+                >
+                  <div style={{ fontWeight: 'bold', marginBottom: '3px' }}>
+                    Слабости клетки
+                  </div>
+                  <div>Оболочка — вода</div>
+                  <div>Внутренний слой — серная кислота</div>
+                  <div>Ядро — фторсерная кислота</div>
+                </div>
               </>
             ) : (
               <div style={{ fontSize: '11px', lineHeight: '16px' }}>
