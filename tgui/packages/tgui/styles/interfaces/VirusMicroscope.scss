@@ -174,6 +174,33 @@
   border-top: 1px solid var(--vm-border);
 }
 
+.VirusMicroscope__assay-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+}
+
+.VirusMicroscope__reset-button {
+  min-height: 22px !important;
+  padding: 0 7px !important;
+  border: 1px solid var(--vm-border) !important;
+  border-radius: 3px !important;
+  background: transparent !important;
+  color: var(--vm-muted) !important;
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 9px !important;
+
+  &:hover:not(:disabled) {
+    border-color: var(--vm-accent) !important;
+    color: var(--vm-ink) !important;
+  }
+
+  &:disabled {
+    opacity: 0.35;
+  }
+}
+
 .VirusMicroscope__assay-list {
   max-height: 86px;
   margin-top: 8px;
@@ -300,11 +327,35 @@
   gap: 4px;
   padding-left: 10px;
   border-left: 1px solid var(--vm-border);
+}
 
-  .Button {
-    min-width: 25px;
-    min-height: 23px;
-    padding: 0 5px;
+.VirusMicroscope__dose-button {
+  min-width: 29px;
+  min-height: 25px;
+  padding: 0 8px;
+  border: 1px solid #607a72 !important;
+  border-radius: 3px !important;
+  background: #304548 !important;
+  color: var(--vm-ink) !important;
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 10px !important;
+  font-weight: 700;
+  line-height: 1;
+
+  &:hover:not(:disabled) {
+    border-color: var(--vm-accent) !important;
+    background: #3a5551 !important;
+  }
+
+  &.is-active {
+    border-color: #a0e2cf !important;
+    background: var(--vm-accent) !important;
+    color: #17262a !important;
+    box-shadow: inset 0 0 0 1px rgba(23, 38, 42, 0.18);
+  }
+
+  &:disabled {
+    opacity: 0.35;
   }
 }
 
@@ -322,6 +373,11 @@
   color: var(--vm-muted);
   font-size: 9px;
   letter-spacing: 0.055em;
+}
+
+.VirusMicroscope__cell-sprite,
+.VirusMicroscope__particle {
+  transition: transform 80ms linear, opacity 80ms linear;
 }
 
 .VirusMicroscope__canvas {
