@@ -171,7 +171,12 @@ const createInitialCells = (
     [400, 380],
   ];
 
-  return positions.slice(0, START_CELLS).map(([x, y], index) => {
+  const initialCellCount = Math.min(
+    MAX_CELLS,
+    Math.max(START_CELLS, virusSeeds.length),
+  );
+
+  return positions.slice(0, initialCellCount).map(([x, y], index) => {
     const seed = virusSeeds[index % virusSeeds.length];
     const cures = seed.cure_reagents || [];
     const id = index + 1;
@@ -729,13 +734,13 @@ export const VirusMicroscope = (_props: unknown) => {
         cells: advanceCells(
           current.cells,
           temperature,
-          foodReceiverLoaded && foodReceiverAmount > 0,
+          foodReceiverAmount > 0,
         ),
       }));
     }, TICK_INTERVAL);
 
     return () => window.clearInterval(interval);
-  }, [foodReceiverAmount, foodReceiverLoaded, temperature]);
+  }, [foodReceiverAmount, temperature]);
 
   useEffect(() => {
     let animationFrame = 0;
@@ -824,7 +829,7 @@ export const VirusMicroscope = (_props: unknown) => {
       height={520}
       resizable
     >
-      <Window.Content draggable={false}>
+      <Window.Content allowWindowDrag={false}>
         <div
           style={{
             position: 'relative',
