@@ -19,6 +19,13 @@ type MicroscopeAddedReagent = {
   is_vaccine: boolean;
 };
 
+type MicroscopeStorageData = {
+  amount: number;
+  capacity: number;
+  types: number;
+  type_limit: number;
+};
+
 type MicroscopeVirusSeed = {
   name: string;
   cure_reagents: string[];
@@ -29,6 +36,10 @@ type VirusMicroscopeData = {
   microscope_added_reagents: MicroscopeAddedReagent[];
   microscope_food_amount: number;
   microscope_food_capacity: number;
+  microscope_reagent_storage_amount: number;
+  microscope_reagent_storage_capacity: number;
+  microscope_reagent_storage_types: number;
+  microscope_reagent_type_limit: number;
   microscope_virus_seeds: MicroscopeVirusSeed[];
   microscope_culture_generation: number;
 };
@@ -37,6 +48,7 @@ type ReagentParticle = {
   id: number;
   reagentId: string;
   isVaccine: boolean;
+  foodValue: number;
   color: string;
   x: number;
   y: number;
@@ -212,8 +224,12 @@ const createReagentParticles = (
   for (const reagent of reagents) {
     const count = Math.min(
       MAX_REAGENT_PARTICLES - existingParticles.length - particles.length,
-      Math.floor(reagent.amount * PARTICLES_PER_UNIT),
+      Math.ceil(reagent.amount * PARTICLES_PER_UNIT),
     );
+    const foodValue =
+      reagent.id === VIRUS_FOOD_REAGENT_ID && count > 0
+        ? (FOOD_PER_FEED_TICK * reagent.amount) / count
+        : 0;
 
     for (let index = 0; index < count; index++) {
       const angle = Math.random() * Math.PI * 2;
@@ -222,6 +238,7 @@ const createReagentParticles = (
         id: nextId++,
         reagentId: reagent.id,
         isVaccine: reagent.is_vaccine,
+        foodValue,
         color: reagent.is_vaccine ? '#4b9cff' : reagent.color || '#42e58d',
         x: 12 + Math.random() * (AREA_WIDTH - 24),
         y: 12 + Math.random() * (AREA_HEIGHT - 24),
@@ -482,7 +499,16 @@ const advanceReagentParticles = (
     if (touchedCellIndex !== -1) {
       const touchedCell = nextCells[touchedCellIndex];
 
-      if (particle.isVaccine && touchedCell.nucleusStrength > 0) {
+      if (particle.reagentId === VIRUS_FOOD_REAGENT_ID) {
+        nextCells[touchedCellIndex] = touchedCell.with({
+          food: clamp(
+            touchedCell.food + particle.foodValue,
+            0,
+            MAX_CELL_FOOD,
+          ),
+        });
+        particleConsumed = true;
+      } else if (particle.isVaccine && touchedCell.nucleusStrength > 0) {
         const nucleusStrength = Math.max(
           0,
           touchedCell.nucleusStrength - VACCINE_NUCLEUS_DAMAGE,
@@ -645,6 +671,11 @@ export const VirusMicroscope = (_props: unknown) => {
   const cultureGeneration = data.microscope_culture_generation || 0;
   const foodReceiverAmount = data.microscope_food_amount || 0;
   const foodReceiverCapacity = data.microscope_food_capacity || 100;
+  const reagentStorageAmount = data.microscope_reagent_storage_amount || 0;
+  const reagentStorageCapacity =
+    data.microscope_reagent_storage_capacity || 100;
+  const reagentStorageTypes = data.microscope_reagent_storage_types || 0;
+  const reagentTypeLimit = data.microscope_reagent_type_limit || 3;
   const [simulation, setSimulation] = useState<MicroscopeSimulation>(() => ({
     cells: createInitialCells(virusSeeds),
     particles: [],
@@ -769,17 +800,7 @@ export const VirusMicroscope = (_props: unknown) => {
       ];
 
       setSimulation((current) => ({
-        cells: current.cells.map((cell) =>
-          cell.stage === 'dying'
-            ? cell
-            : cell.with({
-                food: clamp(
-                  cell.food + FOOD_PER_FEED_TICK * consumedAmount,
-                  0,
-                  MAX_CELL_FOOD,
-                ),
-              }),
-        ),
+        cells: current.cells,
         particles: [
           ...current.particles,
           ...createReagentParticles(foodPulse, current.particles),
@@ -808,435 +829,510 @@ export const VirusMicroscope = (_props: unknown) => {
   return (
     <Window
       title="Вирусологический микроскоп"
-      width={820}
-      height={520}
+      width={1120}
+      height={640}
       resizable
     >
       <Window.Content allowWindowDrag={false}>
         <div
           style={{
-            position: 'relative',
+            display: 'grid',
+            gridTemplateColumns: '260px minmax(0, 1fr) 230px',
+            gap: '8px',
             width: '100%',
-            height: '460px',
-            overflow: 'hidden',
-            backgroundColor: '#101a2a',
-            border: '1px solid #293b54',
+            height: '100%',
+            minHeight: 0,
+            padding: '8px',
+            boxSizing: 'border-box',
+            backgroundColor: '#0c1422',
+            color: '#e5eaf2',
           }}
         >
-          <svg
-            viewBox={'0 0 ' + AREA_WIDTH + ' ' + AREA_HEIGHT}
-            width="100%"
-            height="100%"
-            style={{ display: 'block', imageRendering: 'pixelated' }}
-            aria-label="Движущиеся и делящиеся клетки вируса"
-          >
-            <rect
-              x="0"
-              y="0"
-              width={AREA_WIDTH}
-              height={AREA_HEIGHT}
-              fill="#101a2a"
-            />
-            {cells.map((cell) => {
-              if (cell.stage === 'splitting') {
-                const progress = clamp(cell.stageTicks / SPLIT_TICKS, 0, 1);
-                const offset = getSplitOffset(cell, progress);
-                const scale = 0.9 + progress * 0.1;
-
-                return (
-                  <g key={cell.id}>
-                    {renderCellSprite(
-                      cell,
-                      cell.x - offset.x,
-                      cell.y - offset.y,
-                      scale,
-                      scale,
-                      1,
-                      selectedId === cell.id,
-                      setSelectedId,
-                      'left',
-                    )}
-                    {renderCellSprite(
-                      cell,
-                      cell.x + offset.x,
-                      cell.y + offset.y,
-                      scale,
-                      scale,
-                      1,
-                      selectedId === cell.id,
-                      setSelectedId,
-                      'right',
-                    )}
-                  </g>
-                );
-              }
-
-              if (cell.stage === 'growing') {
-                const progress = clamp(cell.stageTicks / GROWTH_TICKS, 0, 1);
-                const scale = 1 + progress * 0.35;
-                return renderCellSprite(
-                  cell,
-                  cell.x,
-                  cell.y,
-                  scale,
-                  scale,
-                  1,
-                  selectedId === cell.id,
-                  setSelectedId,
-                  'main',
-                );
-              }
-
-              if (cell.stage === 'stretching') {
-                const progress = clamp(
-                  cell.stageTicks / STRETCH_TICKS,
-                  0,
-                  1,
-                );
-                return renderCellSprite(
-                  cell,
-                  cell.x,
-                  cell.y,
-                  1.35 + progress * 0.45,
-                  1.35 - progress * 0.45,
-                  1,
-                  selectedId === cell.id,
-                  setSelectedId,
-                  'main',
-                );
-              }
-
-              if (cell.stage === 'dying') {
-                const progress = clamp(cell.stageTicks / DYING_TICKS, 0, 1);
-                const scale = 1 - progress * 0.4;
-                return renderCellSprite(
-                  cell,
-                  cell.x,
-                  cell.y,
-                  scale,
-                  scale,
-                  1 - progress,
-                  selectedId === cell.id,
-                  setSelectedId,
-                  'main',
-                );
-              }
-
-              return renderCellSprite(
-                cell,
-                cell.x,
-                cell.y,
-                1,
-                1,
-                1,
-                selectedId === cell.id,
-                setSelectedId,
-                'main',
-              );
-            })}
-            {particles.map((particle) => (
-              <rect
-                key={particle.id}
-                x={Math.round(particle.x) - particle.radius}
-                y={Math.round(particle.y) - particle.radius}
-                width={particle.radius * 2}
-                height={particle.radius * 2}
-                fill={particle.color}
-                shapeRendering="crispEdges"
-                pointerEvents="none"
-              />
-            ))}
-          </svg>
-
-          <div
+          <section
             style={{
-              position: 'absolute',
-              top: '10px',
-              left: '10px',
-              padding: '5px 8px',
-              color: '#dce6f3',
-              backgroundColor: 'rgba(8, 15, 27, 0.88)',
-              border: '1px solid #293b54',
-              borderRadius: '3px',
-              fontSize: '11px',
-              pointerEvents: 'none',
-            }}
-          >
-            Клеток: {cells.length} / {MAX_CELLS}
-            <div style={{ color: '#ffffff', marginTop: '2px' }}>
-              Питательная среда: {foodReceiverAmount.toFixed(1)} /{' '}
-              {foodReceiverCapacity.toFixed(1)} ед.
-            </div>
-          </div>
-
-          <div
-            style={{
-              position: 'absolute',
-              top: '10px',
-              right: '10px',
-              width: '210px',
-              padding: '10px',
-              color: '#e5eaf2',
-              backgroundColor: 'rgba(8, 15, 27, 0.94)',
-              border: '1px solid #51627a',
-              borderRadius: '4px',
-              pointerEvents: 'auto',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '9px',
-              }}
-            >
-              <svg
-                width="22"
-                height="44"
-                viewBox="0 0 22 44"
-                aria-hidden="true"
-              >
-                <rect
-                  x="7"
-                  y="2"
-                  width="8"
-                  height="30"
-                  rx="4"
-                  fill="none"
-                  stroke="#9aabc1"
-                  strokeWidth="2"
-                />
-                <rect
-                  x="10"
-                  y={30 - thermometerFillHeight}
-                  width="2"
-                  height={thermometerFillHeight}
-                  rx="1"
-                  fill={thermometerColor}
-                />
-                <circle
-                  cx="11"
-                  cy="34"
-                  r="7"
-                  fill={thermometerColor}
-                />
-                <circle cx="11" cy="34" r="3" fill="#f4d7da" />
-              </svg>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '11px', color: '#b8c6d8' }}>
-                  Температура среды
-                </div>
-                <div style={{ fontSize: '17px', fontWeight: 'bold' }}>
-                  {temperature}°C
-                </div>
-              </div>
-            </div>
-            <div style={{ marginTop: '8px' }}>
-              <Slider
-                value={temperature}
-                minValue={MIN_TEMPERATURE}
-                maxValue={MAX_TEMPERATURE}
-                stepPixelSize={8}
-                onChange={(_event, value) => setTemperature(value)}
-              />
-            </div>
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                fontSize: '9px',
-                color: '#91a1b5',
-              }}
-            >
-              <span>0°C</span>
-              <span>30°C</span>
-            </div>
-          </div>
-
-          <div
-            style={{
-              position: 'absolute',
-              left: '10px',
-              bottom: '10px',
-              width: '250px',
-              maxHeight: '175px',
+              display: 'flex',
+              flexDirection: 'column',
+              minWidth: 0,
+              minHeight: 0,
               padding: '9px',
-              color: '#e5eaf2',
-              backgroundColor: 'rgba(8, 15, 27, 0.96)',
-              border: '1px solid #51627a',
+              border: '1px solid #34465f',
               borderRadius: '4px',
-              pointerEvents: 'auto',
+              backgroundColor: '#111d2e',
               overflow: 'hidden',
-              fontSize: '11px',
             }}
           >
+            <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>
+              Хранилище реагентов
+            </div>
+            <div style={{ color: '#aabbd0', fontSize: '11px', marginBottom: '8px' }}>
+              {reagentStorageAmount.toFixed(1)} /{' '}
+              {reagentStorageCapacity.toFixed(1)} ед. · {reagentStorageTypes}/
+              {reagentTypeLimit} типа
+            </div>
             <div
               style={{
-                fontWeight: 'bold',
-                paddingBottom: '5px',
-                borderBottom: '1px solid #293b54',
+                flex: 1,
+                minHeight: 0,
+                overflowY: 'auto',
+                borderTop: '1px solid #293b54',
+                paddingTop: '5px',
               }}
             >
-              Реагенты в бикере
-            </div>
-            <div style={{ maxHeight: '58px', overflowY: 'auto' }}>
               {availableReagents.length ? (
-                availableReagents.map((reagent) => (
-                  <div
-                    key={reagent.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '6px',
-                      paddingTop: '4px',
-                    }}
-                  >
-                    <span>
-                      {reagent.name} (
-                      {Math.max(
-                        0,
-                        reagent.volume -
-                          (addedReagents.find((sample) => sample.id === reagent.id)
-                            ?.amount || 0),
-                      ).toFixed(1)}{' '}
-                      доступно)
-                    </span>
-                    <Button
-                      icon="plus"
-                      compact
-                      disabled={
-                        reagent.volume <=
-                        (addedReagents.find((sample) => sample.id === reagent.id)
-                          ?.amount || 0)
-                      }
-                      onClick={() =>
-                        act('addMicroscopeReagent', { id: reagent.id })
-                      }
+                availableReagents.map((reagent) => {
+                  const queued = addedReagents.find(
+                    (sample) => sample.id === reagent.id,
+                  );
+                  const queuedAmount = queued?.amount || 0;
+                  return (
+                    <div
+                      key={reagent.id}
+                      style={{
+                        padding: '7px 0',
+                        borderBottom: '1px solid #293b54',
+                      }}
                     >
-                      Выбрать порцию
-                    </Button>
-                  </div>
-                ))
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          marginBottom: '5px',
+                        }}
+                      >
+                        <span
+                          style={{
+                            width: '8px',
+                            height: '8px',
+                            flexShrink: 0,
+                            backgroundColor: reagent.is_vaccine
+                              ? '#4b9cff'
+                              : reagent.color,
+                            borderRadius: '50%',
+                          }}
+                        />
+                        <b style={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>
+                          {reagent.name}
+                        </b>
+                      </div>
+                      <div style={{ color: '#aabbd0', fontSize: '11px', marginBottom: '5px' }}>
+                        В автомате: {reagent.volume.toFixed(1)} ед.
+                        {queuedAmount > 0
+                          ? ' · выбрано: ' + queuedAmount.toFixed(1)
+                          : ''}
+                      </div>
+                      <div style={{ display: 'flex', gap: '5px' }}>
+                        <Button
+                          compact
+                          icon="plus"
+                          disabled={queuedAmount >= reagent.volume}
+                          onClick={() =>
+                            act('addMicroscopeReagent', { id: reagent.id })
+                          }
+                        >
+                          Добавить
+                        </Button>
+                        <Button
+                          compact
+                          icon="trash"
+                          color="bad"
+                          onClick={() =>
+                            act('removeMicroscopeStoredReagent', {
+                              id: reagent.id,
+                            })
+                          }
+                        >
+                          Удалить
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })
               ) : (
-                <div style={{ color: '#9eacbf', padding: '5px 0' }}>
-                  Установите бикер с реагентами в Пандемик
+                <div style={{ color: '#9eacbf', fontSize: '11px', padding: '6px 0' }}>
+                  Хранилище пусто. Залейте реагент из открытой ёмкости или капельницы в автомат.
                 </div>
               )}
             </div>
             <div
               style={{
-                marginTop: '5px',
-                paddingTop: '5px',
-                borderTop: '1px solid #293b54',
+                borderTop: '1px solid #34465f',
+                paddingTop: '7px',
+                marginTop: '7px',
               }}
             >
-              <div style={{ color: '#b8c6d8', marginBottom: '3px' }}>
-                Добавлено в микроскоп
+              <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>
+                Выбрано для микроскопа
               </div>
               {addedReagents.length ? (
-                <div style={{ maxHeight: '35px', overflowY: 'auto' }}>
+                <div style={{ maxHeight: '90px', overflowY: 'auto' }}>
                   {addedReagents.map((reagent) => (
-                    <div key={reagent.id}>
-                      <span
-                        style={{
-                          color: reagent.is_vaccine
-                            ? '#4b9cff'
-                            : reagent.color,
-                        }}
-                      >
+                    <div
+                      key={reagent.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        fontSize: '11px',
+                        paddingBottom: '3px',
+                      }}
+                    >
+                      <span style={{ color: reagent.is_vaccine ? '#4b9cff' : reagent.color }}>
                         ●
-                      </span>{' '}
-                      {reagent.name}: {reagent.amount.toFixed(1)} ед.
+                      </span>
+                      <span style={{ flex: 1 }}>{reagent.name}</span>
+                      <b>{reagent.amount.toFixed(1)}</b>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div style={{ color: '#9eacbf', marginBottom: '4px' }}>
-                  Пока пусто
+                <div style={{ color: '#9eacbf', fontSize: '11px' }}>
+                  Ничего не выбрано
                 </div>
               )}
               <Button
                 fluid
+                mt={1}
                 icon="play"
                 disabled={!addedReagents.length}
                 onClick={startReagentSimulation}
               >
-                Старт
+                Запустить реагенты
               </Button>
               {particles.length > 0 && (
                 <div
                   style={{
                     textAlign: 'center',
                     color: '#42e58d',
-                    marginTop: '3px',
+                    fontSize: '10px',
+                    marginTop: '4px',
                   }}
                 >
-                  Частиц: {particles.length}
+                  Частиц в поле: {particles.length}
                 </div>
               )}
             </div>
-          </div>
+          </section>
 
-          <div
+          <section
             style={{
-              position: 'absolute',
-              right: '10px',
-              bottom: '10px',
-              width: '190px',
-              padding: '10px',
-              color: '#e5eaf2',
-              backgroundColor: 'rgba(8, 15, 27, 0.94)',
-              border: '1px solid #51627a',
-              borderRadius: '4px',
-              pointerEvents: 'none',
+              display: 'flex',
+              flexDirection: 'column',
+              minWidth: 0,
+              minHeight: 0,
+              gap: '7px',
             }}
           >
-            {selectedCell ? (
-              <>
-                <div
-                  style={{
-                    paddingBottom: '6px',
-                    borderBottom: '1px solid #293b54',
-                    fontSize: '12px',
-                    fontWeight: 'bold',
-                  }}
-                >
-                  {selectedCell.name} №{selectedCell.id}
-                </div>
-                <StrengthMeter
-                  label="Внешняя оболочка"
-                  value={selectedCell.outerStrength}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '8px',
+                color: '#dce6f3',
+                fontSize: '12px',
+              }}
+            >
+              <b>Клеточная культура</b>
+              <span>
+                Клеток: {cells.length} / {MAX_CELLS}
+              </span>
+              <span>
+                Питание: {foodReceiverAmount.toFixed(1)} /{' '}
+                {foodReceiverCapacity.toFixed(1)}
+              </span>
+            </div>
+            <div
+              style={{
+                flex: 1,
+                minHeight: 0,
+                overflow: 'hidden',
+                backgroundColor: '#101a2a',
+                border: '1px solid #34465f',
+                borderRadius: '4px',
+              }}
+            >
+              <svg
+                viewBox={'0 0 ' + AREA_WIDTH + ' ' + AREA_HEIGHT}
+                width="100%"
+                height="100%"
+                preserveAspectRatio="xMidYMid meet"
+                style={{ display: 'block', imageRendering: 'pixelated' }}
+                aria-label="Движущиеся и делящиеся клетки вируса"
+              >
+                <rect
+                  x="0"
+                  y="0"
+                  width={AREA_WIDTH}
+                  height={AREA_HEIGHT}
+                  fill="#101a2a"
                 />
-                <StrengthMeter
-                  label="Внутренний слой"
-                  value={selectedCell.innerStrength}
-                />
-                <StrengthMeter
-                  label="Ядро"
-                  value={selectedCell.nucleusStrength}
-                />
-                <div
-                  style={{
-                    marginTop: '10px',
-                    paddingTop: '7px',
-                    borderTop: '1px solid #293b54',
-                    fontSize: '11px',
-                  }}
-                >
-                  <b>Питание для деления</b>
-                  <div style={{ color: '#42e58d', marginTop: '3px' }}>
-                    {selectedCell.food.toFixed(1)} / {FOOD_FOR_DIVISION} ед.
+                {cells.map((cell) => {
+                  if (cell.stage === 'splitting') {
+                    const progress = clamp(cell.stageTicks / SPLIT_TICKS, 0, 1);
+                    const offset = getSplitOffset(cell, progress);
+                    const scale = 0.9 + progress * 0.1;
+                    return (
+                      <g key={cell.id}>
+                        {renderCellSprite(
+                          cell,
+                          cell.x - offset.x,
+                          cell.y - offset.y,
+                          scale,
+                          scale,
+                          1,
+                          selectedId === cell.id,
+                          setSelectedId,
+                          'left',
+                        )}
+                        {renderCellSprite(
+                          cell,
+                          cell.x + offset.x,
+                          cell.y + offset.y,
+                          scale,
+                          scale,
+                          1,
+                          selectedId === cell.id,
+                          setSelectedId,
+                          'right',
+                        )}
+                      </g>
+                    );
+                  }
+                  if (cell.stage === 'growing') {
+                    const progress = clamp(cell.stageTicks / GROWTH_TICKS, 0, 1);
+                    const scale = 1 + progress * 0.35;
+                    return renderCellSprite(
+                      cell,
+                      cell.x,
+                      cell.y,
+                      scale,
+                      scale,
+                      1,
+                      selectedId === cell.id,
+                      setSelectedId,
+                      'main',
+                    );
+                  }
+                  if (cell.stage === 'stretching') {
+                    const progress = clamp(
+                      cell.stageTicks / STRETCH_TICKS,
+                      0,
+                      1,
+                    );
+                    return renderCellSprite(
+                      cell,
+                      cell.x,
+                      cell.y,
+                      1.35 + progress * 0.45,
+                      1.35 - progress * 0.45,
+                      1,
+                      selectedId === cell.id,
+                      setSelectedId,
+                      'main',
+                    );
+                  }
+                  if (cell.stage === 'dying') {
+                    const progress = clamp(cell.stageTicks / DYING_TICKS, 0, 1);
+                    const scale = 1 - progress * 0.4;
+                    return renderCellSprite(
+                      cell,
+                      cell.x,
+                      cell.y,
+                      scale,
+                      scale,
+                      1 - progress,
+                      selectedId === cell.id,
+                      setSelectedId,
+                      'main',
+                    );
+                  }
+                  return renderCellSprite(
+                    cell,
+                    cell.x,
+                    cell.y,
+                    1,
+                    1,
+                    1,
+                    selectedId === cell.id,
+                    setSelectedId,
+                    'main',
+                  );
+                })}
+                {particles.map((particle) => (
+                  <rect
+                    key={particle.id}
+                    x={Math.round(particle.x) - particle.radius}
+                    y={Math.round(particle.y) - particle.radius}
+                    width={particle.radius * 2}
+                    height={particle.radius * 2}
+                    fill={particle.color}
+                    shapeRendering="crispEdges"
+                    pointerEvents="none"
+                  />
+                ))}
+              </svg>
+            </div>
+            <div
+              style={{
+                color: '#9eacbf',
+                fontSize: '10px',
+                textAlign: 'center',
+              }}
+            >
+              Еда расходуется из внутреннего хранилища и попадает в клетку при контакте
+              с ней.
+            </div>
+          </section>
+
+          <section
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              minWidth: 0,
+              minHeight: 0,
+              gap: '8px',
+            }}
+          >
+            <div
+              style={{
+                padding: '10px',
+                border: '1px solid #34465f',
+                borderRadius: '4px',
+                backgroundColor: '#111d2e',
+              }}
+            >
+              <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>
+                Температура
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
+                <svg width="22" height="44" viewBox="0 0 22 44" aria-hidden="true">
+                  <rect
+                    x="7"
+                    y="2"
+                    width="8"
+                    height="30"
+                    rx="4"
+                    fill="none"
+                    stroke="#9aabc1"
+                    strokeWidth="2"
+                  />
+                  <rect
+                    x="10"
+                    y={30 - thermometerFillHeight}
+                    width="2"
+                    height={thermometerFillHeight}
+                    rx="1"
+                    fill={thermometerColor}
+                  />
+                  <circle cx="11" cy="34" r="7" fill={thermometerColor} />
+                  <circle cx="11" cy="34" r="3" fill="#f4d7da" />
+                </svg>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '19px', fontWeight: 'bold' }}>
+                    {temperature}°C
+                  </div>
+                  <div style={{ fontSize: '10px', color: '#aabbd0' }}>
+                    Комфорт: {COMFORTABLE_TEMP_MIN}–{COMFORTABLE_TEMP_MAX}°C
                   </div>
                 </div>
-
-              </>
-            ) : (
-              <div style={{ fontSize: '11px', lineHeight: '16px' }}>
-                Нажмите на клетку, чтобы посмотреть её характеристики
               </div>
-            )}
-          </div>
+              <div style={{ marginTop: '10px' }}>
+                <Slider
+                  value={temperature}
+                  minValue={MIN_TEMPERATURE}
+                  maxValue={MAX_TEMPERATURE}
+                  stepPixelSize={8}
+                  onChange={(_event, value) => setTemperature(value)}
+                />
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  fontSize: '9px',
+                  color: '#91a1b5',
+                }}
+              >
+                <span>0°C</span>
+                <span>30°C</span>
+              </div>
+            </div>
+
+            <div
+              style={{
+                flex: 1,
+                minHeight: 0,
+                overflowY: 'auto',
+                padding: '10px',
+                color: '#e5eaf2',
+                backgroundColor: '#111d2e',
+                border: '1px solid #34465f',
+                borderRadius: '4px',
+              }}
+            >
+              <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>
+                Характеристики клетки
+              </div>
+              {selectedCell ? (
+                <>
+                  <div
+                    style={{
+                      paddingBottom: '6px',
+                      borderBottom: '1px solid #293b54',
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                    }}
+                  >
+                    {selectedCell.name} №{selectedCell.id}
+                  </div>
+                  <StrengthMeter
+                    label="Внешняя оболочка"
+                    value={selectedCell.outerStrength}
+                  />
+                  <StrengthMeter
+                    label="Внутренний слой"
+                    value={selectedCell.innerStrength}
+                  />
+                  <StrengthMeter
+                    label="Ядро"
+                    value={selectedCell.nucleusStrength}
+                  />
+                  <div
+                    style={{
+                      marginTop: '12px',
+                      paddingTop: '8px',
+                      borderTop: '1px solid #293b54',
+                      fontSize: '11px',
+                    }}
+                  >
+                    <b>Питание для деления</b>
+                    <div style={{ color: '#42e58d', marginTop: '4px' }}>
+                      {selectedCell.food.toFixed(1)} / {FOOD_FOR_DIVISION} ед.
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div style={{ color: '#9eacbf', fontSize: '11px' }}>
+                  Выберите клетку в поле микроскопа, чтобы посмотреть её характеристики
+                </div>
+              )}
+            </div>
+
+            <div
+              style={{
+                padding: '8px 10px',
+                border: '1px solid #34465f',
+                borderRadius: '4px',
+                backgroundColor: '#111d2e',
+                fontSize: '10px',
+                color: '#aabbd0',
+              }}
+            >
+              Питательная среда: {foodReceiverAmount.toFixed(1)} /{' '}
+              {foodReceiverCapacity.toFixed(1)} ед.
+            </div>
+          </section>
         </div>
       </Window.Content>
     </Window>
