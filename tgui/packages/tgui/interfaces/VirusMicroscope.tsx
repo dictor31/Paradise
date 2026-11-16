@@ -325,6 +325,7 @@ const deformMembrane = (
 };
 
 const moveCell = (cell: VirusCell, deltaScale: number): VirusCell => {
+  const wallRadius = getCellCollisionRadius(cell);
   // A gentle, deterministic drift keeps each culture from looking like a
   // collection of particles on perfectly straight trajectories.
   let vx =
@@ -339,22 +340,22 @@ const moveCell = (cell: VirusCell, deltaScale: number): VirusCell => {
   let y = cell.y + vy * deltaScale;
   let updated = cell;
 
-  if (x < cell.size + 4) {
-    x = cell.size + 4;
+  if (x < wallRadius + 4) {
+    x = wallRadius + 4;
     vx = Math.abs(vx) * 0.9;
     updated = deformMembrane(updated, Math.PI, 2.2);
-  } else if (x > AREA_WIDTH - cell.size - 4) {
-    x = AREA_WIDTH - cell.size - 4;
+  } else if (x > AREA_WIDTH - wallRadius - 4) {
+    x = AREA_WIDTH - wallRadius - 4;
     vx = -Math.abs(vx) * 0.9;
     updated = deformMembrane(updated, 0, 2.2);
   }
 
-  if (y < cell.size + 4) {
-    y = cell.size + 4;
+  if (y < wallRadius + 4) {
+    y = wallRadius + 4;
     vy = Math.abs(vy) * 0.9;
     updated = deformMembrane(updated, -Math.PI / 2, 2.2);
-  } else if (y > AREA_HEIGHT - cell.size - 4) {
-    y = AREA_HEIGHT - cell.size - 4;
+  } else if (y > AREA_HEIGHT - wallRadius - 4) {
+    y = AREA_HEIGHT - wallRadius - 4;
     vy = -Math.abs(vy) * 0.9;
     updated = deformMembrane(updated, Math.PI / 2, 2.2);
   }
