@@ -136,7 +136,8 @@ const AREA_HEIGHT = 460;
 const MAX_CELLS = 10;
 const START_CELLS = 6;
 
-const TICK_INTERVAL = 80;
+const PHYSICS_INTERVAL = 40;
+const BIOLOGICAL_DELTA_SCALE = 0.5;
 const INNER_STRENGTH_DECAY_INTERVAL = 18;
 const INNER_REPAIR_INTERVAL = 10;
 const FOOD_PER_INNER_REPAIR = 0.1;
@@ -323,11 +324,19 @@ const deformMembrane = (
   return cell.with({ membrane });
 };
 
-const moveCell = (cell: VirusCell): VirusCell => {
-  let x = cell.x + cell.vx;
-  let y = cell.y + cell.vy;
-  let vx = cell.vx;
-  let vy = cell.vy;
+const moveCell = (cell: VirusCell, deltaScale: number): VirusCell => {
+  // A gentle, deterministic drift keeps each culture from looking like a
+  // collection of particles on perfectly straight trajectories.
+  let vx =
+    cell.vx +
+    Math.sin(cell.age * 0.035 + cell.id * 2.1) * 0.035 * deltaScale;
+  let vy =
+    cell.vy +
+    Math.cos(cell.age * 0.032 + cell.id * 1.7) * 0.035 * deltaScale;
+  vx = clamp(vx, -2.8, 2.8);
+  vy = clamp(vy, -2.8, 2.8);
+  let x = cell.x + vx * deltaScale;
+  let y = cell.y + vy * deltaScale;
   let updated = cell;
 
   if (x < cell.size + 4) {
@@ -366,10 +375,14 @@ const getCellCollisionRadius = (cell: VirusCell): number => {
   return cell.size;
 };
 
-const resolveCellCollisions = (cells: VirusCell[]): VirusCell[] => {
+const resolveCellCollisions = (
+  cells: VirusCell[],
+  deltaScale: number,
+): VirusCell[] => {
+  const relaxation = Math.pow(MEMBRANE_RELAXATION, deltaScale);
   const resolved = cells.map((cell) => {
     const membrane = (cell.membrane || createRestingMembrane()).map(
-      (value) => value * MEMBRANE_RELAXATION,
+      (value) => value * relaxation,
     );
     return cell.with({ membrane });
   });
@@ -497,15 +510,24 @@ const advanceCells = (
   cells: VirusCell[],
   temperature: number,
   foodAvailable: boolean,
+  biologicalTick: boolean,
+  deltaScale: number,
 ): VirusCell[] => {
   const next: VirusCell[] = [];
   const offspring: VirusCell[] = [];
   let nextId = cells.reduce((highest, cell) => Math.max(highest, cell.id), 0) + 1;
   for (const cell of cells) {
-    const moved = cell.stage === 'dying' ? cell : moveCell(cell);
-    let updated = moved.with({ age: cell.age + 1 });
+    const moved =
+      cell.stage === 'dying' ? cell : moveCell(cell, deltaScale);
+    let updated = moved.with({
+      age: cell.age + (biologicalTick ? 1 : 0),
+    });
 
-    if (updated.stage !== 'dying' && updated.age > 0) {
+    if (
+      biologicalTick &&
+      updated.stage !== 'dying' &&
+      updated.age > 0
+    ) {
       let outerStrength = updated.outerStrength;
       let innerStrength = updated.innerStrength;
       let nucleusStrength = updated.nucleusStrength;
@@ -570,10 +592,16 @@ const advanceCells = (
     }
 
     if (
+      biologicalTick &&
       updated.stage !== 'dying' &&
       updated.nucleusStrength === 0
     ) {
       updated = updated.with({ stage: 'dying', stageTicks: 0 });
+    }
+
+    if (!biologicalTick) {
+      next.push(updated);
+      continue;
     }
 
     if (updated.stage === 'dying') {
@@ -687,6 +715,7 @@ const advanceCells = (
   );
 
   if (
+    biologicalTick &&
     foodAvailable &&
     !hasDyingCell &&
     !divisionInProgress &&
@@ -712,7 +741,7 @@ const advanceCells = (
     }
   }
 
-  return resolveCellCollisions(next);
+  return resolveCellCollisions(next, deltaScale);
 };
 
 const distanceToSegment = (
@@ -1133,8 +1162,13 @@ export const VirusMicroscope = (_props: unknown) => {
     };
   }, [act, cultureGeneration, microscopeSamplePresent]);
 
+  const biologicalStep = useRef(true);
+
   useEffect(() => {
     const interval = window.setInterval(() => {
+      const runBiology = biologicalStep.current;
+      biologicalStep.current = !biologicalStep.current;
+
       setSimulation((current) => {
         if (!current.cells.length && !current.particles.length) {
           return current;
@@ -1144,10 +1178,16 @@ export const VirusMicroscope = (_props: unknown) => {
           current.cells,
           temperature,
           foodReceiverAmount > 0,
+          runBiology,
+          BIOLOGICAL_DELTA_SCALE,
         );
-        return advanceReagentParticles(current.particles, nextCells, 1);
+        return advanceReagentParticles(
+          current.particles,
+          nextCells,
+          BIOLOGICAL_DELTA_SCALE,
+        );
       });
-    }, TICK_INTERVAL);
+    }, PHYSICS_INTERVAL);
 
     return () => window.clearInterval(interval);
   }, [foodReceiverAmount, temperature]);
