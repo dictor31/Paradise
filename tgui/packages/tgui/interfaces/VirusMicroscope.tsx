@@ -701,7 +701,11 @@ const StrengthMeter = ({
 }) => {
   const safeValue = clamp(value, 0, 100);
   const barColor =
-    safeValue > 65 ? '#70c7b1' : safeValue > 35 ? '#e3a45f' : '#d97871';
+    safeValue > 65
+      ? 'var(--vm-accent)'
+      : safeValue > 35
+        ? 'var(--vm-warning)'
+        : 'var(--vm-danger)';
 
   return (
     <div className="VirusMicroscope__meter">
@@ -751,10 +755,10 @@ export const VirusMicroscope = (_props: unknown) => {
   const temperatureMidpoint = (MIN_TEMPERATURE + MAX_TEMPERATURE) / 2;
   const thermometerColor =
     temperature > temperatureMidpoint
-      ? '#e3a45f'
+      ? 'var(--vm-warning)'
       : temperature < temperatureMidpoint
         ? '#65a9ed'
-        : '#8fc6ad';
+        : 'var(--vm-accent)';
   const thermometerFillHeight =
     (temperature / MAX_TEMPERATURE) * 22;
 
