@@ -833,7 +833,10 @@ export const VirusMicroscope = (_props: unknown) => {
   }, [cultureGeneration, microscopeSamplePresent, virusSeeds]);
 
   useEffect(() => {
-    if (cells.length > 0) {
+    const noViableCells =
+      cells.length === 0 || cells.every((cell) => cell.stage === 'dying');
+
+    if (!noViableCells) {
       if (reportedExtinctionGeneration.current === cultureGeneration) {
         reportedExtinctionGeneration.current = null;
       }
@@ -849,9 +852,11 @@ export const VirusMicroscope = (_props: unknown) => {
       return;
     }
 
+    // Mark the strain extinct as soon as every cell has entered its death
+    // animation, not after the final fade-out frame.
     reportedExtinctionGeneration.current = cultureGeneration;
     act('microscopePopulationExtinct', { generation: cultureGeneration });
-  }, [act, cells.length, cultureGeneration, microscopeSamplePresent, virusSeeds.length]);
+  }, [act, cells, cultureGeneration, microscopeSamplePresent, virusSeeds.length]);
 
   useEffect(() => {
     const interval = window.setInterval(() => {
