@@ -188,7 +188,6 @@
 			P.header += "&emsp;Название: [disease["name"]]<br>"
 			P.header += "&emsp;Тип: [disease["additional_info"]]<br>"
 			P.header += "&emsp;Стадия: [disease["stage"]]/[disease["max_stages"]]<br>"
-			P.header += "&emsp;Лечение: [disease["cure_text"]]<br>"
 
 	if(scan_data["heartCondition"] == ORGAN_STATUS_CRIT)
 		P.header += "[span_color("<b>Внимание: Критическое состояние</b>", "#d82020")]<br>"
@@ -460,7 +459,6 @@
 				additional_info = "[D.additional_info]",
 				stage = "[D.stage]",
 				max_stages = "[D.max_stages]",
-				cure_text = "[D.cure_text]"
 				)
 			)
 	data["diseases"] = diseases
@@ -630,8 +628,7 @@
 			scan_data += "&emsp;Название: [D.name]"
 			scan_data += "&emsp;Тип: [D.additional_info]"
 			scan_data += "&emsp;Стадия: [D.stage]/[D.max_stages]"
-			scan_data += "&emsp;Лечение: [D.cure_text]"
-	if(H.undergoing_cardiac_arrest())
+		if(H.undergoing_cardiac_arrest())
 		var/obj/item/organ/internal/heart/heart = H.get_int_organ(/obj/item/organ/internal/heart)
 		if(heart && !heart.is_dead())
 			scan_data += span_warning("<b>Внимание: Критическое состояние</b>")
