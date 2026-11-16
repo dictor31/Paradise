@@ -664,7 +664,7 @@ const renderCellSprite = (
       <circle
         r="24"
         fill="none"
-        stroke="#ffd27a"
+        stroke="#91ddc6"
         strokeWidth="1.5"
         strokeDasharray="3 3"
       />
@@ -701,7 +701,7 @@ const StrengthMeter = ({
 }) => {
   const safeValue = clamp(value, 0, 100);
   const barColor =
-    safeValue > 65 ? '#d96c67' : safeValue > 35 ? '#dda45d' : '#9f655b';
+    safeValue > 65 ? '#70c7b1' : safeValue > 35 ? '#e3a45f' : '#d97871';
 
   return (
     <div className="VirusMicroscope__meter">
@@ -731,6 +731,10 @@ export const VirusMicroscope = (_props: unknown) => {
   const reagentStorageCapacity =
     data.microscope_reagent_storage_capacity || 100;
   const reagentStorageTypes = data.microscope_reagent_storage_types || 0;
+  const reagentStorageFill =
+    reagentStorageCapacity > 0
+      ? clamp((reagentStorageAmount / reagentStorageCapacity) * 100, 0, 100)
+      : 0;
   const reagentTypeLimit = data.microscope_reagent_type_limit || 3;
   const [simulation, setSimulation] = useState<MicroscopeSimulation>(() => ({
     cells: createInitialCells(virusSeeds),
@@ -747,10 +751,10 @@ export const VirusMicroscope = (_props: unknown) => {
   const temperatureMidpoint = (MIN_TEMPERATURE + MAX_TEMPERATURE) / 2;
   const thermometerColor =
     temperature > temperatureMidpoint
-      ? '#e16a74'
+      ? '#e3a45f'
       : temperature < temperatureMidpoint
-        ? '#6c9bd7'
-        : '#9aabc1';
+        ? '#65a9ed'
+        : '#8fc6ad';
   const thermometerFillHeight =
     (temperature / MAX_TEMPERATURE) * 22;
 
@@ -911,12 +915,18 @@ export const VirusMicroscope = (_props: unknown) => {
           <section className="VirusMicroscope__reagents">
             <div className="VirusMicroscope__panel-title">
               Реагенты
-              <span>СТОК АВТОМАТА</span>
+              <span>РЕЗЕРВ · 3 СЛОТА</span>
             </div>
             <div className="VirusMicroscope__inventory-readout">
               {reagentStorageAmount.toFixed(1)} /{' '}
               {reagentStorageCapacity.toFixed(1)} ед. · {reagentStorageTypes}/
               {reagentTypeLimit} типа
+            </div>
+            <div className="VirusMicroscope__inventory-meter" aria-hidden="true">
+              <div
+                className="VirusMicroscope__inventory-meter-fill"
+                style={{ width: reagentStorageFill + '%' }}
+              />
             </div>
             <div className="VirusMicroscope__reagent-list">
               {availableReagents.length ? (
@@ -1016,7 +1026,7 @@ export const VirusMicroscope = (_props: unknown) => {
                 disabled={!addedReagents.length}
                 onClick={startReagentSimulation}
               >
-                Запустить реагенты
+                Подать реагенты
               </Button>
               <div className="VirusMicroscope__particle-count">
                 ЧАСТИЦ В КАМЕРЕ <b>{particles.length}</b>
@@ -1029,7 +1039,7 @@ export const VirusMicroscope = (_props: unknown) => {
               <div>
                 <div className="VirusMicroscope__culture-title">Культура</div>
                 <div className="VirusMicroscope__culture-subtitle">
-                  МИКРОСКОПИЧЕСКОЕ НАБЛЮДЕНИЕ · LIVE
+                  НАБЛЮДЕНИЕ В РЕАЛЬНОМ ВРЕМЕНИ
                 </div>
               </div>
               <div className="VirusMicroscope__culture-readouts">
@@ -1081,9 +1091,9 @@ export const VirusMicroscope = (_props: unknown) => {
                     <path
                       d="M 40 0 L 0 0 0 40"
                       fill="none"
-                      stroke="#607c78"
-                      strokeWidth="0.7"
-                      opacity="0.24"
+                      stroke="#8aa99d"
+                      strokeWidth="0.65"
+                      opacity="0.16"
                     />
                   </pattern>
                 </defs>
@@ -1217,7 +1227,7 @@ export const VirusMicroscope = (_props: unknown) => {
                     height="30"
                     rx="4"
                     fill="none"
-                    stroke="#9aabc1"
+                    stroke="#9bb2a8"
                     strokeWidth="2"
                   />
                   <rect
@@ -1229,14 +1239,13 @@ export const VirusMicroscope = (_props: unknown) => {
                     fill={thermometerColor}
                   />
                   <circle cx="11" cy="34" r="7" fill={thermometerColor} />
-                  <circle cx="11" cy="34" r="3" fill="#f4d7da" />
+                  <circle cx="11" cy="34" r="3" fill="#eff6ed" />
                 </svg>
                 <div className="VirusMicroscope__temperature-value">
-                    {temperature}°C
-                  </div>
-                  <div className="VirusMicroscope__temperature-note">
+                  <strong>{temperature}°C</strong>
+                  <span className="VirusMicroscope__temperature-note">
                     Комфорт: {COMFORTABLE_TEMP_MIN}–{COMFORTABLE_TEMP_MAX}°C
-                  </div>
+                  </span>
                 </div>
               </div>
               <div className="VirusMicroscope__temperature-slider">
@@ -1256,7 +1265,7 @@ export const VirusMicroscope = (_props: unknown) => {
 
             <div className="VirusMicroscope__cell-details">
               <div className="VirusMicroscope__panel-title">
-                Состояние клетки
+                Параметры клетки
                 <span>АНАЛИЗ</span>
               </div>
               {selectedCell ? (
@@ -1277,9 +1286,19 @@ export const VirusMicroscope = (_props: unknown) => {
                     value={selectedCell.nucleusStrength}
                   />
                   <div className="VirusMicroscope__division">
-                    <b>Ресурс деления</b>
+                    <b>Питательный резерв</b>
                     <div className="VirusMicroscope__division-value">
                       {selectedCell.food.toFixed(1)} / {FOOD_FOR_DIVISION} ед.
+                    </div>
+                    <div className="VirusMicroscope__reserve-track">
+                      <div
+                        style={{
+                          width: (selectedCell.food / MAX_CELL_FOOD) * 100 + '%',
+                        }}
+                      />
+                    </div>
+                    <div className="VirusMicroscope__reserve-note">
+                      Поддерживает внутренний слой и деление
                     </div>
                   </div>
                 </>
