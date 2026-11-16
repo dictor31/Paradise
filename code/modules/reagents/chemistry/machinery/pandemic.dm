@@ -114,7 +114,7 @@
 			))
 
 		if(!length(virus_seeds))
-			return FALSE
+			continue
 
 		// The marker stays inside this blood sample after it is removed from the machine.
 		blood_reagent.data["microscope_sample_used"] = TRUE
