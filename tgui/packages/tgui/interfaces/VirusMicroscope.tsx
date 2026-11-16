@@ -21,7 +21,7 @@ type MicroscopeAddedReagent = {
 
 type MicroscopeVirusSeed = {
   name: string;
-  cure_reagents: string[];
+  microscope_reagents: string[];
   comfortable_temperature: number;
 };
 
@@ -65,6 +65,8 @@ type CellStage = 'normal' | 'growing' | 'stretching' | 'splitting' | 'dying';
 type VisualPulseType = 'impact' | 'food' | 'damage';
 
 type VirusCellData = {
+  /** Legacy field read only when migrating an existing saved culture. */
+  innerReagentId?: string | null;
   id: number;
   name: string;
   x: number;
@@ -76,7 +78,7 @@ type VirusCellData = {
   food: number;
   comfortTemperature: number;
   outerReagentId: string | null;
-  innerReagentId: string | null;
+  nucleusReagentId: string | null;
   outerStrength: number;
   innerStrength: number;
   nucleusStrength: number;
@@ -106,7 +108,7 @@ class VirusCell {
   food: number;
   comfortTemperature: number;
   outerReagentId: string | null;
-  innerReagentId: string | null;
+  nucleusReagentId: string | null;
   outerStrength: number;
   innerStrength: number;
   nucleusStrength: number;
@@ -132,7 +134,7 @@ class VirusCell {
     this.food = properties.food;
     this.comfortTemperature = properties.comfortTemperature;
     this.outerReagentId = properties.outerReagentId;
-    this.innerReagentId = properties.innerReagentId;
+    this.nucleusReagentId = properties.nucleusReagentId ?? properties.innerReagentId ?? null;
     this.outerStrength = properties.outerStrength;
     this.innerStrength = properties.innerStrength;
     this.nucleusStrength = properties.nucleusStrength;
@@ -176,7 +178,7 @@ const MIN_TEMPERATURE = 0;
 const MAX_TEMPERATURE = 30;
 const VIRUS_FOOD_REAGENT_ID = 'virusfood';
 const VACCINE_NUCLEUS_DAMAGE = 35;
-const LAYER_DAMAGE_PER_PARTICLE = 8;
+const REAGENT_DAMAGE_PER_PARTICLE = 8;
 const FOOD_FOR_DIVISION = 5;
 const MAX_CELL_FOOD = 5;
 const PARTICLES_PER_UNIT = 1;
@@ -266,7 +268,7 @@ const createInitialCells = (
 
   return positions.slice(0, initialCellCount).map(([x, y], index) => {
     const seed = virusSeeds[index % virusSeeds.length];
-    const cures = seed.cure_reagents || [];
+    const reagents = seed.microscope_reagents || [];
     const id = index + 1;
     return new VirusCell({
       id,
@@ -279,8 +281,8 @@ const createInitialCells = (
       size: 17 + Math.round(Math.random() * 3),
       food: 0,
       comfortTemperature: clamp(seed.comfortable_temperature ?? 15, MIN_TEMPERATURE, MAX_TEMPERATURE),
-      outerReagentId: cures[0] || null,
-      innerReagentId: cures[1] || null,
+      outerReagentId: reagents[0] || null,
+      nucleusReagentId: reagents[1] || null,
       outerStrength: randomStrength(),
       innerStrength: randomStrength(),
       nucleusStrength: randomStrength(),
@@ -308,7 +310,9 @@ const restoreMicroscopeSimulation = (
           new VirusCell({
             ...cell,
             outerReagentId: cell.outerReagentId || null,
-            innerReagentId: cell.innerReagentId || null,
+            // Older saved cultures used the second cure reagent for the inner layer.
+            // Keep that reagent as the nucleus agent after the new two-layer mapping.
+            nucleusReagentId: cell.nucleusReagentId || cell.innerReagentId || null,
             membrane:
               cell.membrane?.length === MEMBRANE_POINTS
                 ? cell.membrane
@@ -1111,26 +1115,30 @@ const advanceReagentParticles = (
         nextCells[touchedCellIndex] = touchedCell.with({
           outerStrength: Math.max(
             0,
-            touchedCell.outerStrength - LAYER_DAMAGE_PER_PARTICLE,
+            touchedCell.outerStrength - REAGENT_DAMAGE_PER_PARTICLE,
           ),
           visualPulse: 1,
           visualPulseType: 'damage',
           visualPulseAngle: contactAngle,
         });
       } else if (
-        touchedCell.innerReagentId !== null &&
-        particle.reagentId === touchedCell.innerReagentId &&
+        touchedCell.nucleusReagentId !== null &&
+        particle.reagentId === touchedCell.nucleusReagentId &&
         touchedCell.outerStrength <= 0 &&
-        touchedCell.innerStrength > 0
+        touchedCell.nucleusStrength > 0
       ) {
+        const nucleusStrength = Math.max(
+          0,
+          touchedCell.nucleusStrength - REAGENT_DAMAGE_PER_PARTICLE,
+        );
         nextCells[touchedCellIndex] = touchedCell.with({
-          innerStrength: Math.max(
-            0,
-            touchedCell.innerStrength - LAYER_DAMAGE_PER_PARTICLE,
-          ),
+          nucleusStrength,
           visualPulse: 1,
           visualPulseType: 'damage',
           visualPulseAngle: contactAngle,
+          ...(nucleusStrength === 0
+            ? { stage: 'dying' as const, stageTicks: 0 }
+            : {}),
         });
       }
 
