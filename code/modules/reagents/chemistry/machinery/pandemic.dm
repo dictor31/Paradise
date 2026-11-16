@@ -214,6 +214,20 @@
 			return ..()
 		beaker = container
 		balloon_alert(user, "ёмкость вставлена")
+		var/datum/reagents/reagents = beaker.reagents
+		for(var/datum/reagent/reagent as anything in reagents.reagent_list)
+			var/list/reagent_data = reagent.data
+			if((reagent.type in GLOB.diseases_carrier_reagents) && reagent_data && reagent_data["resistances"])
+				var/list/original_resistances = reagent_data["resistances"]
+				var/list/resistances = original_resistances.Copy()
+				for(var/path in resistances)
+					var/datum/disease/virus/virus_res = path
+					if(initial(virus_res.no_vaccine))
+						reagent_data["resistances"] -= path
+		load_microscope_sample()
+		update_icon(UPDATE_ICON_STATE)
+		SStgui.update_uis(src)
+		return ATTACK_CHAIN_BLOCKED_ALL
 	return ..()
 
 /obj/machinery/computer/pandemic/screwdriver_act(mob/user, obj/item/item)
