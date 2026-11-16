@@ -863,7 +863,9 @@ export const VirusMicroscope = (_props: unknown) => {
     }
 
     const feedingInterval = window.setInterval(() => {
-      if (particlesRef.current.length >= MAX_REAGENT_PARTICLES) {
+      if (
+        particlesRef.current.length + foodDose > MAX_REAGENT_PARTICLES
+      ) {
         return;
       }
 
