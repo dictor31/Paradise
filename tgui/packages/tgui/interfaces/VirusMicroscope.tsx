@@ -22,6 +22,7 @@ type MicroscopeAddedReagent = {
 type MicroscopeVirusSeed = {
   name: string;
   cure_reagents: string[];
+  comfortable_temperature: number;
 };
 
 type VirusMicroscopeData = {
@@ -67,6 +68,7 @@ type VirusCellData = {
   age: number;
   size: number;
   food: number;
+  comfortTemperature: number;
   outerReagentId: string | null;
   innerReagentId: string | null;
   outerStrength: number;
@@ -86,6 +88,7 @@ class VirusCell {
   age: number;
   size: number;
   food: number;
+  comfortTemperature: number;
   outerReagentId: string | null;
   innerReagentId: string | null;
   outerStrength: number;
@@ -104,6 +107,7 @@ class VirusCell {
     this.age = properties.age;
     this.size = properties.size;
     this.food = properties.food;
+    this.comfortTemperature = properties.comfortTemperature;
     this.outerReagentId = properties.outerReagentId;
     this.innerReagentId = properties.innerReagentId;
     this.outerStrength = properties.outerStrength;
@@ -126,13 +130,12 @@ const START_CELLS = 6;
 
 const TICK_INTERVAL = 80;
 const INNER_STRENGTH_DECAY_INTERVAL = 18;
-const UNCOMFORTABLE_INNER_DECAY_INTERVAL = 5;
-const INNER_REPAIR_INTERVAL = 20;
+const INNER_REPAIR_INTERVAL = 10;
 const FOOD_PER_INNER_REPAIR = 0.1;
 const NUCLEUS_STRENGTH_DECAY_INTERVAL = 54;
-const UNCOMFORTABLE_NUCLEUS_DECAY_INTERVAL = 15;
-const COMFORTABLE_TEMP_MIN = 10;
-const COMFORTABLE_TEMP_MAX = 20;
+const COMFORTABLE_TEMP_TOLERANCE = 2;
+const UNCOMFORTABLE_DAMAGE_INTERVAL = 8;
+const UNCOMFORTABLE_DAMAGE_PER_TICK = 1;
 const MIN_TEMPERATURE = 0;
 const MAX_TEMPERATURE = 30;
 const VIRUS_FOOD_REAGENT_ID = 'virusfood';
@@ -193,6 +196,7 @@ const createInitialCells = (
       age: 0,
       size: 17 + Math.round(Math.random() * 3),
       food: 0,
+      comfortTemperature: clamp(seed.comfortable_temperature ?? 15, MIN_TEMPERATURE, MAX_TEMPERATURE),
       outerReagentId: cures[0] || null,
       innerReagentId: cures[1] || null,
       outerStrength: randomStrength(),
@@ -283,59 +287,74 @@ const advanceCells = (
   const next: VirusCell[] = [];
   const offspring: VirusCell[] = [];
   let nextId = cells.reduce((highest, cell) => Math.max(highest, cell.id), 0) + 1;
-  const comfortable =
-    temperature >= COMFORTABLE_TEMP_MIN &&
-    temperature <= COMFORTABLE_TEMP_MAX;
   for (const cell of cells) {
     const moved = cell.stage === 'dying' ? cell : moveCell(cell);
     let updated = moved.with({ age: cell.age + 1 });
 
     if (updated.stage !== 'dying' && updated.age > 0) {
+      let outerStrength = updated.outerStrength;
       let innerStrength = updated.innerStrength;
       let nucleusStrength = updated.nucleusStrength;
-
-      const innerDecayInterval = comfortable
-        ? INNER_STRENGTH_DECAY_INTERVAL
-        : UNCOMFORTABLE_INNER_DECAY_INTERVAL;
-      const nucleusDecayInterval = comfortable
-        ? NUCLEUS_STRENGTH_DECAY_INTERVAL
-        : UNCOMFORTABLE_NUCLEUS_DECAY_INTERVAL;
       let cellFood = updated.food;
+      const comfortable =
+        Math.abs(temperature - updated.comfortTemperature) <=
+        COMFORTABLE_TEMP_TOLERANCE;
 
-      // Nutrients protect the inner layer from age damage and slowly repair it.
-      // One repair point costs 0.1 food and is applied every 1.6 seconds.
-      if (cellFood > 0) {
-        if (
-          innerStrength < 100 &&
-          updated.age % INNER_REPAIR_INTERVAL === 0
+      if (comfortable) {
+        // Food is spent only when there is damage to repair. Each 0.1 food
+        // restores one point of inner-layer integrity every 0.8 seconds.
+        if (cellFood > 0) {
+          if (
+            innerStrength < 100 &&
+            updated.age % INNER_REPAIR_INTERVAL === 0
+          ) {
+            innerStrength = Math.min(100, innerStrength + 1);
+            cellFood = Math.max(0, cellFood - FOOD_PER_INNER_REPAIR);
+          }
+        } else if (
+          innerStrength > 0 &&
+          updated.age % INNER_STRENGTH_DECAY_INTERVAL === 0
         ) {
-          innerStrength = Math.min(100, innerStrength + 1);
-          cellFood = Math.max(0, cellFood - FOOD_PER_INNER_REPAIR);
+          innerStrength = Math.max(0, innerStrength - 1);
         }
-      } else if (
-        innerStrength > 0 &&
-        updated.age % innerDecayInterval === 0
-      ) {
-        innerStrength = Math.max(0, innerStrength - 1);
+
+        // With no food, the nucleus deteriorates only after the entire
+        // inner layer has failed.
+        if (
+          innerStrength === 0 &&
+          cellFood <= 0 &&
+          nucleusStrength > 0 &&
+          updated.age % NUCLEUS_STRENGTH_DECAY_INTERVAL === 0
+        ) {
+          nucleusStrength = Math.max(0, nucleusStrength - 1);
+        }
+      } else if (updated.age % UNCOMFORTABLE_DAMAGE_INTERVAL === 0) {
+        // Outside this virus's temperature window, all three cell layers
+        // deteriorate together. Nutrition cannot cancel environmental stress.
+        outerStrength = Math.max(
+          0,
+          outerStrength - UNCOMFORTABLE_DAMAGE_PER_TICK,
+        );
+        innerStrength = Math.max(
+          0,
+          innerStrength - UNCOMFORTABLE_DAMAGE_PER_TICK,
+        );
+        nucleusStrength = Math.max(
+          0,
+          nucleusStrength - UNCOMFORTABLE_DAMAGE_PER_TICK,
+        );
       }
 
-      // The nucleus only starts aging after the inner layer is gone and the
-      // cell has no nutrients left to recover it.
-      if (
-        innerStrength === 0 &&
-        cellFood <= 0 &&
-        nucleusStrength > 0 &&
-        updated.age % nucleusDecayInterval === 0
-      ) {
-        nucleusStrength = Math.max(0, nucleusStrength - 1);
-      }
-
-      updated = updated.with({ innerStrength, nucleusStrength, food: cellFood });
+      updated = updated.with({
+        outerStrength,
+        innerStrength,
+        nucleusStrength,
+        food: cellFood,
+      });
     }
 
     if (
       updated.stage !== 'dying' &&
-      updated.innerStrength === 0 &&
       updated.nucleusStrength === 0
     ) {
       updated = updated.with({ stage: 'dying', stageTicks: 0 });
@@ -449,7 +468,6 @@ const advanceCells = (
   );
 
   if (
-    comfortable &&
     foodAvailable &&
     !hasDyingCell &&
     !divisionInProgress &&
@@ -459,7 +477,10 @@ const advanceCells = (
       .map((cell, index) => ({ cell, index }))
       .filter(
         ({ cell }) =>
-          cell.stage === 'normal' && cell.food >= FOOD_FOR_DIVISION,
+          cell.stage === 'normal' &&
+          cell.food >= FOOD_FOR_DIVISION &&
+          Math.abs(temperature - cell.comfortTemperature) <=
+            COMFORTABLE_TEMP_TOLERANCE,
       )
       .sort((a, b) => b.cell.food - a.cell.food)[0];
 
@@ -655,7 +676,12 @@ const renderCellSprite = (
       (cell.size / 20) * scaleY +
       ')'
     }
-    style={{ cursor: 'pointer', opacity }}
+    className="VirusMicroscope__cell-sprite"
+    style={{
+      cursor: 'pointer',
+      opacity,
+      transition: 'transform 80ms linear, opacity 80ms linear',
+    }}
     role="button"
     aria-label={'Выбрать ' + cell.name + ' №' + cell.id}
     onClick={() => onSelect(cell.id)}
@@ -752,13 +778,18 @@ export const VirusMicroscope = (_props: unknown) => {
   const selectedCell = cells.find((cell) => cell.id === selectedId);
   const initializedCultureGeneration = useRef(cultureGeneration);
   const reportedExtinctionGeneration = useRef<number | null>(null);
-  const temperatureMidpoint = (MIN_TEMPERATURE + MAX_TEMPERATURE) / 2;
+  const selectedComfortTemperature = selectedCell?.comfortTemperature;
+  const temperatureDifference =
+    selectedComfortTemperature === undefined
+      ? 0
+      : temperature - selectedComfortTemperature;
   const thermometerColor =
-    temperature > temperatureMidpoint
-      ? 'var(--vm-warning)'
-      : temperature < temperatureMidpoint
-        ? '#65a9ed'
-        : 'var(--vm-accent)';
+    selectedComfortTemperature === undefined ||
+    Math.abs(temperatureDifference) <= COMFORTABLE_TEMP_TOLERANCE
+      ? 'var(--vm-accent)'
+      : temperatureDifference > 0
+        ? 'var(--vm-warning)'
+        : '#65a9ed';
   const thermometerFillHeight =
     (temperature / MAX_TEMPERATURE) * 22;
 
@@ -807,44 +838,22 @@ export const VirusMicroscope = (_props: unknown) => {
 
   useEffect(() => {
     const interval = window.setInterval(() => {
-      setSimulation((current) => ({
-        ...current,
-        cells: advanceCells(
+      setSimulation((current) => {
+        if (!current.cells.length && !current.particles.length) {
+          return current;
+        }
+
+        const nextCells = advanceCells(
           current.cells,
           temperature,
           foodReceiverAmount > 0,
-        ),
-      }));
+        );
+        return advanceReagentParticles(current.particles, nextCells, 1);
+      });
     }, TICK_INTERVAL);
 
     return () => window.clearInterval(interval);
   }, [foodReceiverAmount, temperature]);
-
-  useEffect(() => {
-    let animationFrame = 0;
-    let previousFrameTime: number | null = null;
-
-    const animateParticles = (frameTime: number) => {
-      if (previousFrameTime !== null && particlesRef.current.length > 0) {
-        const elapsed = Math.min(frameTime - previousFrameTime, 50);
-        const deltaScale = elapsed / TICK_INTERVAL;
-
-        setSimulation((current) =>
-          advanceReagentParticles(
-            current.particles,
-            current.cells,
-            deltaScale,
-          ),
-        );
-      }
-
-      previousFrameTime = frameTime;
-      animationFrame = window.requestAnimationFrame(animateParticles);
-    };
-
-    animationFrame = window.requestAnimationFrame(animateParticles);
-    return () => window.cancelAnimationFrame(animationFrame);
-  }, []);
 
   useEffect(() => {
     if (foodReceiverAmount < foodDose || cells.length === 0) {
@@ -967,6 +976,7 @@ export const VirusMicroscope = (_props: unknown) => {
                           <Button
                             key={amount}
                             compact
+                            className="VirusMicroscope__dose-button"
                             disabled={queuedAmount + amount > reagent.volume + 0.001}
                             onClick={() =>
                               act('addMicroscopeReagent', {
@@ -1001,9 +1011,19 @@ export const VirusMicroscope = (_props: unknown) => {
               )}
             </div>
             <div className="VirusMicroscope__assay">
-              <div className="VirusMicroscope__panel-title">
-                Выбрано для анализа
-                <span>{addedReagents.length} / {reagentTypeLimit}</span>
+              <div className="VirusMicroscope__assay-heading">
+                <div className="VirusMicroscope__panel-title">
+                  Выбрано для введения
+                  <span>{addedReagents.length} / {reagentTypeLimit}</span>
+                </div>
+                <Button
+                  compact
+                  className="VirusMicroscope__reset-button"
+                  disabled={!addedReagents.length}
+                  onClick={() => act('clearMicroscopeReagents')}
+                >
+                  Сбросить
+                </Button>
               </div>
               {addedReagents.length ? (
                 <div className="VirusMicroscope__assay-list">
@@ -1060,7 +1080,11 @@ export const VirusMicroscope = (_props: unknown) => {
                   <Button
                     key={amount}
                     compact
-                    color={foodDose === amount ? 'good' : undefined}
+                    className={
+                      foodDose === amount
+                        ? 'VirusMicroscope__dose-button is-active'
+                        : 'VirusMicroscope__dose-button'
+                    }
                     onClick={() => setFoodDose(amount)}
                   >
                     {amount}
@@ -1201,16 +1225,22 @@ export const VirusMicroscope = (_props: unknown) => {
                   );
                 })}
                 {particles.map((particle) => (
-                  <rect
+                  <g
                     key={particle.id}
-                    x={Math.round(particle.x) - particle.radius}
-                    y={Math.round(particle.y) - particle.radius}
-                    width={particle.radius * 2}
-                    height={particle.radius * 2}
-                    fill={particle.color}
-                    shapeRendering="crispEdges"
+                    className="VirusMicroscope__particle"
+                    transform={`translate(${particle.x} ${particle.y})`}
+                    style={{ transition: 'transform 80ms linear' }}
                     pointerEvents="none"
-                  />
+                  >
+                    <rect
+                      x={-particle.radius}
+                      y={-particle.radius}
+                      width={particle.radius * 2}
+                      height={particle.radius * 2}
+                      fill={particle.color}
+                      shapeRendering="crispEdges"
+                    />
+                  </g>
                 ))}
               </svg>
             </div>
@@ -1248,7 +1278,13 @@ export const VirusMicroscope = (_props: unknown) => {
                 <div className="VirusMicroscope__temperature-value">
                   <strong>{temperature}°C</strong>
                   <span className="VirusMicroscope__temperature-note">
-                    Комфорт: {COMFORTABLE_TEMP_MIN}–{COMFORTABLE_TEMP_MAX}°C
+                    {selectedCell
+                      ? 'Оптимум вируса: ' +
+                        selectedCell.comfortTemperature +
+                        '°C (±' +
+                        COMFORTABLE_TEMP_TOLERANCE +
+                        '°C)'
+                      : 'Выберите клетку, чтобы увидеть её температурный оптимум'}
                   </span>
                 </div>
               </div>
@@ -1302,7 +1338,10 @@ export const VirusMicroscope = (_props: unknown) => {
                       />
                     </div>
                     <div className="VirusMicroscope__reserve-note">
-                      Поддерживает внутренний слой и деление
+                      Расходуется на восстановление внутреннего слоя и деление
+                    </div>
+                    <div className="VirusMicroscope__reserve-note">
+                      Температурный оптимум: {selectedCell.comfortTemperature}°C
                     </div>
                   </div>
                 </>
