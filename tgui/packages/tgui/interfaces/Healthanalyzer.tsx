@@ -112,7 +112,6 @@ type Disease = {
   stage: number;
   max_stages: number;
   additional_info: string;
-  cure_text: string;
 };
 
 type Reagent = {
@@ -681,10 +680,7 @@ const DiseasesList = (props: unknown) => {
                 {disease.stage}/{disease.max_stages}
               </Box>
             </LabeledList.Item>
-            <LabeledList.Item label="Лечение">
-              <Box bold>{disease.cure_text}</Box>
-            </LabeledList.Item>
-          </LabeledList>
+virus treatment UI row          </LabeledList>
         </Section>
       ))}
     </Box>
