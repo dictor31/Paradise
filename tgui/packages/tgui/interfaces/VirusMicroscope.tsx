@@ -774,12 +774,13 @@ export const VirusMicroscope = (_props: unknown) => {
     }
 
     const feedingInterval = window.setInterval(() => {
+      const consumedAmount = Math.min(1, foodReceiverAmount);
       act('feedMicroscopeCells');
       const foodPulse: MicroscopeAddedReagent[] = [
         {
           id: VIRUS_FOOD_REAGENT_ID,
           name: 'Питательная среда',
-          amount: 1,
+          amount: consumedAmount,
           color: '#ffffff',
           is_vaccine: false,
         },
@@ -791,7 +792,7 @@ export const VirusMicroscope = (_props: unknown) => {
             ? cell
             : cell.with({
                 food: clamp(
-                  cell.food + FOOD_PER_FEED_TICK,
+                  cell.food + FOOD_PER_FEED_TICK * consumedAmount,
                   0,
                   MAX_CELL_FOOD,
                 ),
