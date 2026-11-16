@@ -12,6 +12,7 @@
 	var/microscope_reagent_storage_capacity = 100
 	var/microscope_reagent_type_limit = 3
 	var/list/microscope_virus_seeds = list()
+	var/datum/reagent/microscope_sample_reagent = null
 	var/microscope_culture_generation = 0
 	var/microscope_food_amount = 0
 	var/microscope_food_capacity = 100
@@ -148,50 +149,56 @@
 	return TRUE
 
 /obj/machinery/computer/pandemic/proc/load_microscope_sample()
-	if(!beaker?.reagents)
+	var/datum/reagent/blood_reagent = null
+	if(beaker?.reagents)
+		for(var/datum/reagent/reagent as anything in beaker.reagents.reagent_list)
+			if(reagent.type in GLOB.diseases_carrier_reagents)
+				blood_reagent = reagent
+				break
+
+	// A different sample replaces the previous one. If it has already been
+	// used by the microscope, it must not resurrect the old culture.
+	if(blood_reagent != microscope_sample_reagent)
+		microscope_sample_reagent = blood_reagent
+		microscope_virus_seeds = list()
+		microscope_culture_generation++
+
+	if(!blood_reagent || !islist(blood_reagent.data) || !blood_reagent.data["diseases"])
 		return FALSE
 
-	for(var/datum/reagent/blood_reagent as anything in beaker.reagents.reagent_list)
-		if(!(blood_reagent.type in GLOB.diseases_carrier_reagents))
-			continue
-		if(!islist(blood_reagent.data) || !blood_reagent.data["diseases"])
-			continue
-		// A previously inoculated blood sample can never restart an extinct culture.
-		if(blood_reagent.data["microscope_sample_used"])
-			continue
+	// Re-inserting the exact same sample restores its still-living culture.
+	// An extinct culture stays empty because the same reagent remains marked used.
+	if(blood_reagent == microscope_sample_reagent && blood_reagent.data["microscope_sample_used"])
+		return length(microscope_virus_seeds) > 0
 
-		var/list/virus_seeds = list()
-		for(var/datum/disease/disease as anything in blood_reagent.data["diseases"])
-			if(!istype(disease, /datum/disease/virus))
-				continue
-
-			var/datum/disease/virus/virus_disease = disease
-			if(isnull(virus_disease.microscope_comfort_temperature))
-				virus_disease.microscope_comfort_temperature = rand(0, 30)
-
-			var/list/cure_reagent_ids = list()
-			for(var/cure_type in disease.cures)
-				var/datum/reagent/cure_reagent = GLOB.chemical_reagents_list[cure_type]
-				if(istype(cure_reagent))
-					cure_reagent_ids += cure_reagent.id
-
-			virus_seeds += list(list(
-				"name" = disease.name,
-				"cure_reagents" = cure_reagent_ids,
-				"comfortable_temperature" = virus_disease.microscope_comfort_temperature,
-			))
-
-		if(!length(virus_seeds))
+	var/list/virus_seeds = list()
+	for(var/datum/disease/disease as anything in blood_reagent.data["diseases"])
+		if(!istype(disease, /datum/disease/virus))
 			continue
 
-		// The marker stays inside this blood sample after it is removed from the machine.
-		blood_reagent.data["microscope_sample_used"] = TRUE
-		microscope_virus_seeds = virus_seeds
-		microscope_culture_generation++
-		return TRUE
+		var/datum/disease/virus/virus_disease = disease
+		if(isnull(virus_disease.microscope_comfort_temperature))
+			virus_disease.microscope_comfort_temperature = rand(0, 30)
 
-	return FALSE
+		var/list/cure_reagent_ids = list()
+		for(var/cure_type in disease.cures)
+			var/datum/reagent/cure_reagent = GLOB.chemical_reagents_list[cure_type]
+			if(istype(cure_reagent))
+				cure_reagent_ids += cure_reagent.id
 
+		virus_seeds += list(list(
+			"name" = disease.name,
+			"cure_reagents" = cure_reagent_ids,
+			"comfortable_temperature" = virus_disease.microscope_comfort_temperature,
+		))
+
+	if(!length(virus_seeds))
+		return FALSE
+
+	// The marker stays inside this blood sample after it is removed from the machine.
+	blood_reagent.data["microscope_sample_used"] = TRUE
+	microscope_virus_seeds = virus_seeds
+	return TRUE
 
 /obj/machinery/computer/pandemic/attackby(obj/item/item, mob/user, params)
 	if(user.a_intent == INTENT_HARM || (stat & (NOPOWER|BROKEN)))
@@ -291,7 +298,16 @@
 
 	data["microscope_food_amount"] = microscope_food_amount
 	data["microscope_food_capacity"] = microscope_food_capacity
-	data["microscope_virus_seeds"] = microscope_virus_seeds
+
+	var/microscope_sample_present = FALSE
+	if(beaker?.reagents && microscope_sample_reagent)
+		for(var/datum/reagent/reagent as anything in beaker.reagents.reagent_list)
+			if(reagent == microscope_sample_reagent)
+				microscope_sample_present = TRUE
+				break
+
+	data["microscope_sample_present"] = microscope_sample_present
+	data["microscope_virus_seeds"] = microscope_sample_present ? microscope_virus_seeds : list()
 	data["microscope_culture_generation"] = microscope_culture_generation
 
 	var/list/added_microscope_reagents = list()
