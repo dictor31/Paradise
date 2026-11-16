@@ -638,7 +638,17 @@
 					"nucleusStrength" = max(0, min(100, cell_data["nucleusStrength"])),
 					"stage" = cell_stage,
 					"stageTicks" = max(0, min(60, round(cell_data["stageTicks"]))),
+					"membrane" = list(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
 				)
+				if(islist(cell_data["membrane"]))
+					if(length(cell_data["membrane"]) != 16)
+						return TRUE
+					var/list/saved_membrane = list()
+					for(var/membrane_value as anything in cell_data["membrane"])
+						if(!isnum(membrane_value))
+							return TRUE
+						saved_membrane += max(-6, min(1.5, membrane_value))
+					saved_cell["membrane"] = saved_membrane
 				if(istext(cell_data["outerReagentId"]))
 					saved_cell["outerReagentId"] = cell_data["outerReagentId"]
 				if(istext(cell_data["innerReagentId"]))
