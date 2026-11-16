@@ -14,6 +14,10 @@
 	var/list/microscope_virus_seeds = list()
 	var/datum/reagent/microscope_sample_reagent = null
 	var/microscope_culture_generation = 0
+	var/list/microscope_simulation_cells = list()
+	var/list/microscope_simulation_particles = list()
+	var/microscope_simulation_initialized = FALSE
+	var/microscope_temperature = 15
 	var/microscope_food_amount = 0
 	var/microscope_food_capacity = 100
 	var/wait = null
@@ -162,6 +166,9 @@
 		microscope_sample_reagent = blood_reagent
 		microscope_virus_seeds = list()
 		microscope_culture_generation++
+		microscope_simulation_cells = list()
+		microscope_simulation_particles = list()
+		microscope_simulation_initialized = FALSE
 
 	if(!blood_reagent || !islist(blood_reagent.data) || !blood_reagent.data["diseases"])
 		return FALSE
@@ -309,6 +316,10 @@
 	data["microscope_sample_present"] = microscope_sample_present
 	data["microscope_virus_seeds"] = microscope_sample_present ? microscope_virus_seeds : list()
 	data["microscope_culture_generation"] = microscope_culture_generation
+	data["microscope_temperature"] = microscope_temperature
+	data["microscope_simulation_initialized"] = microscope_simulation_initialized
+	data["microscope_simulation_cells"] = microscope_sample_present ? microscope_simulation_cells : list()
+	data["microscope_simulation_particles"] = microscope_sample_present ? microscope_simulation_particles : list()
 
 	var/list/added_microscope_reagents = list()
 	for(var/list/added_reagent in microscope_reagents)
@@ -561,6 +572,105 @@
 				return TRUE
 			microscope_food_amount = max(0, microscope_food_amount - food_to_feed)
 			SStgui.update_uis(src)
+			return TRUE
+
+		if("setMicroscopeTemperature")
+			var/new_temperature = params["temperature"]
+			if(isnum(new_temperature))
+				microscope_temperature = max(0, min(30, new_temperature))
+			return TRUE
+
+		if("saveMicroscopeState")
+			var/saved_temperature = params["temperature"]
+			if(isnum(saved_temperature))
+				microscope_temperature = max(0, min(30, saved_temperature))
+
+			var/save_generation = params["generation"]
+			if(save_generation != microscope_culture_generation || !beaker || !microscope_sample_reagent)
+				return TRUE
+
+			var/sample_present = FALSE
+			if(beaker?.reagents)
+				for(var/datum/reagent/sample_reagent as anything in beaker.reagents.reagent_list)
+					if(sample_reagent == microscope_sample_reagent)
+						sample_present = TRUE
+						break
+			if(!sample_present)
+				return TRUE
+
+			var/list/incoming_cells = params["cells"]
+			var/list/incoming_particles = params["particles"]
+			if(!islist(incoming_cells) || !islist(incoming_particles))
+				return TRUE
+			if(length(incoming_cells) > 10 || length(incoming_particles) > 80)
+				return TRUE
+
+			var/list/saved_cells = list()
+			for(var/list/cell_data as anything in incoming_cells)
+				if(!islist(cell_data))
+					return TRUE
+				var/cell_stage = cell_data["stage"]
+				if(!isnum(cell_data["id"]) || !istext(cell_data["name"]) || !istext(cell_stage))
+					return TRUE
+				if(!(cell_stage in list("normal", "growing", "stretching", "splitting", "dying")))
+					return TRUE
+				if(!isnum(cell_data["x"]) || !isnum(cell_data["y"]) || !isnum(cell_data["vx"]) || !isnum(cell_data["vy"]))
+					return TRUE
+				if(!isnum(cell_data["age"]) || !isnum(cell_data["size"]) || !isnum(cell_data["food"]) || !isnum(cell_data["comfortTemperature"]))
+					return TRUE
+				if(!isnum(cell_data["outerStrength"]) || !isnum(cell_data["innerStrength"]) || !isnum(cell_data["nucleusStrength"]) || !isnum(cell_data["stageTicks"]))
+					return TRUE
+
+				var/list/saved_cell = list(
+					"id" = round(cell_data["id"]),
+					"name" = copytext(cell_data["name"], 1, 64),
+					"x" = max(0, min(800, cell_data["x"])),
+					"y" = max(0, min(460, cell_data["y"])),
+					"vx" = max(-12, min(12, cell_data["vx"])),
+					"vy" = max(-12, min(12, cell_data["vy"])),
+					"age" = max(0, round(cell_data["age"])),
+					"size" = max(10, min(30, cell_data["size"])),
+					"food" = max(0, min(5, cell_data["food"])),
+					"comfortTemperature" = max(0, min(30, cell_data["comfortTemperature"])),
+					"outerStrength" = max(0, min(100, cell_data["outerStrength"])),
+					"innerStrength" = max(0, min(100, cell_data["innerStrength"])),
+					"nucleusStrength" = max(0, min(100, cell_data["nucleusStrength"])),
+					"stage" = cell_stage,
+					"stageTicks" = max(0, min(60, round(cell_data["stageTicks"])),
+				)
+				if(istext(cell_data["outerReagentId"]))
+					saved_cell["outerReagentId"] = cell_data["outerReagentId"]
+				if(istext(cell_data["innerReagentId"]))
+					saved_cell["innerReagentId"] = cell_data["innerReagentId"]
+				saved_cells += list(saved_cell)
+
+			var/list/saved_particles = list()
+			for(var/list/particle_data as anything in incoming_particles)
+				if(!islist(particle_data))
+					return TRUE
+				if(!isnum(particle_data["id"]) || !istext(particle_data["reagentId"]) || !istext(particle_data["color"]))
+					return TRUE
+				if(!isnum(particle_data["foodValue"]) || !isnum(particle_data["x"]) || !isnum(particle_data["y"]))
+					return TRUE
+				if(!isnum(particle_data["vx"]) || !isnum(particle_data["vy"]) || !isnum(particle_data["radius"]))
+					return TRUE
+
+				saved_particles += list(list(
+					"id" = round(particle_data["id"]),
+					"reagentId" = copytext(particle_data["reagentId"], 1, 64),
+					"isVaccine" = particle_data["isVaccine"] ? TRUE : FALSE,
+					"foodValue" = max(0, min(1, particle_data["foodValue"])),
+					"color" = copytext(particle_data["color"], 1, 16),
+					"x" = max(0, min(800, particle_data["x"])),
+					"y" = max(0, min(460, particle_data["y"])),
+					"vx" = max(-12, min(12, particle_data["vx"])),
+					"vy" = max(-12, min(12, particle_data["vy"])),
+					"radius" = max(0.5, min(3, particle_data["radius"])),
+				))
+
+			microscope_simulation_cells = saved_cells
+			microscope_simulation_particles = saved_particles
+			microscope_simulation_initialized = TRUE
 			return TRUE
 
 		if("microscopePopulationExtinct")
