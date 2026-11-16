@@ -1,0 +1,466 @@
+// Microscope: instrument-panel styling for the viral culture workstation.
+.VirusMicroscope {
+  --vm-bg: #19272b;
+  --vm-surface: #26383c;
+  --vm-surface-raised: #31484a;
+  --vm-ink: #f0f3ea;
+  --vm-muted: #bdccc5;
+  --vm-accent: #70c7b1;
+  --vm-warning: #e3a45f;
+  --vm-border: #52696a;
+
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: minmax(238px, 0.82fr) minmax(0, 2fr) minmax(228px, 0.8fr);
+  gap: 12px;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: 12px;
+  overflow: hidden;
+  background: var(--vm-bg);
+  color: var(--vm-ink);
+  font-family: 'Trebuchet MS', 'Lucida Sans Unicode', sans-serif;
+  font-size: 12px;
+
+  .Button {
+    min-height: 25px;
+    margin: 0;
+    border-radius: 3px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 11px;
+    transition: background-color 100ms linear, border-color 100ms linear;
+
+    &:hover {
+      transform: none;
+    }
+  }
+}
+
+.VirusMicroscope__reagents,
+.VirusMicroscope__sidebar {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--vm-surface);
+  border: 1px solid var(--vm-border);
+  border-top: 3px solid var(--vm-accent);
+  border-radius: 5px;
+}
+
+.VirusMicroscope__reagents {
+  padding: 12px;
+}
+
+.VirusMicroscope__panel-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--vm-ink);
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.035em;
+  line-height: 1.3;
+  text-transform: uppercase;
+
+  > span {
+    color: var(--vm-muted);
+    font-size: 9px;
+    font-weight: 400;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+  }
+}
+
+.VirusMicroscope__inventory-readout {
+  margin-top: 6px;
+  color: var(--vm-accent);
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.VirusMicroscope__reagent-list {
+  flex: 1;
+  min-height: 0;
+  margin-top: 10px;
+  padding-top: 2px;
+  overflow-y: auto;
+  border-top: 1px solid var(--vm-border);
+}
+
+.VirusMicroscope__reagent-row {
+  padding: 9px 2px 10px;
+  border-bottom: 1px solid rgba(189, 204, 197, 0.16);
+}
+
+.VirusMicroscope__reagent-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin-bottom: 5px;
+}
+
+.VirusMicroscope__reagent-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--vm-ink);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.VirusMicroscope__reagent-stock {
+  margin-bottom: 7px;
+  color: var(--vm-muted);
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.VirusMicroscope__reagent-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+
+  .Button {
+    min-width: 31px;
+    padding-inline: 7px;
+  }
+
+  .Button:last-child {
+    margin-left: auto;
+  }
+}
+
+.VirusMicroscope__empty-state {
+  padding: 9px 0;
+  color: var(--vm-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.VirusMicroscope__assay {
+  flex: 0 0 auto;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 2px solid var(--vm-border);
+}
+
+.VirusMicroscope__assay-list {
+  max-height: 86px;
+  margin-top: 8px;
+  overflow-y: auto;
+}
+
+.VirusMicroscope__assay-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  color: var(--vm-ink);
+  font-size: 11px;
+}
+
+.VirusMicroscope__assay-swatch {
+  width: 5px;
+  height: 13px;
+  flex: 0 0 auto;
+  border-radius: 1px;
+}
+
+.VirusMicroscope__assay-name {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.VirusMicroscope__assay-row b,
+.VirusMicroscope__food-readout b {
+  color: var(--vm-accent);
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.VirusMicroscope__assay > .Button {
+  width: 100%;
+  margin-top: 9px;
+}
+
+.VirusMicroscope__particle-count {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 7px;
+  color: var(--vm-muted);
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+
+  b {
+    color: var(--vm-accent);
+    font-size: 11px;
+  }
+}
+
+.VirusMicroscope__culture {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.VirusMicroscope__culture-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 54px;
+  padding: 8px 12px;
+  background: var(--vm-surface);
+  border-bottom: 2px solid var(--vm-accent);
+}
+
+.VirusMicroscope__culture-title {
+  color: var(--vm-ink);
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.045em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.VirusMicroscope__culture-subtitle {
+  margin-top: 3px;
+  color: var(--vm-muted);
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 9px;
+  letter-spacing: 0.055em;
+}
+
+.VirusMicroscope__culture-readouts,
+.VirusMicroscope__food-control {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.VirusMicroscope__culture-readouts {
+  color: var(--vm-muted);
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 10px;
+}
+
+.VirusMicroscope__cell-count b,
+.VirusMicroscope__food-readout b {
+  margin-left: 3px;
+  color: var(--vm-ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.VirusMicroscope__cell-count i,
+.VirusMicroscope__food-readout i {
+  color: var(--vm-muted);
+  font-style: normal;
+  font-size: 10px;
+}
+
+.VirusMicroscope__food-control {
+  gap: 4px;
+  padding-left: 10px;
+  border-left: 1px solid var(--vm-border);
+
+  .Button {
+    min-width: 25px;
+    min-height: 23px;
+    padding: 0 5px;
+  }
+}
+
+.VirusMicroscope__food-readout {
+  color: var(--vm-muted);
+  white-space: nowrap;
+}
+
+.VirusMicroscope__food-readout b {
+  color: var(--vm-accent);
+}
+
+.VirusMicroscope__dose-label {
+  margin: 0 2px 0 4px;
+  color: var(--vm-muted);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+}
+
+.VirusMicroscope__canvas {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: #172a2d;
+  border: 1px solid var(--vm-border);
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 3px rgba(112, 199, 177, 0.045);
+
+  svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+  }
+}
+
+.VirusMicroscope__sidebar {
+  gap: 0;
+}
+
+.VirusMicroscope__temperature {
+  flex: 0 0 auto;
+  padding: 12px;
+  background: var(--vm-surface-raised);
+  border-bottom: 1px solid var(--vm-border);
+}
+
+.VirusMicroscope__temperature-reading {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-top: 9px;
+}
+
+.VirusMicroscope__temperature-value {
+  flex: 1;
+  min-width: 0;
+}
+
+.VirusMicroscope__temperature-value > div:first-child {
+  color: var(--vm-ink);
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 23px !important;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.VirusMicroscope__temperature-note {
+  margin-top: 4px;
+  color: var(--vm-muted);
+  font-size: 10px;
+}
+
+.VirusMicroscope__temperature-slider {
+  margin-top: 12px;
+
+  .Slider {
+    --slider-track-color: var(--vm-border);
+  }
+}
+
+.VirusMicroscope__temperature-scale {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 3px;
+  color: var(--vm-muted);
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 9px;
+}
+
+.VirusMicroscope__cell-details {
+  flex: 1;
+  min-height: 0;
+  padding: 12px;
+  overflow-y: auto;
+  color: var(--vm-ink);
+}
+
+.VirusMicroscope__selected-cell-name {
+  margin-top: 12px;
+  padding-bottom: 8px;
+  color: var(--vm-accent);
+  border-bottom: 1px solid var(--vm-border);
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.VirusMicroscope__meter {
+  margin-top: 12px;
+}
+
+.VirusMicroscope__meter-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--vm-ink);
+  font-size: 11px;
+
+  b {
+    color: var(--vm-muted);
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.VirusMicroscope__meter-track {
+  height: 6px;
+  margin-top: 5px;
+  overflow: hidden;
+  background: var(--vm-bg);
+  border-radius: 2px;
+}
+
+.VirusMicroscope__meter-fill {
+  height: 100%;
+  border-radius: 2px;
+}
+
+.VirusMicroscope__division {
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid var(--vm-border);
+  color: var(--vm-muted);
+  font-size: 11px;
+}
+
+.VirusMicroscope__division-value {
+  margin-top: 5px;
+  color: var(--vm-accent);
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.VirusMicroscope__sidebar > .VirusMicroscope__empty-state {
+  padding: 12px;
+}
+
+@media (max-width: 1100px) {
+  .VirusMicroscope {
+    grid-template-columns: minmax(210px, 0.78fr) minmax(0, 1.8fr) minmax(205px, 0.78fr);
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .VirusMicroscope__culture-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .VirusMicroscope__culture-readouts {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
