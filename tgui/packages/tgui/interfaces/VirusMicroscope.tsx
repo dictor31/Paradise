@@ -62,6 +62,7 @@ type MicroscopeSimulation = {
 };
 
 type CellStage = 'normal' | 'growing' | 'stretching' | 'splitting' | 'dying';
+type VisualPulseType = 'impact' | 'food' | 'damage';
 
 type VirusCellData = {
   id: number;
@@ -83,6 +84,9 @@ type VirusCellData = {
   stageTicks: number;
   membrane: number[];
   membraneVelocity: number[];
+  visualPulse: number;
+  visualPulseType: VisualPulseType;
+  visualPulseAngle: number;
   membranePhase: number;
 };
 
@@ -109,6 +113,9 @@ class VirusCell {
   stageTicks: number;
   membrane: number[];
   membraneVelocity: number[];
+  visualPulse: number;
+  visualPulseType: VisualPulseType;
+  visualPulseAngle: number;
   membranePhase: number;
 
   constructor(properties: VirusCellData) {
@@ -132,6 +139,9 @@ class VirusCell {
     this.membrane = properties.membrane || createRestingMembrane();
     this.membraneVelocity =
       properties.membraneVelocity || createRestingMembrane();
+    this.visualPulse = properties.visualPulse ?? 0;
+    this.visualPulseType = properties.visualPulseType ?? 'impact';
+    this.visualPulseAngle = properties.visualPulseAngle ?? 0;
     this.membranePhase = properties.membranePhase ?? this.id * 0.73;
   }
 
@@ -186,6 +196,37 @@ const clamp = (value: number, min: number, max: number) =>
 
 const randomStrength = () => 88 + Math.round(Math.random() * 12);
 
+const hashText = (value: string): number => {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index++) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+};
+
+// Visual traits belong to a virus strain, while contour phase varies slightly
+// by cell ID. The profile is deterministic, so a culture looks consistent
+// after saving, reconnecting, or dividing.
+const getCellVisualProfile = (cell: VirusCell) => {
+  const speciesHash = hashText(cell.name);
+  const cellHash = (speciesHash ^ Math.imul(cell.id, 2654435761)) >>> 0;
+  const surfaceStyle = speciesHash % 3;
+  return {
+    surfaceStyle,
+    spikeCount: surfaceStyle === 0 ? 7 : surfaceStyle === 1 ? 10 : 12,
+    spikeLength:
+      surfaceStyle === 0
+        ? 1.9
+        : surfaceStyle === 1
+          ? 2.8
+          : 3.35,
+    organelleCount: 4 + ((speciesHash >>> 8) % 4),
+    shapePhase: (cellHash % 6283) / 1000,
+    spikePhase: ((speciesHash >>> 16) % 6283) / 1000,
+  };
+};
+
 const createInitialCells = (
   virusSeeds: MicroscopeVirusSeed[],
 ): VirusCell[] => {
@@ -235,6 +276,9 @@ const createInitialCells = (
       stageTicks: 0,
       membrane: createRestingMembrane(),
       membraneVelocity: createRestingMembrane(),
+      visualPulse: 0,
+      visualPulseType: 'impact',
+      visualPulseAngle: 0,
       membranePhase: Math.random() * Math.PI * 2,
     });
   });
@@ -260,6 +304,9 @@ const restoreMicroscopeSimulation = (
               cell.membraneVelocity?.length === MEMBRANE_POINTS
                 ? cell.membraneVelocity
                 : createRestingMembrane(),
+            visualPulse: cell.visualPulse ?? 0,
+            visualPulseType: cell.visualPulseType ?? 'impact',
+            visualPulseAngle: cell.visualPulseAngle ?? 0,
             membranePhase: cell.membranePhase ?? cell.id * 0.73,
           }),
       ),
@@ -353,7 +400,16 @@ const deformMembrane = (
     membraneVelocity[index] *= 0.42;
   }
 
-  return cell.with({ membrane, membraneVelocity });
+  return cell.with({
+    membrane,
+    membraneVelocity,
+    visualPulse: Math.max(
+      cell.visualPulse ?? 0,
+      clamp(pressure / 1.4, 0.15, 1),
+    ),
+    visualPulseType: 'impact',
+    visualPulseAngle: direction,
+  });
 };
 
 const getCellCollisionRadius = (cell: VirusCell): number => {
@@ -636,6 +692,7 @@ const advanceCells = (
     let updated = moved.with({
       age: cell.age + (biologicalTick ? 1 : 0),
       membranePhase: (cell.membranePhase ?? 0) + 0.14 * deltaScale,
+      visualPulse: Math.max(0, (cell.visualPulse ?? 0) - 0.035 * deltaScale),
     });
 
     if (
@@ -962,13 +1019,26 @@ const advanceReagentParticles = (
     if (touchedCellIndex !== -1) {
       const touchedCell = nextCells[touchedCellIndex];
 
+      const contactAngle = Math.atan2(
+        particle.y - touchedCell.y,
+        particle.x - touchedCell.x,
+      );
+
       if (particle.reagentId === VIRUS_FOOD_REAGENT_ID) {
+        const food = clamp(
+          touchedCell.food + particle.foodValue,
+          0,
+          MAX_CELL_FOOD,
+        );
         nextCells[touchedCellIndex] = touchedCell.with({
-          food: clamp(
-            touchedCell.food + particle.foodValue,
-            0,
-            MAX_CELL_FOOD,
-          ),
+          food,
+          ...(food > touchedCell.food
+            ? {
+                visualPulse: 1,
+                visualPulseType: 'food' as const,
+                visualPulseAngle: contactAngle,
+              }
+            : {}),
         });
       } else if (particle.isVaccine && touchedCell.nucleusStrength > 0) {
         const nucleusStrength = Math.max(
@@ -977,6 +1047,9 @@ const advanceReagentParticles = (
         );
         nextCells[touchedCellIndex] = touchedCell.with({
           nucleusStrength,
+          visualPulse: 1,
+          visualPulseType: 'damage',
+          visualPulseAngle: contactAngle,
           ...(nucleusStrength === 0
             ? { stage: 'dying' as const, stageTicks: 0 }
             : {}),
@@ -991,6 +1064,9 @@ const advanceReagentParticles = (
             0,
             touchedCell.outerStrength - LAYER_DAMAGE_PER_PARTICLE,
           ),
+          visualPulse: 1,
+          visualPulseType: 'damage',
+          visualPulseAngle: contactAngle,
         });
       } else if (
         touchedCell.innerReagentId !== null &&
@@ -1003,6 +1079,9 @@ const advanceReagentParticles = (
             0,
             touchedCell.innerStrength - LAYER_DAMAGE_PER_PARTICLE,
           ),
+          visualPulse: 1,
+          visualPulseType: 'damage',
+          visualPulseAngle: contactAngle,
         });
       }
 
@@ -1019,6 +1098,15 @@ const advanceReagentParticles = (
   return { cells: nextCells, particles: nextParticles };
 };
 
+const getContourVariation = (cell: VirusCell, angle: number): number => {
+  const profile = getCellVisualProfile(cell);
+  return (
+    Math.sin(angle * 2 + profile.shapePhase) * 1.05 +
+    Math.sin(angle * 3 - profile.shapePhase * 0.63) * 0.58 +
+    Math.cos(angle * 5 + profile.shapePhase * 0.37) * 0.28
+  );
+};
+
 const createSoftMembranePath = (
   cell: VirusCell,
   baseRadius: number,
@@ -1029,6 +1117,7 @@ const createSoftMembranePath = (
     cell.membrane?.length === MEMBRANE_POINTS
       ? cell.membrane
       : createRestingMembrane();
+  const profile = getCellVisualProfile(cell);
   const vertices: { x: number; y: number }[] = [];
 
   for (let index = 0; index < MEMBRANE_POINTS; index++) {
@@ -1038,14 +1127,15 @@ const createSoftMembranePath = (
       Math.sin(phase * 2.1 + angle * 3 + cell.id * 0.7) * 0.72 +
       Math.sin(phase * 3.4 - angle * 5 + cell.id * 1.3) * 0.38 +
       Math.sin(phase * 1.3 + angle * 8) * 0.2 +
-      // A quicker, low-amplitude shiver makes the outer membrane feel alive
-      // even when the cell is resting without touching another cell.
       Math.sin(phase * 7.2 + angle * 9 + cell.id * 2.4) * 0.28;
     const breathing =
       Math.sin(phase * 0.7 + angle * 2 + cell.id * 0.7) * 0.55;
+    const strainShape =
+      getContourVariation(cell, angle) * (baseRadius / 20) * 0.78;
     const radius =
       baseRadius +
       membrane[index] * deformationScale +
+      strainShape +
       (membraneTwitch + breathing) * flutterScale;
     vertices.push({
       x: Math.cos(angle) * radius,
@@ -1053,8 +1143,6 @@ const createSoftMembranePath = (
     });
   }
 
-  // Quadratic curves through the membrane vertices keep the silhouette
-  // rounded and organic even while individual segments are twitching.
   const midpoints = vertices.map((point, index) => {
     const next = vertices[(index + 1) % vertices.length];
     return { x: (point.x + next.x) / 2, y: (point.y + next.y) / 2 };
@@ -1081,73 +1169,234 @@ const renderCellSprite = (
   selected: boolean,
   onSelect: (id: number) => void,
   part: string,
-) => (
-  <g
-    key={cell.id + '-' + part}
-    transform={
-      'translate(' +
-      x +
-      ' ' +
-      y +
-      ') scale(' +
-      (cell.size / 20) * scaleX +
-      ' ' +
-      (cell.size / 20) * scaleY +
-      ')'
-    }
-    className="VirusMicroscope__cell-sprite"
-    style={{
-      cursor: 'pointer',
-      opacity,
-      transition: 'transform 40ms linear, opacity 40ms linear',
-    }}
-    role="button"
-    aria-label={'Выбрать ' + cell.name + ' №' + cell.id}
-    onClick={() => onSelect(cell.id)}
-  >
-    {selected && (
-      <circle
-        r="24"
-        fill="none"
-        stroke="#91ddc6"
-        strokeWidth="1.5"
-        strokeDasharray="3 3"
-      />
-    )}
-    <path
-      d={createSoftMembranePath(cell, 20, 1, 1.15)}
-      fill={
-        cell.outerStrength > 65
-          ? '#741b2c'
-          : cell.outerStrength > 30
-            ? '#a34c35'
-            : '#626b7a'
-      }
-      stroke="#a83b4d"
-      strokeWidth="1.5"
-      strokeLinejoin="miter"
-      opacity={0.35 + cell.outerStrength / 150}
-    />
-    <path
-      d={createSoftMembranePath(cell, 15.5, 0.58, 0.22)}
-      fill="#df4b5b"
-      stroke="#f06a70"
-      strokeWidth="0.65"
-      strokeLinejoin="miter"
-      opacity={0.94}
-    />
-    <path
-      d={createSoftMembranePath(cell, 7.2, 0.22, 0.04)}
-      fill="#641629"
-    />
-    <path
-      d="M -4 -4 H 0 V 0 H -4 Z"
-      fill="#a92e43"
-      opacity="0.9"
-    />
-  </g>
-);
+) => {
+  const profile = getCellVisualProfile(cell);
+  const phase = cell.membranePhase ?? cell.id * 0.73;
+  const damage = 1 - clamp(cell.outerStrength, 0, 100) / 100;
+  const nucleusDamage = 1 - clamp(cell.nucleusStrength, 0, 100) / 100;
+  const nucleusX = clamp(-cell.vx * 0.48 + Math.sin(phase * 0.7) * 0.45, -2.5, 2.5);
+  const nucleusY = clamp(-cell.vy * 0.48 + Math.cos(phase * 0.61) * 0.45, -2.5, 2.5);
+  const pulseColor =
+    cell.visualPulseType === 'food'
+      ? '#a9f1b0'
+      : cell.visualPulseType === 'damage'
+        ? '#ffb16e'
+        : '#f3a0aa';
+  const crackCount = damage > 0.12 ? Math.min(5, Math.ceil((damage - 0.12) * 5.8)) : 0;
+  const spikeColor = profile.surfaceStyle === 1 ? '#d65b6d' : '#b8465a';
+  const spikeHighlight = profile.surfaceStyle === 2 ? '#ffd0a0' : '#f18b91';
 
+  return (
+    <g
+      key={cell.id + '-' + part}
+      transform={
+        'translate(' +
+        x +
+        ' ' +
+        y +
+        ') scale(' +
+        (cell.size / 20) * scaleX +
+        ' ' +
+        (cell.size / 20) * scaleY +
+        ')'
+      }
+      className="VirusMicroscope__cell-sprite"
+      style={{
+        cursor: 'pointer',
+        opacity,
+        transition: 'transform 40ms linear, opacity 40ms linear',
+      }}
+      role="button"
+      aria-label={'Выбрать ' + cell.name + ' №' + cell.id}
+      onClick={() => onSelect(cell.id)}
+    >
+      {selected && (
+        <circle
+          r="24"
+          fill="none"
+          stroke="#91ddc6"
+          strokeWidth="1.5"
+          strokeDasharray="3 3"
+        />
+      )}
+      {Array.from({ length: profile.spikeCount }, (_, index) => {
+        const angle =
+          (index / profile.spikeCount) * Math.PI * 2 + profile.spikePhase;
+        const membraneIndex =
+          Math.round((angle / (Math.PI * 2)) * MEMBRANE_POINTS) % MEMBRANE_POINTS;
+        const localOffset = cell.membrane?.[membraneIndex] || 0;
+        const restRadius =
+          20 + localOffset + getContourVariation(cell, angle) * 0.78;
+        const twitch = Math.sin(phase * 2.4 + index * 1.7) * 0.32;
+        const radius = restRadius + twitch;
+        const length =
+          profile.spikeLength *
+          (1 - damage * 0.72) *
+          (0.82 + Math.sin(phase * 1.5 + index * 2.1) * 0.12);
+        const baseX = Math.cos(angle) * radius;
+        const baseY = Math.sin(angle) * radius;
+        const tipX = Math.cos(angle) * (radius + length);
+        const tipY = Math.sin(angle) * (radius + length);
+        const tangentX = -Math.sin(angle) * 0.9;
+        const tangentY = Math.cos(angle) * 0.9;
+
+        return (
+          <g key={index} opacity={0.92 - damage * 0.35}>
+            <path
+              d={
+                `M ${baseX - tangentX} ${baseY - tangentY} ` +
+                `L ${tipX} ${tipY} ` +
+                `L ${baseX + tangentX} ${baseY + tangentY} Z`
+              }
+              fill={spikeColor}
+              stroke="#7e293b"
+              strokeWidth="0.45"
+              strokeLinejoin="miter"
+              shapeRendering="crispEdges"
+            />
+            <rect
+              x={tipX - 0.48}
+              y={tipY - 0.48}
+              width="0.96"
+              height="0.96"
+              fill={spikeHighlight}
+              shapeRendering="crispEdges"
+            />
+          </g>
+        );
+      })}
+      <path
+        d={createSoftMembranePath(cell, 20, 1, 1.15)}
+        fill={
+          cell.outerStrength > 65
+            ? profile.surfaceStyle === 2
+              ? '#842238'
+              : '#741b2c'
+            : cell.outerStrength > 30
+              ? '#a34c35'
+              : '#626b7a'
+        }
+        stroke="#a83b4d"
+        strokeWidth="1.5"
+        strokeLinejoin="miter"
+        opacity={0.35 + cell.outerStrength / 150}
+      />
+      <path
+        d={createSoftMembranePath(cell, 15.5, 0.58, 0.22)}
+        fill={damage > 0.55 ? '#bd5360' : '#df4b5b'}
+        stroke="#f06a70"
+        strokeWidth="0.65"
+        strokeLinejoin="miter"
+        opacity={0.94}
+      />
+      {Array.from({ length: crackCount }, (_, index) => {
+        const angle =
+          profile.shapePhase + index * 2.399963 + profile.spikePhase * 0.4;
+        const startRadius = 14.7 + (index % 2) * 0.6;
+        const middleRadius = startRadius + 1.5 + damage;
+        const endRadius = 17.1 + damage * 1.2;
+        const startX = Math.cos(angle) * startRadius;
+        const startY = Math.sin(angle) * startRadius;
+        const middleX = Math.cos(angle + 0.09) * middleRadius;
+        const middleY = Math.sin(angle + 0.09) * middleRadius;
+        const endX = Math.cos(angle - 0.07) * endRadius;
+        const endY = Math.sin(angle - 0.07) * endRadius;
+        return (
+          <path
+            key={index}
+            d={`M ${startX} ${startY} L ${middleX} ${middleY} L ${endX} ${endY}`}
+            fill="none"
+            stroke="#34121f"
+            strokeWidth={0.65 + damage * 0.7}
+            strokeLinecap="square"
+            opacity={0.35 + damage * 0.55}
+            pointerEvents="none"
+          />
+        );
+      })}
+      {Array.from({ length: profile.organelleCount }, (_, index) => {
+        const orbitAngle =
+          phase * 0.34 +
+          profile.shapePhase +
+          (index / profile.organelleCount) * Math.PI * 2;
+        const orbitRadius =
+          9.2 + Math.sin(phase * 0.8 + index * 1.9) * 0.8;
+        const organelleX = Math.cos(orbitAngle) * orbitRadius;
+        const organelleY = Math.sin(orbitAngle) * orbitRadius;
+        const organelleSize = 1.15 + ((index + profile.surfaceStyle) % 3) * 0.28;
+        return (
+          <g key={index} opacity={0.62 + Math.sin(phase + index) * 0.12}>
+            <rect
+              x={organelleX - organelleSize / 2}
+              y={organelleY - organelleSize / 2}
+              width={organelleSize}
+              height={organelleSize}
+              fill={index % 2 ? '#ffbd82' : '#f58a80'}
+              shapeRendering="crispEdges"
+            />
+            <rect
+              x={organelleX + organelleSize * 0.12}
+              y={organelleY - organelleSize * 0.48}
+              width="0.65"
+              height="0.65"
+              fill="#ffe0a5"
+              shapeRendering="crispEdges"
+            />
+          </g>
+        );
+      })}
+      <g transform={`translate(${nucleusX} ${nucleusY})`}>
+        <path
+          d={createSoftMembranePath(cell, 7.2, 0.22, 0.04)}
+          fill={
+            nucleusDamage > 0.65
+              ? '#49303f'
+              : nucleusDamage > 0.3
+                ? '#76243a'
+                : '#641629'
+          }
+          stroke={nucleusDamage > 0.3 ? '#a74d5c' : 'none'}
+          strokeWidth="0.55"
+        />
+        <path
+          d="M -4 -4 H 0 V 0 H -4 Z"
+          fill="#a92e43"
+          opacity={0.9}
+        />
+        <rect
+          x="1.5"
+          y="-2.5"
+          width="2"
+          height="2"
+          fill="#f28d83"
+          opacity={0.8}
+          shapeRendering="crispEdges"
+        />
+      </g>
+      {cell.visualPulse > 0.015 && (
+        <g pointerEvents="none">
+          <circle
+            r={21.5 + cell.visualPulse * 2.3}
+            fill="none"
+            stroke={pulseColor}
+            strokeWidth={0.55 + cell.visualPulse * 0.75}
+            strokeDasharray={cell.visualPulseType === 'impact' ? '4 3' : 'none'}
+            opacity={cell.visualPulse * 0.72}
+          />
+          <path
+            d={
+              `M ${Math.cos(cell.visualPulseAngle) * 17.5} ${Math.sin(cell.visualPulseAngle) * 17.5} ` +
+              `L ${Math.cos(cell.visualPulseAngle) * (23 + cell.visualPulse * 2)} ${Math.sin(cell.visualPulseAngle) * (23 + cell.visualPulse * 2)}`
+            }
+            stroke={pulseColor}
+            strokeWidth="1.2"
+            opacity={cell.visualPulse * 0.85}
+          />
+        </g>
+      )}
+    </g>
+  );
+};
 const StrengthMeter = ({
   label,
   value,
@@ -1601,6 +1850,24 @@ export const VirusMicroscope = (_props: unknown) => {
                     const scale = 0.78 + progress * 0.22;
                     return (
                       <g key={cell.id}>
+                        <path
+                          d={`M ${cell.x - offset.x} ${cell.y - offset.y} L ${cell.x + offset.x} ${cell.y + offset.y}`}
+                          fill="none"
+                          stroke="#d94b60"
+                          strokeWidth={Math.max(2, cell.size * (0.64 - progress * 0.48))}
+                          strokeLinecap="round"
+                          opacity={0.92 - progress * 0.28}
+                          pointerEvents="none"
+                        />
+                        <path
+                          d={`M ${cell.x - offset.x} ${cell.y - offset.y} L ${cell.x + offset.x} ${cell.y + offset.y}`}
+                          fill="none"
+                          stroke="#f28b91"
+                          strokeWidth={Math.max(0.8, cell.size * (0.2 - progress * 0.13))}
+                          strokeLinecap="round"
+                          opacity={0.72 - progress * 0.35}
+                          pointerEvents="none"
+                        />
                         {renderCellSprite(
                           cell,
                           cell.x - offset.x,
