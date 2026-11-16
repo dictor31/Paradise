@@ -701,37 +701,18 @@ const StrengthMeter = ({
 }) => {
   const safeValue = clamp(value, 0, 100);
   const barColor =
-    safeValue > 65 ? '#df4b5b' : safeValue > 35 ? '#d58a43' : '#9b4650';
+    safeValue > 65 ? '#d96c67' : safeValue > 35 ? '#dda45d' : '#9f655b';
 
   return (
-    <div style={{ marginTop: '8px' }}>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          gap: '8px',
-          fontSize: '11px',
-          color: '#e5eaf2',
-        }}
-      >
+    <div className="VirusMicroscope__meter">
+      <div className="VirusMicroscope__meter-head">
         <span>{label}</span>
         <b>{safeValue}%</b>
       </div>
-      <div
-        style={{
-          height: '5px',
-          marginTop: '3px',
-          backgroundColor: '#263449',
-          borderRadius: '3px',
-          overflow: 'hidden',
-        }}
-      >
+      <div className="VirusMicroscope__meter-track">
         <div
-          style={{
-            width: safeValue + '%',
-            height: '100%',
-            backgroundColor: barColor,
-          }}
+          className="VirusMicroscope__meter-fill"
+          style={{ width: safeValue + '%', backgroundColor: barColor }}
         />
       </div>
     </div>
@@ -921,55 +902,23 @@ export const VirusMicroscope = (_props: unknown) => {
   return (
     <Window
       title="Вирусологический микроскоп"
-      width={1120}
-      height={640}
+      width={1220}
+      height={700}
       resizable
     >
       <Window.Content allowWindowDrag={false}>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '260px minmax(0, 1fr) 230px',
-            gap: '8px',
-            width: '100%',
-            height: '100%',
-            minHeight: 0,
-            padding: '8px',
-            boxSizing: 'border-box',
-            backgroundColor: '#0c1422',
-            color: '#e5eaf2',
-          }}
-        >
-          <section
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              minWidth: 0,
-              minHeight: 0,
-              padding: '9px',
-              border: '1px solid #34465f',
-              borderRadius: '4px',
-              backgroundColor: '#111d2e',
-              overflow: 'hidden',
-            }}
-          >
-            <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>
-              Хранилище реагентов
+        <div className="VirusMicroscope">
+          <section className="VirusMicroscope__reagents">
+            <div className="VirusMicroscope__panel-title">
+              Реагенты
+              <span>СТОК АВТОМАТА</span>
             </div>
-            <div style={{ color: '#aabbd0', fontSize: '11px', marginBottom: '8px' }}>
+            <div className="VirusMicroscope__inventory-readout">
               {reagentStorageAmount.toFixed(1)} /{' '}
               {reagentStorageCapacity.toFixed(1)} ед. · {reagentStorageTypes}/
               {reagentTypeLimit} типа
             </div>
-            <div
-              style={{
-                flex: 1,
-                minHeight: 0,
-                overflowY: 'auto',
-                borderTop: '1px solid #293b54',
-                paddingTop: '5px',
-              }}
-            >
+            <div className="VirusMicroscope__reagent-list">
               {availableReagents.length ? (
                 availableReagents.map((reagent) => {
                   const queued = addedReagents.find(
@@ -977,43 +926,29 @@ export const VirusMicroscope = (_props: unknown) => {
                   );
                   const queuedAmount = queued?.amount || 0;
                   return (
-                    <div
-                      key={reagent.id}
-                      style={{
-                        padding: '7px 0',
-                        borderBottom: '1px solid #293b54',
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                          marginBottom: '5px',
-                        }}
-                      >
+                    <div key={reagent.id} className="VirusMicroscope__reagent-row">
+                      <div className="VirusMicroscope__reagent-heading">
                         <span
                           style={{
-                            width: '8px',
-                            height: '8px',
+                            width: '4px',
+                            height: '17px',
                             flexShrink: 0,
                             backgroundColor: reagent.is_vaccine
-                              ? '#4b9cff'
+                              ? '#65a9ed'
                               : reagent.color,
-                            borderRadius: '50%',
                           }}
                         />
-                        <b style={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>
+                        <b className="VirusMicroscope__reagent-name">
                           {reagent.name}
                         </b>
                       </div>
-                      <div style={{ color: '#aabbd0', fontSize: '11px', marginBottom: '5px' }}>
+                      <div className="VirusMicroscope__reagent-stock">
                         В автомате: {reagent.volume.toFixed(1)} ед.
                         {queuedAmount > 0
                           ? ' · выбрано: ' + queuedAmount.toFixed(1)
                           : ''}
                       </div>
-                      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                      <div className="VirusMicroscope__reagent-actions">
                         {[1, 5, 10].map((amount) => (
                           <Button
                             key={amount}
@@ -1046,45 +981,32 @@ export const VirusMicroscope = (_props: unknown) => {
                   );
                 })
               ) : (
-                <div style={{ color: '#9eacbf', fontSize: '11px', padding: '6px 0' }}>
+                <div className="VirusMicroscope__empty-state">
                   Хранилище пусто. Залейте реагент из открытой ёмкости или капельницы в автомат.
                 </div>
               )}
             </div>
-            <div
-              style={{
-                borderTop: '1px solid #34465f',
-                paddingTop: '7px',
-                marginTop: '7px',
-              }}
-            >
-              <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>
-                Выбрано для микроскопа
+            <div className="VirusMicroscope__assay">
+              <div className="VirusMicroscope__panel-title">
+                Выбрано для анализа
+                <span>{addedReagents.length} / {reagentTypeLimit}</span>
               </div>
               {addedReagents.length ? (
-                <div style={{ maxHeight: '90px', overflowY: 'auto' }}>
+                <div className="VirusMicroscope__assay-list">
                   {addedReagents.map((reagent) => (
-                    <div
-                      key={reagent.id}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '5px',
-                        fontSize: '11px',
-                        paddingBottom: '3px',
-                      }}
-                    >
-                      <span style={{ color: reagent.is_vaccine ? '#4b9cff' : reagent.color }}>
-                        ●
-                      </span>
-                      <span style={{ flex: 1 }}>{reagent.name}</span>
+                    <div key={reagent.id} className="VirusMicroscope__assay-row">
+                      <span
+                        className="VirusMicroscope__assay-swatch"
+                        style={{ backgroundColor: reagent.is_vaccine ? '#65a9ed' : reagent.color }}
+                      />
+                      <span className="VirusMicroscope__assay-name">{reagent.name}</span>
                       <b>{reagent.amount.toFixed(1)}</b>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div style={{ color: '#9eacbf', fontSize: '11px' }}>
-                  Ничего не выбрано
+                <div className="VirusMicroscope__empty-state">
+                  Порция не набрана
                 </div>
               )}
               <Button
@@ -1096,60 +1018,30 @@ export const VirusMicroscope = (_props: unknown) => {
               >
                 Запустить реагенты
               </Button>
-              {particles.length > 0 && (
-                <div
-                  style={{
-                    textAlign: 'center',
-                    color: '#42e58d',
-                    fontSize: '10px',
-                    marginTop: '4px',
-                  }}
-                >
-                  Частиц в поле: {particles.length}
-                </div>
-              )}
+              <div className="VirusMicroscope__particle-count">
+                ЧАСТИЦ В КАМЕРЕ <b>{particles.length}</b>
+              </div>
             </div>
           </section>
 
-          <section
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              minWidth: 0,
-              minHeight: 0,
-              gap: '7px',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '8px',
-                color: '#dce6f3',
-                fontSize: '12px',
-              }}
-            >
-              <b>Клеточная культура</b>
-              <span>
-                Клеток: {cells.length} / {MAX_CELLS}
-              </span>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  flexWrap: 'wrap',
-                  justifyContent: 'flex-end',
-                }}
-              >
-                <span>
-                  Питание: {foodReceiverAmount.toFixed(1)} /{' '}
-                  {foodReceiverCapacity.toFixed(1)}
+          <section className="VirusMicroscope__culture">
+            <div className="VirusMicroscope__culture-header">
+              <div>
+                <div className="VirusMicroscope__culture-title">Культура</div>
+                <div className="VirusMicroscope__culture-subtitle">
+                  МИКРОСКОПИЧЕСКОЕ НАБЛЮДЕНИЕ · LIVE
+                </div>
+              </div>
+              <div className="VirusMicroscope__culture-readouts">
+                <span className="VirusMicroscope__cell-count">
+                  КЛЕТКИ <b>{cells.length}<i> / {MAX_CELLS}</i></b>
                 </span>
-                <span style={{ color: '#aabbd0', fontSize: '10px' }}>
-                  Подача:
+              <div className="VirusMicroscope__food-control">
+                <span className="VirusMicroscope__food-readout">
+                  ПИТАНИЕ <b>{foodReceiverAmount.toFixed(1)}</b>
+                  <i> / {foodReceiverCapacity.toFixed(0)}</i>
                 </span>
+                <span className="VirusMicroscope__dose-label">ПОДАЧА</span>
                 {[1, 2, 3, 4, 5].map((amount) => (
                   <Button
                     key={amount}
@@ -1161,17 +1053,9 @@ export const VirusMicroscope = (_props: unknown) => {
                   </Button>
                 ))}
               </div>
+              </div>
             </div>
-            <div
-              style={{
-                flex: 1,
-                minHeight: 0,
-                overflow: 'hidden',
-                backgroundColor: '#101a2a',
-                border: '1px solid #34465f',
-                borderRadius: '4px',
-              }}
-            >
+            <div className="VirusMicroscope__canvas">
               <svg
                 viewBox={'0 0 ' + AREA_WIDTH + ' ' + AREA_HEIGHT}
                 width="100%"
@@ -1185,7 +1069,30 @@ export const VirusMicroscope = (_props: unknown) => {
                   y="0"
                   width={AREA_WIDTH}
                   height={AREA_HEIGHT}
-                  fill="#101a2a"
+                  fill="#172a2d"
+                />
+                <defs>
+                  <pattern
+                    id="virus-microscope-grid"
+                    width="40"
+                    height="40"
+                    patternUnits="userSpaceOnUse"
+                  >
+                    <path
+                      d="M 40 0 L 0 0 0 40"
+                      fill="none"
+                      stroke="#607c78"
+                      strokeWidth="0.7"
+                      opacity="0.24"
+                    />
+                  </pattern>
+                </defs>
+                <rect
+                  x="0"
+                  y="0"
+                  width={AREA_WIDTH}
+                  height={AREA_HEIGHT}
+                  fill="url(#virus-microscope-grid)"
                 />
                 {cells.map((cell) => {
                   if (cell.stage === 'splitting') {
@@ -1295,27 +1202,13 @@ export const VirusMicroscope = (_props: unknown) => {
             </div>
           </section>
 
-          <section
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              minWidth: 0,
-              minHeight: 0,
-              gap: '8px',
-            }}
-          >
-            <div
-              style={{
-                padding: '10px',
-                border: '1px solid #34465f',
-                borderRadius: '4px',
-                backgroundColor: '#111d2e',
-              }}
-            >
-              <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>
+          <section className="VirusMicroscope__sidebar">
+            <div className="VirusMicroscope__temperature">
+              <div className="VirusMicroscope__panel-title">
                 Температура
+                <span>ТЕРМОКОНТРОЛЬ</span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
+              <div className="VirusMicroscope__temperature-reading">
                 <svg width="22" height="44" viewBox="0 0 22 44" aria-hidden="true">
                   <rect
                     x="7"
@@ -1338,16 +1231,15 @@ export const VirusMicroscope = (_props: unknown) => {
                   <circle cx="11" cy="34" r="7" fill={thermometerColor} />
                   <circle cx="11" cy="34" r="3" fill="#f4d7da" />
                 </svg>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '19px', fontWeight: 'bold' }}>
+                <div className="VirusMicroscope__temperature-value">
                     {temperature}°C
                   </div>
-                  <div style={{ fontSize: '10px', color: '#aabbd0' }}>
+                  <div className="VirusMicroscope__temperature-note">
                     Комфорт: {COMFORTABLE_TEMP_MIN}–{COMFORTABLE_TEMP_MAX}°C
                   </div>
                 </div>
               </div>
-              <div style={{ marginTop: '10px' }}>
+              <div className="VirusMicroscope__temperature-slider">
                 <Slider
                   value={temperature}
                   minValue={MIN_TEMPERATURE}
@@ -1356,44 +1248,20 @@ export const VirusMicroscope = (_props: unknown) => {
                   onChange={(_event, value) => setTemperature(value)}
                 />
               </div>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  fontSize: '9px',
-                  color: '#91a1b5',
-                }}
-              >
+              <div className="VirusMicroscope__temperature-scale">
                 <span>0°C</span>
                 <span>30°C</span>
               </div>
             </div>
 
-            <div
-              style={{
-                flex: 1,
-                minHeight: 0,
-                overflowY: 'auto',
-                padding: '10px',
-                color: '#e5eaf2',
-                backgroundColor: '#111d2e',
-                border: '1px solid #34465f',
-                borderRadius: '4px',
-              }}
-            >
-              <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>
-                Характеристики клетки
+            <div className="VirusMicroscope__cell-details">
+              <div className="VirusMicroscope__panel-title">
+                Состояние клетки
+                <span>АНАЛИЗ</span>
               </div>
               {selectedCell ? (
                 <>
-                  <div
-                    style={{
-                      paddingBottom: '6px',
-                      borderBottom: '1px solid #293b54',
-                      fontSize: '12px',
-                      fontWeight: 'bold',
-                    }}
-                  >
+                  <div className="VirusMicroscope__selected-cell-name">
                     {selectedCell.name} №{selectedCell.id}
                   </div>
                   <StrengthMeter
@@ -1408,23 +1276,16 @@ export const VirusMicroscope = (_props: unknown) => {
                     label="Ядро"
                     value={selectedCell.nucleusStrength}
                   />
-                  <div
-                    style={{
-                      marginTop: '12px',
-                      paddingTop: '8px',
-                      borderTop: '1px solid #293b54',
-                      fontSize: '11px',
-                    }}
-                  >
-                    <b>Питание для деления</b>
-                    <div style={{ color: '#42e58d', marginTop: '4px' }}>
+                  <div className="VirusMicroscope__division">
+                    <b>Ресурс деления</b>
+                    <div className="VirusMicroscope__division-value">
                       {selectedCell.food.toFixed(1)} / {FOOD_FOR_DIVISION} ед.
                     </div>
                   </div>
                 </>
               ) : (
-                <div style={{ color: '#9eacbf', fontSize: '11px' }}>
-                  Выберите клетку в поле микроскопа, чтобы посмотреть её характеристики
+                <div className="VirusMicroscope__empty-state">
+                  Выберите клетку на поле, чтобы открыть её показатели
                 </div>
               )}
             </div>
