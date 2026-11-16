@@ -454,9 +454,9 @@ const resolveCellCollisions = (cells: VirusCell[]): VirusCell[] => {
       }
 
       const contactPressure = clamp(
-        penetration * 0.32 + impactSpeed * 0.85,
+        penetration * 0.42 + impactSpeed * 1.35,
         0,
-        3.8,
+        5.2,
       );
       const contactAngle = Math.atan2(normalY, normalX);
       first = deformMembrane(first, contactAngle, contactPressure);
@@ -486,7 +486,7 @@ const getSplitDirection = (cell: VirusCell) => {
 
 const getSplitOffset = (cell: VirusCell, progress: number) => {
   const direction = getSplitDirection(cell);
-  const distance = cell.size * 1.18 * progress;
+  const distance = cell.size * (0.35 + 0.83 * progress);
   return {
     x: direction.x * distance,
     y: direction.y * distance,
@@ -608,8 +608,9 @@ const advanceCells = (
       const stageTicks = updated.stageTicks + 1;
       if (stageTicks >= SPLIT_TICKS) {
         const offset = getSplitOffset(updated, 1);
-        const directionX = offset.x / (updated.size * 1.05);
-        const directionY = offset.y / (updated.size * 1.05);
+        const splitDirection = getSplitDirection(updated);
+        const directionX = splitDirection.x;
+        const directionY = splitDirection.y;
         const parentX = clamp(
           updated.x - offset.x,
           updated.size + 4,
@@ -625,8 +626,8 @@ const advanceCells = (
           updated.with({
             x: parentX,
             y: parentY,
-            vx: updated.vx - directionX * 0.35,
-            vy: updated.vy - directionY * 0.35,
+            vx: updated.vx - directionX * 1.2,
+            vy: updated.vy - directionY * 1.2,
             age: 0,
             food: 0,
             outerStrength: 100,
@@ -884,9 +885,9 @@ const createSoftMembranePath = (
   for (let index = 0; index < MEMBRANE_POINTS; index++) {
     const angle = (index / MEMBRANE_POINTS) * Math.PI * 2;
     const breathing =
-      Math.sin(cell.age * 0.055 + angle * 3 + cell.id * 0.7) * 0.55;
+      Math.sin(cell.age * 0.055 + angle * 3 + cell.id * 0.7) * 0.8;
     const fineRipple =
-      Math.sin(cell.age * 0.027 + angle * 5 + cell.id) * 0.25;
+      Math.sin(cell.age * 0.027 + angle * 5 + cell.id) * 0.35;
     const radius =
       baseRadius +
       membrane[index] * deformationScale +
@@ -1416,7 +1417,7 @@ export const VirusMicroscope = (_props: unknown) => {
                   if (cell.stage === 'splitting') {
                     const progress = clamp(cell.stageTicks / SPLIT_TICKS, 0, 1);
                     const offset = getSplitOffset(cell, progress);
-                    const scale = 0.92 + progress * 0.13;
+                    const scale = 0.78 + progress * 0.22;
                     return (
                       <g key={cell.id}>
                         {renderCellSprite(
