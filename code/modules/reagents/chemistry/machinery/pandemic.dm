@@ -78,6 +78,7 @@
 		return FALSE
 
 	var/has_contents = FALSE
+	var/hit_reagent_type_limit = FALSE
 	var/transferred_amount = 0
 
 	// Virus food has its own reserve and does not use one of the three chemical slots.
@@ -104,27 +105,33 @@
 				break
 
 		if(!existing_entry && length(microscope_reagent_storage) >= microscope_reagent_type_limit)
+			hit_reagent_type_limit = TRUE
 			continue
 
 		var/available_space = microscope_reagent_storage_capacity - get_microscope_reagent_storage_amount()
 		if(available_space <= 0)
 			continue
 
+		var/incoming_type = incoming.type
+		var/incoming_id = incoming.id
+		var/incoming_name = incoming.name
+		var/incoming_color = incoming.color
+		var/incoming_is_vaccine = istype(incoming, /datum/reagent/vaccine)
 		var/amount_to_transfer = min(available_space, incoming.volume)
 		if(amount_to_transfer <= 0)
 			continue
 
-		source.remove_reagent(incoming.type, amount_to_transfer)
+		source.remove_reagent(incoming_type, amount_to_transfer)
 		if(existing_entry)
 			existing_entry["amount"] += amount_to_transfer
 		else
 			microscope_reagent_storage += list(list(
-				"id" = incoming.id,
-				"name" = incoming.name,
+				"id" = incoming_id,
+				"name" = incoming_name,
 				"amount" = amount_to_transfer,
-				"color" = incoming.color,
-				"is_vaccine" = istype(incoming, /datum/reagent/vaccine),
-				"type" = incoming.type,
+				"color" = incoming_color,
+				"is_vaccine" = incoming_is_vaccine,
+				"type" = incoming_type,
 			))
 		transferred_amount += amount_to_transfer
 
@@ -133,6 +140,8 @@
 
 	if(transferred_amount > 0)
 		balloon_alert(user, "реагенты залиты: [round(transferred_amount, 0.1)] ед.")
+	else if(hit_reagent_type_limit)
+		balloon_alert(user, "достигнут лимит в три вида реагентов")
 	else
 		balloon_alert(user, "хранилище реагентов заполнено")
 	SStgui.update_uis(src)
