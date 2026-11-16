@@ -63,6 +63,83 @@ type MicroscopeSimulation = {
 
 type CellStage = 'normal' | 'growing' | 'stretching' | 'splitting' | 'dying';
 type VisualPulseType = 'impact' | 'food' | 'damage';
+type CellScanLayer = 'outer' | 'nucleus';
+type CellScanClue = {
+  family: string;
+  behavior: string;
+};
+type CellScanResult = {
+  cellId: number;
+  layer: CellScanLayer;
+  clue: CellScanClue;
+};
+
+// The scanner reveals a reagent's chemical profile, not its exact identity.
+// This gives the virologist a useful lead without skipping the experiment.
+const REAGENT_SCAN_CLUES: Record<string, CellScanClue> = {
+  water: {
+    family: 'Полярный растворитель',
+    behavior: 'Хорошо взаимодействует с заряженными и гидрофильными соединениями.',
+  },
+  ethanol: {
+    family: 'Органический спирт',
+    behavior: 'Летучий растворитель, способный нарушать липидные и другие органические структуры.',
+  },
+  sugar: {
+    family: 'Органическое углеводное соединение',
+    behavior: 'Гидрофильное вещество с множеством гидроксильных групп.',
+  },
+  sulfur: {
+    family: 'Неметаллический элемент',
+    behavior: 'Образует соединения с активными металлами и участвует в окислительно-восстановительных реакциях.',
+  },
+  iron: {
+    family: 'Переходный металл',
+    behavior: 'Легко меняет степень окисления и образует реакционноспособные ионы.',
+  },
+  copper: {
+    family: 'Переходный металл',
+    behavior: 'Образует ионы нескольких степеней окисления, но менее активен, чем железо.',
+  },
+  mercury: {
+    family: 'Тяжёлый металл',
+    behavior: 'Жидкий при комнатной температуре; образует устойчивые соединения с серой.',
+  },
+  potassium: {
+    family: 'Щелочной металл',
+    behavior: 'Очень активен и легко отдаёт внешний электрон.',
+  },
+  iodine: {
+    family: 'Галоген',
+    behavior: 'Тяжёлый неметалл, способный взаимодействовать с органическими соединениями.',
+  },
+  bromine: {
+    family: 'Галоген',
+    behavior: 'Химически активный неметалл с выраженными окислительными свойствами.',
+  },
+  silver: {
+    family: 'Благородный металл',
+    behavior: 'Малоактивен; образует малорастворимые соединения с галогенами.',
+  },
+  chromium: {
+    family: 'Переходный металл',
+    behavior: 'Образует прочные оксидные соединения, которые защищают его поверхность от коррозии.',
+  },
+};
+
+const getCellScanClue = (reagentId: string | null): CellScanClue => {
+  if (!reagentId) {
+    return {
+      family: 'Сигнатура не определена',
+      behavior: 'Не удалось получить химический профиль реагента для этого участка клетки.',
+    };
+  }
+
+  return REAGENT_SCAN_CLUES[reagentId.toLowerCase()] || {
+    family: 'Неизвестное соединение',
+    behavior: 'Обнаружена нестандартная химическая сигнатура. Сравните растворимость и реакционную способность доступных реагентов.',
+  };
+};
 
 type VirusCellData = {
   /** Legacy field read only when migrating an existing saved culture. */
@@ -789,12 +866,8 @@ const advanceCells = (
           nucleusStrength = Math.max(0, nucleusStrength - 1);
         }
       } else if (updated.age % UNCOMFORTABLE_DAMAGE_INTERVAL === 0) {
-        // Outside this virus's temperature window, all three cell layers
-        // deteriorate together. Nutrition cannot cancel environmental stress.
-        outerStrength = Math.max(
-          0,
-          outerStrength - UNCOMFORTABLE_DAMAGE_PER_TICK,
-        );
+        // Temperature stress damages the inner layer and nucleus, but never
+        // the outer shell: the shell must be broken with its matching reagent.
         innerStrength = Math.max(
           0,
           innerStrength - UNCOMFORTABLE_DAMAGE_PER_TICK,
@@ -1733,6 +1806,7 @@ export const VirusMicroscope = (_props: unknown) => {
     restoreMicroscopeSimulation(data, virusSeeds),
   );
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [scanResult, setScanResult] = useState<CellScanResult | null>(null);
   const [temperature, setTemperature] = useState(
     data.microscope_temperature ?? 15,
   );
@@ -1740,6 +1814,35 @@ export const VirusMicroscope = (_props: unknown) => {
   const cells = simulation.cells;
   const particles = simulation.particles;
   const selectedCell = cells.find((cell) => cell.id === selectedId);
+  const scanLayer: CellScanLayer | null = selectedCell
+    ? selectedCell.outerStrength > 0
+      ? 'outer'
+      : 'nucleus'
+    : null;
+  const scanResultIsCurrent =
+    !!selectedCell &&
+    !!scanResult &&
+    scanResult.cellId === selectedCell.id &&
+    scanResult.layer === scanLayer;
+  const selectCell = (cellId: number) => {
+    setSelectedId(cellId);
+    setScanResult(null);
+  };
+  const scanSelectedCell = () => {
+    if (!selectedCell || !scanLayer || selectedCell.stage === 'dying') {
+      return;
+    }
+
+    const reagentId =
+      scanLayer === 'outer'
+        ? selectedCell.outerReagentId
+        : selectedCell.nucleusReagentId;
+    setScanResult({
+      cellId: selectedCell.id,
+      layer: scanLayer,
+      clue: getCellScanClue(reagentId),
+    });
+  };
   const initializedCultureGeneration = useRef(cultureGeneration);
   const reportedExtinctionGeneration = useRef<number | null>(null);
   const particlesRef = useRef(particles);
@@ -1759,6 +1862,7 @@ export const VirusMicroscope = (_props: unknown) => {
       initializedCultureGeneration.current = -1;
       reportedExtinctionGeneration.current = null;
       setSelectedId(null);
+      setScanResult(null);
       setSimulation((current) =>
         current.cells.length || current.particles.length
           ? { cells: [], particles: [] }
@@ -1774,6 +1878,7 @@ export const VirusMicroscope = (_props: unknown) => {
     initializedCultureGeneration.current = cultureGeneration;
     reportedExtinctionGeneration.current = null;
     setSelectedId(null);
+    setScanResult(null);
     setSimulation(restoreMicroscopeSimulation(data, virusSeeds));
   }, [
     cultureGeneration,
@@ -2134,7 +2239,7 @@ export const VirusMicroscope = (_props: unknown) => {
                     return renderDividingCell(
                       cell,
                       selectedId === cell.id,
-                      setSelectedId,
+                      selectCell,
                     );
                   }
                   if (cell.stage === 'growing') {
@@ -2148,7 +2253,7 @@ export const VirusMicroscope = (_props: unknown) => {
                       scale,
                       1,
                       selectedId === cell.id,
-                      setSelectedId,
+                      selectCell,
                       'main',
                     );
                   }
@@ -2163,7 +2268,7 @@ export const VirusMicroscope = (_props: unknown) => {
                       scale,
                       1 - progress,
                       selectedId === cell.id,
-                      setSelectedId,
+                      selectCell,
                       'main',
                     );
                   }
@@ -2175,7 +2280,7 @@ export const VirusMicroscope = (_props: unknown) => {
                     1,
                     1,
                     selectedId === cell.id,
-                    setSelectedId,
+                    selectCell,
                     'main',
                   );
                 })}
@@ -2237,6 +2342,40 @@ export const VirusMicroscope = (_props: unknown) => {
                 <span>0°C</span>
                 <span>30°C</span>
               </div>
+            </div>
+
+            <div className="VirusMicroscope__scan-panel">
+              <div className="VirusMicroscope__panel-title">
+                Сканер клетки
+                <span>АНАЛИЗ СТРУКТУРЫ</span>
+              </div>
+              <Button
+                fluid
+                className="VirusMicroscope__scan-button"
+                disabled={!selectedCell || selectedCell.stage === 'dying'}
+                onClick={scanSelectedCell}
+              >
+                {scanLayer === 'outer' ? 'Сканировать оболочку' : 'Сканировать ядро'}
+              </Button>
+              {scanResultIsCurrent && scanResult ? (
+                <div className="VirusMicroscope__scan-result">
+                  <b>
+                    {scanResult.layer === 'outer'
+                      ? 'Профиль внешней оболочки'
+                      : 'Профиль ядра'}
+                  </b>
+                  <span>{scanResult.clue.family}</span>
+                  <p>{scanResult.clue.behavior}</p>
+                </div>
+              ) : (
+                <div className="VirusMicroscope__scan-empty">
+                  {selectedCell
+                    ? scanLayer === 'outer'
+                      ? 'Оболочка не повреждена. Сканирование определит химические свойства, к которым она уязвима.'
+                      : 'Внешняя оболочка разрушена. Теперь можно исследовать уязвимость ядра.'
+                    : 'Выберите клетку, чтобы провести сканирование.'}
+                </div>
+              )}
             </div>
 
             <div className="VirusMicroscope__cell-details">
