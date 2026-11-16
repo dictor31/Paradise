@@ -84,6 +84,9 @@ type VirusCellData = {
   membrane: number[];
 };
 
+const MEMBRANE_POINTS = 16;
+const createRestingMembrane = () => Array(MEMBRANE_POINTS).fill(0);
+
 class VirusCell {
   id: number;
   name: string;
@@ -156,7 +159,6 @@ const PARTICLES_PER_UNIT = 1;
 const MAX_REAGENT_PARTICLES = 80;
 const PARTICLE_RADIUS = 1;
 
-const MEMBRANE_POINTS = 16;
 const MEMBRANE_RELAXATION = 0.84;
 const MEMBRANE_MAX_COMPRESSION = 6;
 const CELL_RESTITUTION = 0.18;
@@ -170,7 +172,6 @@ const clamp = (value: number, min: number, max: number) =>
   Math.max(min, Math.min(max, value));
 
 const randomStrength = () => 88 + Math.round(Math.random() * 12);
-const createRestingMembrane = () => Array(MEMBRANE_POINTS).fill(0);
 
 const createInitialCells = (
   virusSeeds: MicroscopeVirusSeed[],
@@ -324,6 +325,23 @@ const deformMembrane = (
   return cell.with({ membrane });
 };
 
+const getCellCollisionRadius = (cell: VirusCell): number => {
+  if (cell.stage === 'growing') {
+    return cell.size * (1.08 + 0.27 * clamp(cell.stageTicks / GROWTH_TICKS, 0, 1));
+  }
+  if (cell.stage === 'stretching') {
+    const progress = clamp(cell.stageTicks / STRETCH_TICKS, 0, 1);
+    return cell.size * (1.35 + 0.45 * progress);
+  }
+  if (cell.stage === 'splitting') {
+    const progress = clamp(cell.stageTicks / SPLIT_TICKS, 0, 1);
+    // Enclose both budding lobes so nearby cells cannot cut through the
+    // widening division furrow before the daughters become independent.
+    return cell.size * (1.13 + 1.05 * progress);
+  }
+  return cell.size;
+};
+
 const moveCell = (cell: VirusCell, deltaScale: number): VirusCell => {
   const wallRadius = getCellCollisionRadius(cell);
   // A gentle, deterministic drift keeps each culture from looking like a
@@ -361,23 +379,6 @@ const moveCell = (cell: VirusCell, deltaScale: number): VirusCell => {
   }
 
   return updated.with({ x, y, vx, vy });
-};
-
-const getCellCollisionRadius = (cell: VirusCell): number => {
-  if (cell.stage === 'growing') {
-    return cell.size * (1.08 + 0.27 * clamp(cell.stageTicks / GROWTH_TICKS, 0, 1));
-  }
-  if (cell.stage === 'stretching') {
-    const progress = clamp(cell.stageTicks / STRETCH_TICKS, 0, 1);
-    return cell.size * (1.35 + 0.45 * progress);
-  }
-  if (cell.stage === 'splitting') {
-    const progress = clamp(cell.stageTicks / SPLIT_TICKS, 0, 1);
-    // Enclose both budding lobes so nearby cells cannot cut through the
-    // widening division furrow before the daughters become independent.
-    return cell.size * (1.13 + 1.05 * progress);
-  }
-  return cell.size;
 };
 
 const resolveCellCollisions = (
