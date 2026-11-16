@@ -449,8 +449,9 @@
 /obj/machinery/computer/pandemic/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
 	if(..())
 		return FALSE
-	add_fingerprint(usr)
-	if(action != "feedMicroscopeCells")
+	if(action != "saveMicroscopeState" && action != "setMicroscopeTemperature")
+		add_fingerprint(usr)
+	if(action != "feedMicroscopeCells" && action != "saveMicroscopeState" && action != "setMicroscopeTemperature")
 		playsound(loc, SFX_TERMINAL_TYPE, 25, TRUE)
 	if(ui_act_modal(action, params))
 		return TRUE
@@ -636,7 +637,7 @@
 					"innerStrength" = max(0, min(100, cell_data["innerStrength"])),
 					"nucleusStrength" = max(0, min(100, cell_data["nucleusStrength"])),
 					"stage" = cell_stage,
-					"stageTicks" = max(0, min(60, round(cell_data["stageTicks"])),
+					"stageTicks" = max(0, min(60, round(cell_data["stageTicks"]))),
 				)
 				if(istext(cell_data["outerReagentId"]))
 					saved_cell["outerReagentId"] = cell_data["outerReagentId"]
