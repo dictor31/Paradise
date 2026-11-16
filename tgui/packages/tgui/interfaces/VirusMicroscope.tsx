@@ -185,8 +185,8 @@ const PARTICLE_RADIUS = 1;
 
 // Each membrane segment behaves like a damped spring. Impact first stores
 // energy as inward deformation; the spring then returns that energy over time.
-const MEMBRANE_SPRING_STIFFNESS = 0.12;
-const MEMBRANE_SPRING_DAMPING = 0.82;
+const MEMBRANE_SPRING_STIFFNESS = 0.25;
+const MEMBRANE_SPRING_DAMPING = 0.93;
 const MEMBRANE_NEIGHBOR_STIFFNESS = 0.2;
 const MEMBRANE_MAX_COMPRESSION = 16;
 // Recoil is intentionally subtle and comes only from compressed membrane
@@ -196,7 +196,7 @@ const MEMBRANE_RECOIL_MAX_STEP = 0.13;
 const CONTACT_POSITION_CORRECTION = 0.12;
 const CONTACT_POSITION_MAX_CORRECTION = 0.45;
 const CONTACT_VELOCITY_DAMPING = 0.72;
-const MIN_COLLISION_IMPACT_SPEED = 0.18;
+const MIN_COLLISION_IMPACT_SPEED = 0.1;
 
 const GROWTH_TICKS = 28;
 const STRETCH_TICKS = 30;
@@ -402,21 +402,21 @@ const deformMembrane = (
     const vertexAngle = (index / MEMBRANE_POINTS) * Math.PI * 2;
     const relativeAngle = vertexAngle - direction;
     const alignment = Math.cos(relativeAngle);
-    const compression = Math.pow(Math.max(0, alignment), 1.35);
-    // Spread the dent over a wider arc to avoid sharp, frame-to-frame pinches.
-    const flank = Math.exp(-Math.pow((Math.abs(alignment) - 0.5) / 0.34, 2));
+    const compression = Math.pow(Math.max(0, alignment), 1.15);
+    // A broad contact patch lets the whole soft wall fold around an impact.
+    const flank = Math.exp(-Math.pow((Math.abs(alignment) - 0.5) / 0.38, 2));
     membrane[index] = clamp(
-      membrane[index] - pressure * compression * 0.62 + pressure * flank * 0.28,
+      membrane[index] - pressure * compression * 1.0 + pressure * flank * 0.38,
       -MEMBRANE_MAX_COMPRESSION,
       5,
     );
-    // A measured impulse starts the spring response without over-exciting it.
+    // Store enough impact energy in the membrane to produce a visible spring-back.
     membraneVelocity[index] = clamp(
-      membraneVelocity[index] * 0.3 -
-        pressure * compression * 0.3 +
-        pressure * flank * 0.11,
-      -5.5,
-      5.5,
+      membraneVelocity[index] * 0.38 -
+        pressure * compression * 0.56 +
+        pressure * flank * 0.2,
+      -8,
+      8,
     );
   }
 
@@ -486,7 +486,7 @@ const moveCell = (cell: VirusCell, deltaScale: number): VirusCell => {
       updated = deformMembrane(
         updated,
         Math.PI,
-        clamp(0.25 + penetration * 0.35 + impactSpeed * 0.75, 0.25, 3.8),
+        clamp(0.8 + penetration * 0.65 + impactSpeed * 1.25, 0.8, 8.0),
       );
     }
   } else if (x > AREA_WIDTH - wallRadius - 4) {
@@ -498,7 +498,7 @@ const moveCell = (cell: VirusCell, deltaScale: number): VirusCell => {
       updated = deformMembrane(
         updated,
         0,
-        clamp(0.25 + penetration * 0.35 + impactSpeed * 0.75, 0.25, 3.8),
+        clamp(0.8 + penetration * 0.65 + impactSpeed * 1.25, 0.8, 8.0),
       );
     }
   }
@@ -512,7 +512,7 @@ const moveCell = (cell: VirusCell, deltaScale: number): VirusCell => {
       updated = deformMembrane(
         updated,
         -Math.PI / 2,
-        clamp(0.25 + penetration * 0.35 + impactSpeed * 0.75, 0.25, 3.8),
+        clamp(0.8 + penetration * 0.65 + impactSpeed * 1.25, 0.8, 8.0),
       );
     }
   } else if (y > AREA_HEIGHT - wallRadius - 4) {
@@ -524,7 +524,7 @@ const moveCell = (cell: VirusCell, deltaScale: number): VirusCell => {
       updated = deformMembrane(
         updated,
         Math.PI / 2,
-        clamp(0.25 + penetration * 0.35 + impactSpeed * 0.75, 0.25, 3.8),
+        clamp(0.8 + penetration * 0.65 + impactSpeed * 1.25, 0.8, 8.0),
       );
     }
   }
@@ -687,9 +687,9 @@ const resolveCellCollisions = (
         });
 
         const contactPressure = clamp(
-          0.25 + approachSpeed * 0.82 + Math.min(penetration, 4) * 0.2,
-          0.25,
-          4.0,
+          0.8 + approachSpeed * 1.2 + Math.min(penetration, 5) * 0.55,
+          0.8,
+          8.0,
         );
         const contactAngle = Math.atan2(normalY, normalX);
         first = deformMembrane(first, contactAngle, contactPressure);
