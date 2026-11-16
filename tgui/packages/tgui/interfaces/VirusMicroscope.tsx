@@ -136,7 +136,6 @@ const MAX_TEMPERATURE = 30;
 const VIRUS_FOOD_REAGENT_ID = 'virusfood';
 const VACCINE_NUCLEUS_DAMAGE = 35;
 const LAYER_DAMAGE_PER_PARTICLE = 8;
-const FOOD_PER_FEED_TICK = 0.5;
 const FOOD_FOR_DIVISION = 5;
 const MAX_CELL_FOOD = 5;
 const PARTICLES_PER_UNIT = 2;
@@ -219,10 +218,8 @@ const createReagentParticles = (
       MAX_REAGENT_PARTICLES - existingParticles.length - particles.length,
       Math.ceil(reagent.amount * PARTICLES_PER_UNIT),
     );
-    const foodValue =
-      reagent.id === VIRUS_FOOD_REAGENT_ID && count > 0
-        ? (FOOD_PER_FEED_TICK * reagent.amount) / count
-        : 0;
+    // Each food particle carries one full unit of nutrition.
+    const foodValue = reagent.id === VIRUS_FOOD_REAGENT_ID ? 1 : 0;
 
     for (let index = 0; index < count; index++) {
       const angle = Math.random() * Math.PI * 2;
@@ -459,6 +456,31 @@ const advanceCells = (
   return next;
 };
 
+const distanceToSegment = (
+  pointX: number,
+  pointY: number,
+  startX: number,
+  startY: number,
+  endX: number,
+  endY: number,
+): number => {
+  const dx = endX - startX;
+  const dy = endY - startY;
+  const lengthSquared = dx * dx + dy * dy;
+  if (lengthSquared === 0) {
+    return Math.hypot(pointX - startX, pointY - startY);
+  }
+
+  const projection = clamp(
+    ((pointX - startX) * dx + (pointY - startY) * dy) / lengthSquared,
+    0,
+    1,
+  );
+  const closestX = startX + projection * dx;
+  const closestY = startY + projection * dy;
+  return Math.hypot(pointX - closestX, pointY - closestY);
+};
+
 const advanceReagentParticles = (
   particles: ReagentParticle[],
   cells: VirusCell[],
@@ -482,10 +504,20 @@ const advanceReagentParticles = (
       y = clamp(y, particle.radius, AREA_HEIGHT - particle.radius);
     }
 
+    // Check the whole movement segment, not only the final position, so fast
+    // particles cannot skip over a cell between simulation frames.
     const touchedCellIndex = nextCells.findIndex(
       (cell) =>
         cell.stage !== 'dying' &&
-        Math.hypot(x - cell.x, y - cell.y) <= cell.size + particle.radius,
+        distanceToSegment(
+          cell.x,
+          cell.y,
+          particle.x,
+          particle.y,
+          x,
+          y,
+        ) <=
+          cell.size + particle.radius,
     );
 
     let particleConsumed = false;
@@ -500,7 +532,6 @@ const advanceReagentParticles = (
             MAX_CELL_FOOD,
           ),
         });
-        particleConsumed = true;
       } else if (particle.isVaccine && touchedCell.nucleusStrength > 0) {
         const nucleusStrength = Math.max(
           0,
@@ -512,7 +543,6 @@ const advanceReagentParticles = (
             ? { stage: 'dying' as const, stageTicks: 0 }
             : {}),
         });
-        particleConsumed = true;
       } else if (
         touchedCell.outerReagentId !== null &&
         particle.reagentId === touchedCell.outerReagentId &&
@@ -524,7 +554,6 @@ const advanceReagentParticles = (
             touchedCell.outerStrength - LAYER_DAMAGE_PER_PARTICLE,
           ),
         });
-        particleConsumed = true;
       } else if (
         touchedCell.innerReagentId !== null &&
         particle.reagentId === touchedCell.innerReagentId &&
@@ -537,8 +566,11 @@ const advanceReagentParticles = (
             touchedCell.innerStrength - LAYER_DAMAGE_PER_PARTICLE,
           ),
         });
-        particleConsumed = true;
       }
+
+      // Every reagent is absorbed on contact, even when it has no special
+      // effect on this virus.
+      particleConsumed = true;
     }
 
     if (!particleConsumed) {
