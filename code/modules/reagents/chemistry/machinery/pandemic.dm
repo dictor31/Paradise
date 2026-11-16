@@ -179,6 +179,25 @@
 		return length(microscope_virus_seeds) > 0
 
 	var/list/virus_seeds = list()
+	// These fallback reagents are all available from a standard chemistry
+	// dispenser. They fill missing microscope agents without changing the
+	// disease's actual medical cure list.
+	var/list/microscope_fallback_reagent_types = list(
+		/datum/reagent/water,
+		/datum/reagent/consumable/ethanol,
+		/datum/reagent/consumable/sugar,
+		/datum/reagent/sulfur,
+		/datum/reagent/iron,
+		/datum/reagent/copper,
+		/datum/reagent/mercury,
+		/datum/reagent/potassium,
+		/datum/reagent/iodine,
+		/datum/reagent/bromine,
+		/datum/reagent/silver,
+		/datum/reagent/chromium,
+	)
+	var/fallback_reagent_index = 1
+
 	for(var/datum/disease/disease as anything in blood_reagent.data["diseases"])
 		if(!istype(disease, /datum/disease/virus))
 			continue
@@ -187,15 +206,45 @@
 		if(isnull(virus_disease.microscope_comfort_temperature))
 			virus_disease.microscope_comfort_temperature = rand(0, 30)
 
-		var/list/cure_reagent_ids = list()
+		// The first disease cure attacks the outer shell; the second attacks
+		// the nucleus once the shell is gone. Some legacy cure lists store IDs
+		// as text rather than reagent type paths, so resolve both forms.
+		var/list/microscope_reagent_ids = list()
 		for(var/cure_type in disease.cures)
-			var/datum/reagent/cure_reagent = GLOB.chemical_reagents_list[cure_type]
-			if(istype(cure_reagent))
-				cure_reagent_ids += cure_reagent.id
+			var/datum/reagent/cure_reagent
+			if(ispath(cure_type))
+				cure_reagent = GLOB.chemical_reagents_list[cure_type]
+			else if(istext(cure_type))
+				cure_reagent = find_chemical_reagent_by_id(cure_type)
+
+			if(istype(cure_reagent) && !(cure_reagent.id in microscope_reagent_ids))
+				microscope_reagent_ids += cure_reagent.id
+				if(length(microscope_reagent_ids) >= 2)
+					break
+
+		// Every virus needs two different microscope reagents. Fill any missing
+		// slots with ordinary, dispenser-accessible chemistry reagents.
+		while(length(microscope_reagent_ids) < 2)
+			var/datum/reagent/fallback_reagent
+			var/fallback_attempts = 0
+			while(!fallback_reagent && fallback_attempts < length(microscope_fallback_reagent_types))
+				var/fallback_type = microscope_fallback_reagent_types[fallback_reagent_index]
+				fallback_reagent_index++
+				if(fallback_reagent_index > length(microscope_fallback_reagent_types))
+					fallback_reagent_index = 1
+				fallback_attempts++
+
+				var/datum/reagent/candidate_reagent = GLOB.chemical_reagents_list[fallback_type]
+				if(istype(candidate_reagent) && !(candidate_reagent.id in microscope_reagent_ids))
+					fallback_reagent = candidate_reagent
+
+			if(!fallback_reagent)
+				break
+			microscope_reagent_ids += fallback_reagent.id
 
 		virus_seeds += list(list(
 			"name" = disease.name,
-			"cure_reagents" = cure_reagent_ids,
+			"microscope_reagents" = microscope_reagent_ids,
 			"comfortable_temperature" = virus_disease.microscope_comfort_temperature,
 		))
 
@@ -679,9 +728,13 @@
 						saved_membrane_velocity += max(-20, min(20, velocity_value))
 					saved_cell["membraneVelocity"] = saved_membrane_velocity
 				if(istext(cell_data["outerReagentId"]))
-					saved_cell["outerReagentId"] = cell_data["outerReagentId"]
-				if(istext(cell_data["innerReagentId"]))
-					saved_cell["innerReagentId"] = cell_data["innerReagentId"]
+					saved_cell["outerReagentId"] = copytext(cell_data["outerReagentId"], 1, 64)
+				var/nucleus_reagent_id = cell_data["nucleusReagentId"]
+				// Migrate saved microscope cultures from the old inner-layer reagent field.
+				if(!istext(nucleus_reagent_id))
+					nucleus_reagent_id = cell_data["innerReagentId"]
+				if(istext(nucleus_reagent_id))
+					saved_cell["nucleusReagentId"] = copytext(nucleus_reagent_id, 1, 64)
 				saved_cells += list(saved_cell)
 
 			var/list/saved_particles = list()
