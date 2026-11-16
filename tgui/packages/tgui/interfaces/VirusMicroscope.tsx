@@ -64,7 +64,6 @@ type VirusCellData = {
   food: number;
   outerReagentId: string | null;
   innerReagentId: string | null;
-  nucleusReagentId: string | null;
   outerStrength: number;
   innerStrength: number;
   nucleusStrength: number;
@@ -84,7 +83,6 @@ class VirusCell {
   food: number;
   outerReagentId: string | null;
   innerReagentId: string | null;
-  nucleusReagentId: string | null;
   outerStrength: number;
   innerStrength: number;
   nucleusStrength: number;
@@ -103,7 +101,6 @@ class VirusCell {
     this.food = properties.food;
     this.outerReagentId = properties.outerReagentId;
     this.innerReagentId = properties.innerReagentId;
-    this.nucleusReagentId = properties.nucleusReagentId;
     this.outerStrength = properties.outerStrength;
     this.innerStrength = properties.innerStrength;
     this.nucleusStrength = properties.nucleusStrength;
@@ -192,7 +189,6 @@ const createInitialCells = (
       food: 0,
       outerReagentId: cures[0] || null,
       innerReagentId: cures[1] || null,
-      nucleusReagentId: cures[2] || null,
       outerStrength: randomStrength(),
       innerStrength: randomStrength(),
       nucleusStrength: randomStrength(),
@@ -520,20 +516,6 @@ const advanceReagentParticles = (
           innerStrength: Math.max(
             0,
             touchedCell.innerStrength - LAYER_DAMAGE_PER_PARTICLE,
-          ),
-        });
-        particleConsumed = true;
-      } else if (
-        touchedCell.nucleusReagentId !== null &&
-        particle.reagentId === touchedCell.nucleusReagentId &&
-        touchedCell.outerStrength <= 0 &&
-        touchedCell.innerStrength <= 0 &&
-        touchedCell.nucleusStrength > 0
-      ) {
-        nextCells[touchedCellIndex] = touchedCell.with({
-          nucleusStrength: Math.max(
-            0,
-            touchedCell.nucleusStrength - LAYER_DAMAGE_PER_PARTICLE,
           ),
         });
         particleConsumed = true;
