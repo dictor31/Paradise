@@ -780,8 +780,11 @@ export const VirusMicroscope = (_props: unknown) => {
     }
 
     const feedingInterval = window.setInterval(() => {
+      if (particlesRef.current.length >= MAX_REAGENT_PARTICLES) {
+        return;
+      }
+
       const consumedAmount = Math.min(1, foodReceiverAmount);
-      act('feedMicroscopeCells');
       const foodPulse: MicroscopeAddedReagent[] = [
         {
           id: VIRUS_FOOD_REAGENT_ID,
@@ -792,12 +795,18 @@ export const VirusMicroscope = (_props: unknown) => {
         },
       ];
 
+      const newParticles = createReagentParticles(
+        foodPulse,
+        particlesRef.current,
+      );
+      if (!newParticles.length) {
+        return;
+      }
+
+      act('feedMicroscopeCells');
       setSimulation((current) => ({
         cells: current.cells,
-        particles: [
-          ...current.particles,
-          ...createReagentParticles(foodPulse, current.particles),
-        ],
+        particles: [...current.particles, ...newParticles],
       }));
     }, 3000);
 
@@ -809,13 +818,18 @@ export const VirusMicroscope = (_props: unknown) => {
       return;
     }
 
+    const newParticles = createReagentParticles(
+      addedReagents,
+      particlesRef.current,
+    );
+    if (!newParticles.length) {
+      return;
+    }
+
     act('startMicroscopeSimulation');
     setSimulation((current) => ({
       ...current,
-      particles: [
-        ...current.particles,
-        ...createReagentParticles(addedReagents, current.particles),
-      ],
+      particles: [...current.particles, ...newParticles],
     }));
   };
 
