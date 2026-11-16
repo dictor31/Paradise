@@ -480,7 +480,7 @@ const moveCell = (cell: VirusCell, deltaScale: number): VirusCell => {
     updated = deformMembrane(
       updated,
       Math.PI,
-      clamp(0.55 + penetration * 0.65 + impactSpeed * 0.6, 0.55, 4.6),
+      clamp(0.85 + penetration * 0.8 + impactSpeed * 0.85, 0.85, 5.6),
     );
   } else if (x > AREA_WIDTH - wallRadius - 4) {
     const penetration = x - (AREA_WIDTH - wallRadius - 4);
@@ -490,7 +490,7 @@ const moveCell = (cell: VirusCell, deltaScale: number): VirusCell => {
     updated = deformMembrane(
       updated,
       0,
-      clamp(0.55 + penetration * 0.65 + impactSpeed * 0.6, 0.55, 4.6),
+      clamp(0.85 + penetration * 0.8 + impactSpeed * 0.85, 0.85, 5.6),
     );
   }
 
@@ -502,7 +502,7 @@ const moveCell = (cell: VirusCell, deltaScale: number): VirusCell => {
     updated = deformMembrane(
       updated,
       -Math.PI / 2,
-      clamp(0.55 + penetration * 0.65 + impactSpeed * 0.6, 0.55, 4.6),
+      clamp(0.85 + penetration * 0.8 + impactSpeed * 0.85, 0.85, 5.6),
     );
   } else if (y > AREA_HEIGHT - wallRadius - 4) {
     const penetration = y - (AREA_HEIGHT - wallRadius - 4);
@@ -512,7 +512,7 @@ const moveCell = (cell: VirusCell, deltaScale: number): VirusCell => {
     updated = deformMembrane(
       updated,
       Math.PI / 2,
-      clamp(0.55 + penetration * 0.65 + impactSpeed * 0.6, 0.55, 4.6),
+      clamp(0.85 + penetration * 0.8 + impactSpeed * 0.85, 0.85, 5.6),
     );
   }
 
@@ -662,9 +662,9 @@ const resolveCellCollisions = (
       }
 
       const contactPressure = clamp(
-        0.85 + penetration * 0.65 + approachSpeed * 0.7,
-        0.85,
-        5.4,
+        1.15 + penetration * 0.85 + approachSpeed * 0.9,
+        1.15,
+        7.0,
       );
       const contactAngle = Math.atan2(normalY, normalX);
       first = deformMembrane(first, contactAngle, contactPressure);
