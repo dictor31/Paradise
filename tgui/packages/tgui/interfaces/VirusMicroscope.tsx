@@ -1117,7 +1117,6 @@ const createSoftMembranePath = (
     cell.membrane?.length === MEMBRANE_POINTS
       ? cell.membrane
       : createRestingMembrane();
-  const profile = getCellVisualProfile(cell);
   const vertices: { x: number; y: number }[] = [];
 
   for (let index = 0; index < MEMBRANE_POINTS; index++) {
@@ -1173,6 +1172,7 @@ const renderCellSprite = (
   const profile = getCellVisualProfile(cell);
   const phase = cell.membranePhase ?? cell.id * 0.73;
   const damage = 1 - clamp(cell.outerStrength, 0, 100) / 100;
+  const innerDamage = 1 - clamp(cell.innerStrength, 0, 100) / 100;
   const nucleusDamage = 1 - clamp(cell.nucleusStrength, 0, 100) / 100;
   const nucleusX = clamp(-cell.vx * 0.48 + Math.sin(phase * 0.7) * 0.45, -2.5, 2.5);
   const nucleusY = clamp(-cell.vy * 0.48 + Math.cos(phase * 0.61) * 0.45, -2.5, 2.5);
@@ -1283,11 +1283,11 @@ const renderCellSprite = (
       />
       <path
         d={createSoftMembranePath(cell, 15.5, 0.58, 0.22)}
-        fill={damage > 0.55 ? '#bd5360' : '#df4b5b'}
+        fill={innerDamage > 0.55 ? '#a64b5d' : '#df4b5b'}
         stroke="#f06a70"
         strokeWidth="0.65"
         strokeLinejoin="miter"
-        opacity={0.94}
+        opacity={0.94 - innerDamage * 0.18}
       />
       {Array.from({ length: crackCount }, (_, index) => {
         const angle =
@@ -1325,13 +1325,22 @@ const renderCellSprite = (
         const organelleY = Math.sin(orbitAngle) * orbitRadius;
         const organelleSize = 1.15 + ((index + profile.surfaceStyle) % 3) * 0.28;
         return (
-          <g key={index} opacity={0.62 + Math.sin(phase + index) * 0.12}>
+          <g
+            key={index}
+            opacity={(0.62 + Math.sin(phase + index) * 0.12) * (1 - innerDamage * 0.58)}
+          >
             <rect
               x={organelleX - organelleSize / 2}
               y={organelleY - organelleSize / 2}
               width={organelleSize}
               height={organelleSize}
-              fill={index % 2 ? '#ffbd82' : '#f58a80'}
+              fill={
+                innerDamage > 0.55
+                  ? '#a66b72'
+                  : index % 2
+                    ? '#ffbd82'
+                    : '#f58a80'
+              }
               shapeRendering="crispEdges"
             />
             <rect
