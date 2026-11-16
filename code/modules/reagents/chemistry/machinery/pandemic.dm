@@ -7,8 +7,11 @@
 	idle_power_usage = 20
 	resistance_flags = ACID_PROOF
 	var/obj/item/reagent_containers/beaker = null
-	var/obj/item/reagent_containers/virus_food_beaker = null
 	var/list/microscope_reagents = list()
+	var/list/microscope_virus_seeds = list()
+	var/microscope_culture_claimed = TRUE
+	var/microscope_food_amount = 0
+	var/microscope_food_capacity = 100
 	var/wait = null
 	var/printing = null
 
@@ -26,14 +29,7 @@
 	. = ..()
 	if(panel_open)
 		. += span_notice("Панель техобслуживания открыта.")
-	if(virus_food_beaker?.reagents)
-		var/datum/reagent/virus_food = virus_food_beaker.reagents.get_reagent(/datum/reagent/consumable/virus_food)
-		if(virus_food)
-			. += span_notice("В приёмнике питательной среды: [round(virus_food.volume, 0.1)] ед.")
-		else
-			. += span_notice("Приёмник питательной среды загружен, но пуст.")
-	else
-		. += span_notice("Приёмник питательной среды свободен.")
+	. += span_notice("Внутренний запас питательной среды: [round(microscope_food_amount, 0.1)] / [microscope_food_capacity] ед.")
 
 /obj/machinery/computer/pandemic/Initialize(mapload)
 	. = ..()
@@ -67,17 +63,85 @@
 	SStgui.update_uis(src)
 	ui_interact(user)
 
+/obj/machinery/computer/pandemic/proc/transfer_virus_food(datum/reagents/source, mob/user)
+	if(!source)
+		return FALSE
+
+	var/datum/reagent/food = source.get_reagent(/datum/reagent/consumable/virus_food)
+	if(!food || food.volume <= 0)
+		return FALSE
+
+	var/available_space = microscope_food_capacity - microscope_food_amount
+	if(available_space <= 0)
+		balloon_alert(user, "хранилище питательной среды заполнено")
+		return TRUE
+
+	var/amount_to_transfer = min(available_space, food.volume)
+	source.remove_reagent(/datum/reagent/consumable/virus_food, amount_to_transfer)
+	microscope_food_amount += amount_to_transfer
+	balloon_alert(user, "питательная среда залита: [round(amount_to_transfer, 0.1)] ед.")
+	SStgui.update_uis(src)
+	return TRUE
+
+
+/obj/machinery/computer/pandemic/proc/load_microscope_sample()
+	microscope_virus_seeds = list()
+	microscope_culture_claimed = TRUE
+
+	if(!beaker?.reagents)
+		return FALSE
+
+	for(var/datum/reagent/blood_reagent as anything in beaker.reagents.reagent_list)
+		if(!(blood_reagent.type in GLOB.diseases_carrier_reagents))
+			continue
+		if(!islist(blood_reagent.data) || !blood_reagent.data["diseases"])
+			continue
+		if(blood_reagent.data["microscope_sample_used"])
+			return FALSE
+
+		var/list/virus_seeds = list()
+		for(var/datum/disease/disease as anything in blood_reagent.data["diseases"])
+			if(!istype(disease, /datum/disease/virus))
+				continue
+
+			var/list/cure_reagent_ids = list()
+			for(var/cure_type in disease.cures)
+				var/datum/reagent/cure_reagent = GLOB.chemical_reagents_list[cure_type]
+				if(istype(cure_reagent))
+					cure_reagent_ids += cure_reagent.id
+
+			virus_seeds += list(list(
+				"name" = disease.name,
+				"cure_reagents" = cure_reagent_ids,
+			))
+
+		if(!length(virus_seeds))
+			return FALSE
+
+		// The marker stays inside this blood sample after it is removed from the machine.
+		blood_reagent.data["microscope_sample_used"] = TRUE
+		microscope_virus_seeds = virus_seeds
+		microscope_culture_claimed = FALSE
+		return TRUE
+
+	return FALSE
+
+
 /obj/machinery/computer/pandemic/attackby(obj/item/item, mob/user, params)
 	if(user.a_intent == INTENT_HARM || (stat & (NOPOWER|BROKEN)))
 		return ..()
 
-	if(istype(item, /obj/item/reagent_containers/dropper) && beaker)
-		add_fingerprint(user)
-		balloon_alert(user, "добавление реагента")
+	if(istype(item, /obj/item/reagent_containers/dropper))
 		var/obj/item/reagent_containers/dropper/dropper = item
-		dropper.afterattack(beaker, user, TRUE, params, .)
-		beaker.attackby(item, user, params)
-		return ATTACK_CHAIN_BLOCKED_ALL
+		if(transfer_virus_food(dropper.reagents, user))
+			return ATTACK_CHAIN_BLOCKED_ALL
+		if(beaker)
+			add_fingerprint(user)
+			balloon_alert(user, "добавление реагента")
+			dropper.afterattack(beaker, user, TRUE, params, .)
+			beaker.attackby(item, user, params)
+			return ATTACK_CHAIN_BLOCKED_ALL
+		return ..()
 
 	if(is_reagent_container(item))
 		add_fingerprint(user)
@@ -86,23 +150,7 @@
 			return ATTACK_CHAIN_PROCEED
 
 		var/obj/item/reagent_containers/container = item
-		var/contains_virus_food = FALSE
-		if(container.reagents)
-			for(var/datum/reagent/container_reagent in container.reagents.reagent_list)
-				if(istype(container_reagent, /datum/reagent/consumable/virus_food))
-					contains_virus_food = TRUE
-					break
-
-		// Containers with virus food use the dedicated feeding receiver.
-		if(contains_virus_food)
-			if(virus_food_beaker)
-				balloon_alert(user, "приёмник питания занят!")
-				return ATTACK_CHAIN_PROCEED
-			if(!user.drop_transfer_item_to_loc(item, src))
-				return ..()
-			virus_food_beaker = container
-			balloon_alert(user, "питательная среда загружена")
-			SStgui.update_uis(src)
+		if(transfer_virus_food(container.reagents, user))
 			return ATTACK_CHAIN_BLOCKED_ALL
 
 		if(beaker)
@@ -122,26 +170,22 @@
 					var/datum/disease/virus/virus_res = path
 					if(initial(virus_res.no_vaccine))
 						reagent_data["resistances"] -= path
+		load_microscope_sample()
 		update_icon(UPDATE_ICON_STATE)
+		SStgui.update_uis(src)
 		return ATTACK_CHAIN_BLOCKED_ALL
-
 	return ..()
 
 /obj/machinery/computer/pandemic/screwdriver_act(mob/user, obj/item/item)
 	. = TRUE
-	if(!beaker && !virus_food_beaker)
+	if(!beaker)
 		add_fingerprint(user)
 		balloon_alert(user, "ёмкость отсутствует!")
-		to_chat(user, span_warning("Ни одна ёмкость не установлена."))
+		to_chat(user, span_warning("Ёмкость не установлена."))
 		return .
 	if(!item.use_tool(src, user, volume = item.tool_volume))
 		return .
-	if(beaker)
-		eject_beaker()
-	else if(virus_food_beaker)
-		virus_food_beaker.forceMove(drop_location())
-		virus_food_beaker = null
-		SStgui.update_uis(src)
+	eject_beaker()
 	update_icon(UPDATE_ICON_STATE)
 
 /obj/machinery/computer/pandemic/wrench_act(mob/living/user, obj/item/item)
@@ -174,11 +218,9 @@
 			))
 	data["microscope_available_reagents"] = available_microscope_reagents
 
-	data["microscope_food_receiver_loaded"] = !!virus_food_beaker
-	var/datum/reagent/available_virus_food
-	if(virus_food_beaker?.reagents)
-		available_virus_food = virus_food_beaker.reagents.get_reagent(/datum/reagent/consumable/virus_food)
-	data["microscope_food_amount"] = available_virus_food ? available_virus_food.volume : 0
+	data["microscope_food_amount"] = microscope_food_amount
+	data["microscope_food_capacity"] = microscope_food_capacity
+	data["microscope_virus_seeds"] = microscope_culture_claimed ? list() : microscope_virus_seeds
 
 	var/list/added_microscope_reagents = list()
 	for(var/list/added_reagent in microscope_reagents)
@@ -417,24 +459,21 @@
 		if("extractBeaker")
 			eject_beaker()
 
-		if("extractVirusFood")
-			if(virus_food_beaker)
-				virus_food_beaker.forceMove(drop_location())
-				virus_food_beaker = null
-				SStgui.update_uis(src)
+		if("feedMicroscopeCells")
+			if(microscope_food_amount <= 0)
+				return TRUE
+			microscope_food_amount = max(0, microscope_food_amount - 1)
+			SStgui.update_uis(src)
 			return TRUE
 
-		if("feedMicroscopeCells")
-			if(!virus_food_beaker?.reagents)
-				return TRUE
-			var/datum/reagent/food_to_consume = virus_food_beaker.reagents.get_reagent(/datum/reagent/consumable/virus_food)
-			if(!food_to_consume || food_to_consume.volume <= 0)
-				return TRUE
-			virus_food_beaker.reagents.remove_reagent(
-				/datum/reagent/consumable/virus_food,
-				min(1, food_to_consume.volume)
-			)
-			SStgui.update_uis(src)
+		if("claimMicroscopeCulture")
+			if(length(microscope_virus_seeds))
+				microscope_culture_claimed = TRUE
+			return TRUE
+
+		if("microscopePopulationExtinct")
+			microscope_virus_seeds = list()
+			microscope_culture_claimed = TRUE
 			return TRUE
 
 		if("clearAndExtractBeaker")
@@ -547,6 +586,8 @@
 	beaker.forceMove(drop_location())
 	beaker = null
 	microscope_reagents = list()
+	microscope_virus_seeds = list()
+	microscope_culture_claimed = TRUE
 	update_icon(UPDATE_ICON_STATE)
 	SStgui.update_uis(src)
 
