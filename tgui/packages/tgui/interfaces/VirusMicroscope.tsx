@@ -757,6 +757,7 @@ export const VirusMicroscope = (_props: unknown) => {
   }));
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [temperature, setTemperature] = useState(15);
+  const [foodDose, setFoodDose] = useState(1);
   const cells = simulation.cells;
   const particles = simulation.particles;
   const selectedCell = cells.find((cell) => cell.id === selectedId);
@@ -857,7 +858,7 @@ export const VirusMicroscope = (_props: unknown) => {
   }, []);
 
   useEffect(() => {
-    if (foodReceiverAmount < 1 || cells.length === 0) {
+    if (foodReceiverAmount < foodDose || cells.length === 0) {
       return;
     }
 
@@ -866,7 +867,7 @@ export const VirusMicroscope = (_props: unknown) => {
         return;
       }
 
-      const consumedAmount = 1;
+      const consumedAmount = foodDose;
       const foodPulse: MicroscopeAddedReagent[] = [
         {
           id: VIRUS_FOOD_REAGENT_ID,
@@ -885,7 +886,7 @@ export const VirusMicroscope = (_props: unknown) => {
         return;
       }
 
-      act('feedMicroscopeCells');
+      act('feedMicroscopeCells', { amount: foodDose });
       setSimulation((current) => ({
         cells: current.cells,
         particles: [...current.particles, ...newParticles],
@@ -893,7 +894,7 @@ export const VirusMicroscope = (_props: unknown) => {
     }, 3000);
 
     return () => window.clearInterval(feedingInterval);
-  }, [act, cells.length, foodReceiverAmount]);
+  }, [act, cells.length, foodDose, foodReceiverAmount]);
 
   const startReagentSimulation = () => {
     if (!addedReagents.length) {
@@ -1010,17 +1011,22 @@ export const VirusMicroscope = (_props: unknown) => {
                           ? ' · выбрано: ' + queuedAmount.toFixed(1)
                           : ''}
                       </div>
-                      <div style={{ display: 'flex', gap: '5px' }}>
-                        <Button
-                          compact
-                          icon="plus"
-                          disabled={queuedAmount >= reagent.volume}
-                          onClick={() =>
-                            act('addMicroscopeReagent', { id: reagent.id })
-                          }
-                        >
-                          Добавить
-                        </Button>
+                      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                        {[1, 5, 10].map((amount) => (
+                          <Button
+                            key={amount}
+                            compact
+                            disabled={queuedAmount + amount > reagent.volume + 0.001}
+                            onClick={() =>
+                              act('addMicroscopeReagent', {
+                                id: reagent.id,
+                                amount,
+                              })
+                            }
+                          >
+                            {amount}
+                          </Button>
+                        ))}
                         <Button
                           compact
                           icon="trash"
@@ -1126,10 +1132,33 @@ export const VirusMicroscope = (_props: unknown) => {
               <span>
                 Клеток: {cells.length} / {MAX_CELLS}
               </span>
-              <span>
-                Питание: {foodReceiverAmount.toFixed(1)} /{' '}
-                {foodReceiverCapacity.toFixed(1)}
-              </span>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  flexWrap: 'wrap',
+                  justifyContent: 'flex-end',
+                }}
+              >
+                <span>
+                  Питание: {foodReceiverAmount.toFixed(1)} /{' '}
+                  {foodReceiverCapacity.toFixed(1)}
+                </span>
+                <span style={{ color: '#aabbd0', fontSize: '10px' }}>
+                  Подача:
+                </span>
+                {[1, 2, 3, 4, 5].map((amount) => (
+                  <Button
+                    key={amount}
+                    compact
+                    color={foodDose === amount ? 'good' : undefined}
+                    onClick={() => setFoodDose(amount)}
+                  >
+                    {amount}
+                  </Button>
+                ))}
+              </div>
             </div>
             <div
               style={{
