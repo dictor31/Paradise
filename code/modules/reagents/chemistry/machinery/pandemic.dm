@@ -8,6 +8,9 @@
 	resistance_flags = ACID_PROOF
 	var/obj/item/reagent_containers/beaker = null
 	var/list/microscope_reagents = list()
+	var/list/microscope_reagent_storage = list()
+	var/microscope_reagent_storage_capacity = 100
+	var/microscope_reagent_type_limit = 3
 	var/list/microscope_virus_seeds = list()
 	var/microscope_culture_generation = 0
 	var/microscope_food_amount = 0
@@ -63,26 +66,77 @@
 	SStgui.update_uis(src)
 	ui_interact(user)
 
-/obj/machinery/computer/pandemic/proc/transfer_virus_food(datum/reagents/source, mob/user)
-	if(!source)
+/obj/machinery/computer/pandemic/proc/get_microscope_reagent_storage_amount()
+	var/total_amount = 0
+	for(var/list/stored_reagent as anything in microscope_reagent_storage)
+		total_amount += stored_reagent["amount"]
+	return total_amount
+
+
+/obj/machinery/computer/pandemic/proc/transfer_microscope_contents(datum/reagents/source, mob/user)
+	if(!source || !length(source.reagent_list))
 		return FALSE
 
+	var/has_contents = FALSE
+	var/transferred_amount = 0
+
+	// Virus food has its own reserve and does not use one of the three chemical slots.
 	var/datum/reagent/food = source.get_reagent(/datum/reagent/consumable/virus_food)
-	if(!food || food.volume <= 0)
+	if(food && food.volume > 0)
+		has_contents = TRUE
+		var/food_space = microscope_food_capacity - microscope_food_amount
+		var/food_transfer = min(food_space, food.volume)
+		if(food_transfer > 0)
+			source.remove_reagent(/datum/reagent/consumable/virus_food, food_transfer)
+			microscope_food_amount += food_transfer
+			transferred_amount += food_transfer
+
+	// Normal reagents share a 100-unit store and at most three distinct reagent types.
+	for(var/datum/reagent/incoming as anything in source.reagent_list.Copy())
+		if(incoming.type == /datum/reagent/consumable/virus_food || incoming.volume <= 0)
+			continue
+
+		has_contents = TRUE
+		var/list/existing_entry
+		for(var/list/stored_reagent as anything in microscope_reagent_storage)
+			if(stored_reagent["id"] == incoming.id)
+				existing_entry = stored_reagent
+				break
+
+		if(!existing_entry && length(microscope_reagent_storage) >= microscope_reagent_type_limit)
+			continue
+
+		var/available_space = microscope_reagent_storage_capacity - get_microscope_reagent_storage_amount()
+		if(available_space <= 0)
+			continue
+
+		var/amount_to_transfer = min(available_space, incoming.volume)
+		if(amount_to_transfer <= 0)
+			continue
+
+		source.remove_reagent(incoming.type, amount_to_transfer)
+		if(existing_entry)
+			existing_entry["amount"] += amount_to_transfer
+		else
+			microscope_reagent_storage += list(list(
+				"id" = incoming.id,
+				"name" = incoming.name,
+				"amount" = amount_to_transfer,
+				"color" = incoming.color,
+				"is_vaccine" = istype(incoming, /datum/reagent/vaccine),
+				"type" = incoming.type,
+			))
+		transferred_amount += amount_to_transfer
+
+	if(!has_contents)
 		return FALSE
 
-	var/available_space = microscope_food_capacity - microscope_food_amount
-	if(available_space <= 0)
-		balloon_alert(user, "хранилище питательной среды заполнено")
-		return TRUE
-
-	var/amount_to_transfer = min(available_space, food.volume)
-	source.remove_reagent(/datum/reagent/consumable/virus_food, amount_to_transfer)
-	microscope_food_amount += amount_to_transfer
-	balloon_alert(user, "питательная среда залита: [round(amount_to_transfer, 0.1)] ед.")
+	if(transferred_amount > 0)
+		balloon_alert(user, "реагенты залиты: [round(transferred_amount, 0.1)] ед.")
+	else
+		balloon_alert(user, "хранилище реагентов заполнено")
 	SStgui.update_uis(src)
 	return TRUE
-
 
 /obj/machinery/computer/pandemic/proc/load_microscope_sample()
 	if(!beaker?.reagents)
@@ -131,13 +185,8 @@
 
 	if(istype(item, /obj/item/reagent_containers/dropper))
 		var/obj/item/reagent_containers/dropper/dropper = item
-		if(transfer_virus_food(dropper.reagents, user))
-			return ATTACK_CHAIN_BLOCKED_ALL
-		if(beaker)
+		if(transfer_microscope_contents(dropper.reagents, user))
 			add_fingerprint(user)
-			balloon_alert(user, "добавление реагента")
-			dropper.afterattack(beaker, user, TRUE, params, .)
-			beaker.attackby(item, user, params)
 			return ATTACK_CHAIN_BLOCKED_ALL
 		return ..()
 
@@ -148,7 +197,14 @@
 			return ATTACK_CHAIN_PROCEED
 
 		var/obj/item/reagent_containers/container = item
-		if(transfer_virus_food(container.reagents, user))
+		var/contains_blood_sample = FALSE
+		if(container.reagents)
+			for(var/datum/reagent/reagent as anything in container.reagents.reagent_list)
+				if(reagent.type in GLOB.diseases_carrier_reagents)
+					contains_blood_sample = TRUE
+					break
+
+		if(!contains_blood_sample && transfer_microscope_contents(container.reagents, user))
 			return ATTACK_CHAIN_BLOCKED_ALL
 
 		if(beaker)
@@ -158,20 +214,6 @@
 			return ..()
 		beaker = container
 		balloon_alert(user, "ёмкость вставлена")
-		var/datum/reagents/reagents = beaker.reagents
-		for(var/datum/reagent/reagent as anything in reagents.reagent_list)
-			var/list/reagent_data = reagent.data
-			if((reagent.type in GLOB.diseases_carrier_reagents) && reagent_data && reagent_data["resistances"])
-				var/list/original_resistances = reagent_data["resistances"]
-				var/list/resistances = original_resistances.Copy()
-				for(var/path in resistances)
-					var/datum/disease/virus/virus_res = path
-					if(initial(virus_res.no_vaccine))
-						reagent_data["resistances"] -= path
-		load_microscope_sample()
-		update_icon(UPDATE_ICON_STATE)
-		SStgui.update_uis(src)
-		return ATTACK_CHAIN_BLOCKED_ALL
 	return ..()
 
 /obj/machinery/computer/pandemic/screwdriver_act(mob/user, obj/item/item)
@@ -201,20 +243,21 @@
 	// Transfer modal information if there is one
 	data["modal"] = ui_modal_data(src)
 
-	// Reagent data for the microscope is independent of the blood-analysis screen.
+	// Microscope reagents are taken from the machine's separate internal stock.
 	var/list/available_microscope_reagents = list()
-	if(beaker?.reagents)
-		for(var/datum/reagent/microscope_reagent in beaker.reagents.reagent_list)
-			if(istype(microscope_reagent, /datum/reagent/consumable/virus_food))
-				continue
-			available_microscope_reagents += list(list(
-				"id" = microscope_reagent.id,
-				"name" = microscope_reagent.name,
-				"volume" = microscope_reagent.volume,
-				"color" = microscope_reagent.color,
-				"is_vaccine" = istype(microscope_reagent, /datum/reagent/vaccine),
-			))
+	for(var/list/stored_reagent as anything in microscope_reagent_storage)
+		available_microscope_reagents += list(list(
+			"id" = stored_reagent["id"],
+			"name" = stored_reagent["name"],
+			"volume" = stored_reagent["amount"],
+			"color" = stored_reagent["color"],
+			"is_vaccine" = stored_reagent["is_vaccine"],
+		))
 	data["microscope_available_reagents"] = available_microscope_reagents
+	data["microscope_reagent_storage_amount"] = get_microscope_reagent_storage_amount()
+	data["microscope_reagent_storage_capacity"] = microscope_reagent_storage_capacity
+	data["microscope_reagent_storage_types"] = length(microscope_reagent_storage)
+	data["microscope_reagent_type_limit"] = microscope_reagent_type_limit
 
 	data["microscope_food_amount"] = microscope_food_amount
 	data["microscope_food_capacity"] = microscope_food_capacity
@@ -350,7 +393,8 @@
 	if(..())
 		return FALSE
 	add_fingerprint(usr)
-	playsound(loc, SFX_TERMINAL_TYPE, 25, TRUE)
+	if(action != "feedMicroscopeCells")
+		playsound(loc, SFX_TERMINAL_TYPE, 25, TRUE)
 	if(ui_act_modal(action, params))
 		return TRUE
 	. = TRUE
@@ -360,95 +404,83 @@
 			microscope_ui.open()
 
 		if("addMicroscopeReagent")
-			if(!beaker?.reagents)
-				balloon_alert(usr, "сначала установите бикер")
-				return TRUE
-
 			var/reagent_id = params["id"]
 			if(!istext(reagent_id) || !length(reagent_id))
 				return TRUE
 
-			var/datum/reagent/selected_reagent
-			for(var/datum/reagent/reagent as anything in beaker.reagents.reagent_list)
-				if(reagent.id == reagent_id)
-					selected_reagent = reagent
+			var/list/selected_reagent
+			for(var/list/stored_reagent as anything in microscope_reagent_storage)
+				if(stored_reagent["id"] == reagent_id)
+					selected_reagent = stored_reagent
 					break
 
-			if(!selected_reagent || selected_reagent.volume <= 0)
+			if(!selected_reagent || selected_reagent["amount"] <= 0)
 				balloon_alert(usr, "недостаточно реагента")
 				return TRUE
 
-			var/reagent_sample_id = selected_reagent.id
-			if(istype(selected_reagent, /datum/reagent/consumable/virus_food))
-				balloon_alert(usr, "питательная среда загружается в отдельный приёмник")
-				return TRUE
-
-			var/reagent_sample_name = selected_reagent.name
-			var/reagent_sample_color = selected_reagent.color
-			var/reagent_is_vaccine = istype(selected_reagent, /datum/reagent/vaccine)
 			var/selected_amount = 0
-
-			// Reserve at most one additional unit without removing it from the beaker yet.
-			for(var/list/sample in microscope_reagents)
-				if(sample["id"] == reagent_sample_id)
+			var/list/existing_sample
+			for(var/list/sample as anything in microscope_reagents)
+				if(sample["id"] == reagent_id)
 					selected_amount = sample["amount"]
+					existing_sample = sample
 					break
 
-			var/available_amount = selected_reagent.volume - selected_amount
+			var/available_amount = selected_reagent["amount"] - selected_amount
 			if(available_amount <= 0)
 				balloon_alert(usr, "весь реагент уже выбран")
 				return TRUE
 
 			var/transfer_amount = min(1, available_amount)
-
-			var/list/existing_sample
-			for(var/list/sample in microscope_reagents)
-				if(sample["id"] == reagent_sample_id)
-					existing_sample = sample
-					break
-
 			if(existing_sample)
 				existing_sample["amount"] += transfer_amount
-				existing_sample["color"] = reagent_sample_color
-				existing_sample["is_vaccine"] = reagent_is_vaccine
 			else
 				microscope_reagents += list(list(
-					"id" = reagent_sample_id,
-					"name" = reagent_sample_name,
+					"id" = reagent_id,
+					"name" = selected_reagent["name"],
 					"amount" = transfer_amount,
-					"color" = reagent_sample_color,
-					"is_vaccine" = reagent_is_vaccine,
+					"color" = selected_reagent["color"],
+					"is_vaccine" = selected_reagent["is_vaccine"],
 				))
 
 			SStgui.update_uis(src)
 			return TRUE
 
+		if("removeMicroscopeStoredReagent")
+			var/reagent_id = params["id"]
+			for(var/list/stored_reagent as anything in microscope_reagent_storage.Copy())
+				if(stored_reagent["id"] != reagent_id)
+					continue
+				microscope_reagent_storage.Remove(stored_reagent)
+				break
+			for(var/list/queued_reagent as anything in microscope_reagents.Copy())
+				if(queued_reagent["id"] == reagent_id)
+					microscope_reagents.Remove(queued_reagent)
+			SStgui.update_uis(src)
+			return TRUE
+
 		if("startMicroscopeSimulation")
-			if(!beaker?.reagents)
-				balloon_alert(usr, "сначала установите бикер")
-				return TRUE
 			if(!length(microscope_reagents))
 				return TRUE
 
-			for(var/list/sample in microscope_reagents.Copy())
+			var/list/depleted_reagents = list()
+			for(var/list/sample as anything in microscope_reagents)
 				var/reagent_id = sample["id"]
 				var/selected_amount = sample["amount"]
 				if(!istext(reagent_id) || !isnum(selected_amount) || selected_amount <= 0)
 					continue
 
-				var/datum/reagent/available_reagent
-				for(var/datum/reagent/reagent as anything in beaker.reagents.reagent_list)
-					if(reagent.id == reagent_id)
-						available_reagent = reagent
-						break
+				for(var/list/stored_reagent as anything in microscope_reagent_storage)
+					if(stored_reagent["id"] != reagent_id)
+						continue
+					var/actual_amount = min(selected_amount, stored_reagent["amount"])
+					stored_reagent["amount"] -= actual_amount
+					if(stored_reagent["amount"] <= 0)
+						depleted_reagents += list(stored_reagent)
+					break
 
-				if(!available_reagent)
-					continue
-
-				var/reagent_type = available_reagent.type
-				var/actual_amount = min(selected_amount, available_reagent.volume)
-				if(actual_amount > 0)
-					beaker.reagents.remove_reagent(reagent_type, actual_amount)
+			for(var/list/depleted_reagent as anything in depleted_reagents)
+				microscope_reagent_storage.Remove(depleted_reagent)
 
 			// The queued quantities are consumed once and cannot be started a second time.
 			microscope_reagents = list()
@@ -461,7 +493,7 @@
 		if("feedMicroscopeCells")
 			if(microscope_food_amount <= 0)
 				return TRUE
-			microscope_food_amount = max(0, microscope_food_amount - 1)
+			microscope_food_amount = max(0, microscope_food_amount - min(1, microscope_food_amount))
 			SStgui.update_uis(src)
 			return TRUE
 
