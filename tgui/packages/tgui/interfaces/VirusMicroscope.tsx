@@ -81,6 +81,7 @@ type VirusCellData = {
   nucleusStrength: number;
   stage: CellStage;
   stageTicks: number;
+  membrane: number[];
 };
 
 class VirusCell {
@@ -101,6 +102,7 @@ class VirusCell {
   nucleusStrength: number;
   stage: CellStage;
   stageTicks: number;
+  membrane: number[];
 
   constructor(properties: VirusCellData) {
     this.id = properties.id;
@@ -120,6 +122,7 @@ class VirusCell {
     this.nucleusStrength = properties.nucleusStrength;
     this.stage = properties.stage;
     this.stageTicks = properties.stageTicks;
+    this.membrane = properties.membrane || createRestingMembrane();
   }
 
   with(changes: Partial<VirusCellData>): VirusCell {
@@ -152,6 +155,11 @@ const PARTICLES_PER_UNIT = 1;
 const MAX_REAGENT_PARTICLES = 80;
 const PARTICLE_RADIUS = 1;
 
+const MEMBRANE_POINTS = 16;
+const MEMBRANE_RELAXATION = 0.84;
+const MEMBRANE_MAX_COMPRESSION = 6;
+const CELL_RESTITUTION = 0.18;
+
 const GROWTH_TICKS = 28;
 const STRETCH_TICKS = 24;
 const SPLIT_TICKS = 18;
@@ -161,6 +169,7 @@ const clamp = (value: number, min: number, max: number) =>
   Math.max(min, Math.min(max, value));
 
 const randomStrength = () => 88 + Math.round(Math.random() * 12);
+const createRestingMembrane = () => Array(MEMBRANE_POINTS).fill(0);
 
 const createInitialCells = (
   virusSeeds: MicroscopeVirusSeed[],
@@ -209,6 +218,7 @@ const createInitialCells = (
       nucleusStrength: randomStrength(),
       stage: 'normal',
       stageTicks: 0,
+      membrane: createRestingMembrane(),
     });
   });
 };
@@ -225,6 +235,10 @@ const restoreMicroscopeSimulation = (
             ...cell,
             outerReagentId: cell.outerReagentId || null,
             innerReagentId: cell.innerReagentId || null,
+            membrane:
+              cell.membrane?.length === MEMBRANE_POINTS
+                ? cell.membrane
+                : createRestingMembrane(),
           }),
       ),
       particles: data.microscope_simulation_particles || [],
@@ -281,30 +295,201 @@ const createReagentParticles = (
   return particles;
 };
 
+const deformMembrane = (
+  cell: VirusCell,
+  direction: number,
+  pressure: number,
+): VirusCell => {
+  if (pressure <= 0.001) {
+    return cell;
+  }
+
+  const membrane =
+    cell.membrane?.length === MEMBRANE_POINTS
+      ? cell.membrane.slice()
+      : createRestingMembrane();
+
+  for (let index = 0; index < MEMBRANE_POINTS; index++) {
+    const vertexAngle = (index / MEMBRANE_POINTS) * Math.PI * 2;
+    const alignment = Math.max(0, Math.cos(vertexAngle - direction));
+    const influence = Math.pow(alignment, 5);
+    membrane[index] = clamp(
+      membrane[index] - pressure * influence,
+      -MEMBRANE_MAX_COMPRESSION,
+      1.5,
+    );
+  }
+
+  return cell.with({ membrane });
+};
+
 const moveCell = (cell: VirusCell): VirusCell => {
   let x = cell.x + cell.vx;
   let y = cell.y + cell.vy;
   let vx = cell.vx;
   let vy = cell.vy;
+  let updated = cell;
 
-  if (x < cell.size + 4 || x > AREA_WIDTH - cell.size - 4) {
-    vx *= -1;
-    x = clamp(x, cell.size + 4, AREA_WIDTH - cell.size - 4);
-  }
-  if (y < cell.size + 4 || y > AREA_HEIGHT - cell.size - 4) {
-    vy *= -1;
-    y = clamp(y, cell.size + 4, AREA_HEIGHT - cell.size - 4);
+  if (x < cell.size + 4) {
+    x = cell.size + 4;
+    vx = Math.abs(vx) * 0.9;
+    updated = deformMembrane(updated, Math.PI, 2.2);
+  } else if (x > AREA_WIDTH - cell.size - 4) {
+    x = AREA_WIDTH - cell.size - 4;
+    vx = -Math.abs(vx) * 0.9;
+    updated = deformMembrane(updated, 0, 2.2);
   }
 
-  return cell.with({ x, y, vx, vy });
+  if (y < cell.size + 4) {
+    y = cell.size + 4;
+    vy = Math.abs(vy) * 0.9;
+    updated = deformMembrane(updated, -Math.PI / 2, 2.2);
+  } else if (y > AREA_HEIGHT - cell.size - 4) {
+    y = AREA_HEIGHT - cell.size - 4;
+    vy = -Math.abs(vy) * 0.9;
+    updated = deformMembrane(updated, Math.PI / 2, 2.2);
+  }
+
+  return updated.with({ x, y, vx, vy });
+};
+
+const getCellCollisionRadius = (cell: VirusCell): number => {
+  if (cell.stage === 'growing') {
+    return cell.size * (1.08 + 0.27 * clamp(cell.stageTicks / GROWTH_TICKS, 0, 1));
+  }
+  if (cell.stage === 'stretching') {
+    return cell.size * 1.35;
+  }
+  if (cell.stage === 'splitting') {
+    return cell.size * 1.38;
+  }
+  return cell.size;
+};
+
+const resolveCellCollisions = (cells: VirusCell[]): VirusCell[] => {
+  const resolved = cells.map((cell) => {
+    const membrane = (cell.membrane || createRestingMembrane()).map(
+      (value) => value * MEMBRANE_RELAXATION,
+    );
+    return cell.with({ membrane });
+  });
+
+  // At most ten cells means only 45 pair checks per tick are needed.
+  for (let firstIndex = 0; firstIndex < resolved.length; firstIndex++) {
+    let first = resolved[firstIndex];
+    if (first.stage === 'dying') {
+      continue;
+    }
+
+    for (
+      let secondIndex = firstIndex + 1;
+      secondIndex < resolved.length;
+      secondIndex++
+    ) {
+      let second = resolved[secondIndex];
+      if (second.stage === 'dying') {
+        continue;
+      }
+
+      const dx = second.x - first.x;
+      const dy = second.y - first.y;
+      const distance = Math.hypot(dx, dy) || 0.001;
+      const firstRadius = getCellCollisionRadius(first);
+      const secondRadius = getCellCollisionRadius(second);
+      const minimumDistance = firstRadius + secondRadius;
+
+      if (distance >= minimumDistance + 0.75) {
+        continue;
+      }
+
+      const normalX = dx / distance;
+      const normalY = dy / distance;
+      const relativeVelocityX = second.vx - first.vx;
+      const relativeVelocityY = second.vy - first.vy;
+      const normalVelocity =
+        relativeVelocityX * normalX + relativeVelocityY * normalY;
+      const penetration = Math.max(0, minimumDistance - distance);
+
+      if (penetration > 0) {
+        const firstInverseMass = 1 / Math.max(1, first.size * first.size);
+        const secondInverseMass = 1 / Math.max(1, second.size * second.size);
+        const inverseMassTotal = firstInverseMass + secondInverseMass;
+        const correction = penetration * 0.82;
+
+        first = first.with({
+          x:
+            first.x -
+            normalX * correction * (firstInverseMass / inverseMassTotal),
+          y:
+            first.y -
+            normalY * correction * (firstInverseMass / inverseMassTotal),
+        });
+        second = second.with({
+          x:
+            second.x +
+            normalX * correction * (secondInverseMass / inverseMassTotal),
+          y:
+            second.y +
+            normalY * correction * (secondInverseMass / inverseMassTotal),
+        });
+      }
+
+      let impactSpeed = 0;
+      if (normalVelocity < 0) {
+        const firstInverseMass = 1 / Math.max(1, first.size * first.size);
+        const secondInverseMass = 1 / Math.max(1, second.size * second.size);
+        const inverseMassTotal = firstInverseMass + secondInverseMass;
+        const impulse =
+          (-(1 + CELL_RESTITUTION) * normalVelocity) / inverseMassTotal;
+
+        first = first.with({
+          vx: first.vx - impulse * firstInverseMass * normalX,
+          vy: first.vy - impulse * firstInverseMass * normalY,
+        });
+        second = second.with({
+          vx: second.vx + impulse * secondInverseMass * normalX,
+          vy: second.vy + impulse * secondInverseMass * normalY,
+        });
+        impactSpeed = -normalVelocity;
+      }
+
+      const contactPressure = clamp(
+        penetration * 0.32 + impactSpeed * 0.85,
+        0,
+        3.8,
+      );
+      const contactAngle = Math.atan2(normalY, normalX);
+      first = deformMembrane(first, contactAngle, contactPressure);
+      second = deformMembrane(
+        second,
+        contactAngle + Math.PI,
+        contactPressure,
+      );
+
+      resolved[firstIndex] = first;
+      resolved[secondIndex] = second;
+    }
+  }
+
+  return resolved;
+};
+
+const getSplitDirection = (cell: VirusCell) => {
+  const speed = Math.hypot(cell.vx, cell.vy);
+  if (speed > 0.05) {
+    return { x: -cell.vy / speed, y: cell.vx / speed };
+  }
+
+  const angle = cell.id * 2.399963;
+  return { x: Math.cos(angle), y: Math.sin(angle) };
 };
 
 const getSplitOffset = (cell: VirusCell, progress: number) => {
-  const speed = Math.hypot(cell.vx, cell.vy) || 1;
-  const distance = cell.size * 1.05 * progress;
+  const direction = getSplitDirection(cell);
+  const distance = cell.size * 1.18 * progress;
   return {
-    x: (-cell.vy / speed) * distance,
-    y: (cell.vx / speed) * distance,
+    x: direction.x * distance,
+    y: direction.y * distance,
   };
 };
 
@@ -449,6 +634,7 @@ const advanceCells = (
             nucleusStrength: 100,
             stage: 'normal',
             stageTicks: 0,
+            membrane: createRestingMembrane(),
           }),
         );
 
@@ -467,8 +653,8 @@ const advanceCells = (
                 updated.size + 4,
                 AREA_HEIGHT - updated.size - 4,
               ),
-              vx: updated.vx + directionX * 0.35,
-              vy: updated.vy + directionY * 0.35,
+              vx: updated.vx + directionX * 1.2,
+              vy: updated.vy + directionY * 1.2,
               age: 0,
               food: 0,
               outerStrength: 100,
@@ -476,6 +662,7 @@ const advanceCells = (
               nucleusStrength: 100,
               stage: 'normal',
               stageTicks: 0,
+              membrane: createRestingMembrane(),
             }),
           );
         }
@@ -524,7 +711,7 @@ const advanceCells = (
     }
   }
 
-  return next;
+  return resolveCellCollisions(next);
 };
 
 const distanceToSegment = (
@@ -683,6 +870,36 @@ const advanceReagentParticles = (
   return { cells: nextCells, particles: nextParticles };
 };
 
+const createSoftMembranePath = (
+  cell: VirusCell,
+  baseRadius: number,
+  deformationScale: number,
+): string => {
+  const membrane =
+    cell.membrane?.length === MEMBRANE_POINTS
+      ? cell.membrane
+      : createRestingMembrane();
+  const vertices: string[] = [];
+
+  for (let index = 0; index < MEMBRANE_POINTS; index++) {
+    const angle = (index / MEMBRANE_POINTS) * Math.PI * 2;
+    const breathing =
+      Math.sin(cell.age * 0.055 + angle * 3 + cell.id * 0.7) * 0.55;
+    const fineRipple =
+      Math.sin(cell.age * 0.027 + angle * 5 + cell.id) * 0.25;
+    const radius =
+      baseRadius +
+      membrane[index] * deformationScale +
+      breathing +
+      fineRipple;
+    const x = Math.cos(angle) * radius;
+    const y = Math.sin(angle) * radius;
+    vertices.push((index === 0 ? 'M ' : 'L ') + x.toFixed(2) + ' ' + y.toFixed(2));
+  }
+
+  return vertices.join(' ') + ' Z';
+};
+
 const renderCellSprite = (
   cell: VirusCell,
   x: number,
@@ -727,7 +944,7 @@ const renderCellSprite = (
       />
     )}
     <path
-      d="M -8 -20 H 8 V -16 H 16 V -8 H 20 V 8 H 16 V 16 H 8 V 20 H -8 V 16 H -16 V 8 H -20 V -8 H -16 V -16 H -8 Z"
+      d={createSoftMembranePath(cell, 20, 1)}
       fill={
         cell.outerStrength > 65
           ? '#741b2c'
@@ -735,17 +952,28 @@ const renderCellSprite = (
             ? '#a34c35'
             : '#626b7a'
       }
+      stroke="#a83b4d"
+      strokeWidth="1.5"
+      strokeLinejoin="miter"
       opacity={0.35 + cell.outerStrength / 150}
     />
     <path
-      d="M -8 -16 H 8 V -12 H 12 V -8 H 16 V 8 H 12 V 12 H 8 V 16 H -8 V 12 H -12 V 8 H -16 V -8 H -12 V -12 H -8 Z"
+      d={createSoftMembranePath(cell, 15.5, 0.58)}
       fill="#df4b5b"
+      stroke="#f06a70"
+      strokeWidth="0.65"
+      strokeLinejoin="miter"
+      opacity={0.94}
     />
     <path
-      d="M -4 -8 H 4 V -4 H 8 V 4 H 4 V 8 H -4 V 4 H -8 V -4 H -4 Z"
+      d={createSoftMembranePath(cell, 7.2, 0.22)}
       fill="#641629"
     />
-    <rect x="-4" y="-4" width="4" height="4" fill="#a92e43" />
+    <path
+      d="M -4 -4 H 0 V 0 H -4 Z"
+      fill="#a92e43"
+      opacity="0.9"
+    />
   </g>
 );
 
@@ -1188,7 +1416,7 @@ export const VirusMicroscope = (_props: unknown) => {
                   if (cell.stage === 'splitting') {
                     const progress = clamp(cell.stageTicks / SPLIT_TICKS, 0, 1);
                     const offset = getSplitOffset(cell, progress);
-                    const scale = 0.9 + progress * 0.1;
+                    const scale = 0.92 + progress * 0.13;
                     return (
                       <g key={cell.id}>
                         {renderCellSprite(
