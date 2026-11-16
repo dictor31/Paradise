@@ -841,7 +841,7 @@ const advanceReagentParticles = (
           x,
           y,
         ) <=
-          cell.size + particle.radius,
+          getCellCollisionRadius(cell) + particle.radius,
     );
 
     let particleConsumed = false;
