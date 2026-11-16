@@ -628,7 +628,7 @@
 			scan_data += "&emsp;Название: [D.name]"
 			scan_data += "&emsp;Тип: [D.additional_info]"
 			scan_data += "&emsp;Стадия: [D.stage]/[D.max_stages]"
-		if(H.undergoing_cardiac_arrest())
+	if(H.undergoing_cardiac_arrest())
 		var/obj/item/organ/internal/heart/heart = H.get_int_organ(/obj/item/organ/internal/heart)
 		if(heart && !heart.is_dead())
 			scan_data += span_warning("<b>Внимание: Критическое состояние</b>")
