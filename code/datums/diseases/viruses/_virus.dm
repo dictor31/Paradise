@@ -10,10 +10,19 @@
 	///affects how well the virus will pass through the protection. The more the better. In range (0-2]
 	var/permeability_mod = 1
 	var/no_vaccine = FALSE //is pandemic can make vaccine for virus
+	/// Preferred temperature for microscope culture, individually assigned to each virus strain.
+	var/microscope_comfort_temperature = null
 
 /datum/disease/virus/New()
 	..()
+	if(isnull(microscope_comfort_temperature))
+		microscope_comfort_temperature = rand(0, 30)
 	additional_info = spread_text()
+
+/datum/disease/virus/Copy()
+	var/datum/disease/virus/copy = ..()
+	copy.microscope_comfort_temperature = microscope_comfort_temperature
+	return copy
 
 /**
  * Main virus process, that executed every tick
