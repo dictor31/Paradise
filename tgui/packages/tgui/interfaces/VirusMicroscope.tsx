@@ -19,11 +19,18 @@ type MicroscopeAddedReagent = {
   is_vaccine: boolean;
 };
 
+type MicroscopeVirusSeed = {
+  name: string;
+  cure_reagents: string[];
+};
+
 type VirusMicroscopeData = {
   microscope_available_reagents: MicroscopeReagent[];
   microscope_added_reagents: MicroscopeAddedReagent[];
-  microscope_food_receiver_loaded: boolean;
   microscope_food_amount: number;
+  microscope_food_capacity: number;
+  microscope_virus_seeds: MicroscopeVirusSeed[];
+  microscope_culture_generation: number;
 };
 
 type ReagentParticle = {
@@ -55,6 +62,9 @@ type VirusCellData = {
   age: number;
   size: number;
   food: number;
+  outerReagentId: string | null;
+  innerReagentId: string | null;
+  nucleusReagentId: string | null;
   outerStrength: number;
   innerStrength: number;
   nucleusStrength: number;
@@ -72,6 +82,9 @@ class VirusCell {
   age: number;
   size: number;
   food: number;
+  outerReagentId: string | null;
+  innerReagentId: string | null;
+  nucleusReagentId: string | null;
   outerStrength: number;
   innerStrength: number;
   nucleusStrength: number;
@@ -88,6 +101,9 @@ class VirusCell {
     this.age = properties.age;
     this.size = properties.size;
     this.food = properties.food;
+    this.outerReagentId = properties.outerReagentId;
+    this.innerReagentId = properties.innerReagentId;
+    this.nucleusReagentId = properties.nucleusReagentId;
     this.outerStrength = properties.outerStrength;
     this.innerStrength = properties.innerStrength;
     this.nucleusStrength = properties.nucleusStrength;
@@ -116,9 +132,6 @@ const COMFORTABLE_TEMP_MAX = 20;
 const MIN_TEMPERATURE = 0;
 const MAX_TEMPERATURE = 30;
 const VIRUS_FOOD_REAGENT_ID = 'virusfood';
-const OUTER_LAYER_REAGENT_ID = 'water';
-const INNER_LAYER_REAGENT_ID = 'sacid';
-const NUCLEUS_LAYER_REAGENT_ID = 'facid';
 const VACCINE_NUCLEUS_DAMAGE = 35;
 const LAYER_DAMAGE_PER_PARTICLE = 8;
 const FOOD_PER_FEED_TICK = 0.5;
@@ -138,7 +151,13 @@ const clamp = (value: number, min: number, max: number) =>
 
 const randomStrength = () => 88 + Math.round(Math.random() * 12);
 
-const createInitialCells = (): VirusCell[] => {
+const createInitialCells = (
+  virusSeeds: MicroscopeVirusSeed[],
+): VirusCell[] => {
+  if (!virusSeeds.length) {
+    return [];
+  }
+
   const positions = [
     [110, 90],
     [285, 185],
@@ -146,13 +165,19 @@ const createInitialCells = (): VirusCell[] => {
     [680, 160],
     [185, 355],
     [535, 345],
+    [370, 80],
+    [640, 350],
+    [80, 245],
+    [400, 380],
   ];
 
   return positions.slice(0, START_CELLS).map(([x, y], index) => {
+    const seed = virusSeeds[index % virusSeeds.length];
+    const cures = seed.cure_reagents || [];
     const id = index + 1;
     return new VirusCell({
       id,
-      name: 'Красный вирус',
+      name: seed.name,
       x,
       y,
       vx: (Math.random() - 0.5) * 2.2,
@@ -160,6 +185,9 @@ const createInitialCells = (): VirusCell[] => {
       age: 0,
       size: 17 + Math.round(Math.random() * 3),
       food: 0,
+      outerReagentId: cures[0] || null,
+      innerReagentId: cures[1] || null,
+      nucleusReagentId: cures[2] || null,
       outerStrength: randomStrength(),
       innerStrength: randomStrength(),
       nucleusStrength: randomStrength(),
@@ -466,7 +494,8 @@ const advanceReagentParticles = (
         });
         particleConsumed = true;
       } else if (
-        particle.reagentId === OUTER_LAYER_REAGENT_ID &&
+        touchedCell.outerReagentId !== null &&
+        particle.reagentId === touchedCell.outerReagentId &&
         touchedCell.outerStrength > 0
       ) {
         nextCells[touchedCellIndex] = touchedCell.with({
@@ -477,7 +506,8 @@ const advanceReagentParticles = (
         });
         particleConsumed = true;
       } else if (
-        particle.reagentId === INNER_LAYER_REAGENT_ID &&
+        touchedCell.innerReagentId !== null &&
+        particle.reagentId === touchedCell.innerReagentId &&
         touchedCell.outerStrength <= 0 &&
         touchedCell.innerStrength > 0
       ) {
@@ -489,7 +519,8 @@ const advanceReagentParticles = (
         });
         particleConsumed = true;
       } else if (
-        particle.reagentId === NUCLEUS_LAYER_REAGENT_ID &&
+        touchedCell.nucleusReagentId !== null &&
+        particle.reagentId === touchedCell.nucleusReagentId &&
         touchedCell.outerStrength <= 0 &&
         touchedCell.innerStrength <= 0 &&
         touchedCell.nucleusStrength > 0
@@ -623,10 +654,12 @@ export const VirusMicroscope = (_props: unknown) => {
   const { act, data } = useBackend<VirusMicroscopeData>();
   const availableReagents = data.microscope_available_reagents || [];
   const addedReagents = data.microscope_added_reagents || [];
-  const foodReceiverLoaded = !!data.microscope_food_receiver_loaded;
+  const virusSeeds = data.microscope_virus_seeds || [];
+  const cultureGeneration = data.microscope_culture_generation || 0;
   const foodReceiverAmount = data.microscope_food_amount || 0;
+  const foodReceiverCapacity = data.microscope_food_capacity || 100;
   const [simulation, setSimulation] = useState<MicroscopeSimulation>(() => ({
-    cells: createInitialCells(),
+    cells: createInitialCells(virusSeeds),
     particles: [],
   }));
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -634,6 +667,8 @@ export const VirusMicroscope = (_props: unknown) => {
   const cells = simulation.cells;
   const particles = simulation.particles;
   const selectedCell = cells.find((cell) => cell.id === selectedId);
+  const initializedCultureGeneration = useRef(cultureGeneration);
+  const reportedExtinctionGeneration = useRef<number | null>(null);
   const temperatureMidpoint = (MIN_TEMPERATURE + MAX_TEMPERATURE) / 2;
   const thermometerColor =
     temperature > temperatureMidpoint
@@ -649,6 +684,43 @@ export const VirusMicroscope = (_props: unknown) => {
   useEffect(() => {
     particlesRef.current = particles;
   }, [particles]);
+
+  useEffect(() => {
+    if (
+      !virusSeeds.length ||
+      initializedCultureGeneration.current === cultureGeneration
+    ) {
+      return;
+    }
+
+    initializedCultureGeneration.current = cultureGeneration;
+    reportedExtinctionGeneration.current = cultureGeneration;
+    setSelectedId(null);
+    setSimulation({
+      cells: createInitialCells(virusSeeds),
+      particles: [],
+    });
+  }, [cultureGeneration, virusSeeds]);
+
+  useEffect(() => {
+    if (cells.length > 0) {
+      if (reportedExtinctionGeneration.current === cultureGeneration) {
+        reportedExtinctionGeneration.current = null;
+      }
+      return;
+    }
+
+    if (
+      !virusSeeds.length ||
+      initializedCultureGeneration.current !== cultureGeneration ||
+      reportedExtinctionGeneration.current === cultureGeneration
+    ) {
+      return;
+    }
+
+    reportedExtinctionGeneration.current = cultureGeneration;
+    act('microscopePopulationExtinct', { generation: cultureGeneration });
+  }, [act, cells.length, cultureGeneration, virusSeeds.length]);
 
   useEffect(() => {
     const interval = window.setInterval(() => {
@@ -692,7 +764,7 @@ export const VirusMicroscope = (_props: unknown) => {
   }, []);
 
   useEffect(() => {
-    if (!foodReceiverLoaded || foodReceiverAmount <= 0) {
+    if (foodReceiverAmount <= 0 || cells.length === 0) {
       return;
     }
 
@@ -728,7 +800,7 @@ export const VirusMicroscope = (_props: unknown) => {
     }, 3000);
 
     return () => window.clearInterval(feedingInterval);
-  }, [act, foodReceiverAmount, foodReceiverLoaded]);
+  }, [act, cells.length, foodReceiverAmount]);
 
   const startReagentSimulation = () => {
     if (!addedReagents.length) {
@@ -752,7 +824,7 @@ export const VirusMicroscope = (_props: unknown) => {
       height={520}
       resizable
     >
-      <Window.Content>
+      <Window.Content draggable={false}>
         <div
           style={{
             position: 'relative',
@@ -903,11 +975,10 @@ export const VirusMicroscope = (_props: unknown) => {
             }}
           >
             Клеток: {cells.length} / {MAX_CELLS}
-            {foodReceiverLoaded && (
-              <div style={{ color: '#ffffff', marginTop: '2px' }}>
-                Питательная среда: {foodReceiverAmount.toFixed(1)} ед.
-              </div>
-            )}
+            <div style={{ color: '#ffffff', marginTop: '2px' }}>
+              Питательная среда: {foodReceiverAmount.toFixed(1)} /{' '}
+              {foodReceiverCapacity.toFixed(1)} ед.
+            </div>
           </div>
 
           <div
