@@ -857,7 +857,7 @@ export const VirusMicroscope = (_props: unknown) => {
   }, []);
 
   useEffect(() => {
-    if (foodReceiverAmount <= 0 || cells.length === 0) {
+    if (foodReceiverAmount < 1 || cells.length === 0) {
       return;
     }
 
@@ -866,7 +866,7 @@ export const VirusMicroscope = (_props: unknown) => {
         return;
       }
 
-      const consumedAmount = Math.min(1, foodReceiverAmount);
+      const consumedAmount = 1;
       const foodPulse: MicroscopeAddedReagent[] = [
         {
           id: VIRUS_FOOD_REAGENT_ID,
