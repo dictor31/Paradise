@@ -201,6 +201,10 @@ const REAGENT_SCAN_CLUES: Record<string, CellScanClue> = {
     family: 'Алкогольный органический растворитель',
     behavior: 'Крепкая спиртовая смесь с летучими органическими компонентами.',
   },
+  mutadone: {
+    family: 'Экспериментальный бромидный препарат',
+    behavior: 'Синтетическое соединение, предназначенное для коррекции генетических аномалий.',
+  },
 };
 
 const getCellScanClue = (reagentId: string | null): CellScanClue => {
