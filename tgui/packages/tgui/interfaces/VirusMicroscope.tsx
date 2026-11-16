@@ -34,6 +34,7 @@ type VirusMicroscopeData = {
   microscope_reagent_storage_capacity: number;
   microscope_reagent_storage_types: number;
   microscope_reagent_type_limit: number;
+  microscope_sample_present: boolean;
   microscope_virus_seeds: MicroscopeVirusSeed[];
   microscope_culture_generation: number;
 };
@@ -753,6 +754,7 @@ export const VirusMicroscope = (_props: unknown) => {
   const { act, data } = useBackend<VirusMicroscopeData>();
   const availableReagents = data.microscope_available_reagents || [];
   const addedReagents = data.microscope_added_reagents || [];
+  const microscopeSamplePresent = !!data.microscope_sample_present;
   const virusSeeds = data.microscope_virus_seeds || [];
   const cultureGeneration = data.microscope_culture_generation || 0;
   const foodReceiverAmount = data.microscope_food_amount || 0;
@@ -800,6 +802,20 @@ export const VirusMicroscope = (_props: unknown) => {
   }, [particles]);
 
   useEffect(() => {
+    if (!microscopeSamplePresent) {
+      // The machine may remember a live culture, but it is not visible without
+      // the exact sample that created it installed in the beaker slot.
+      initializedCultureGeneration.current = -1;
+      reportedExtinctionGeneration.current = null;
+      setSelectedId(null);
+      setSimulation((current) =>
+        current.cells.length || current.particles.length
+          ? { cells: [], particles: [] }
+          : current,
+      );
+      return;
+    }
+
     if (
       !virusSeeds.length ||
       initializedCultureGeneration.current === cultureGeneration
@@ -814,7 +830,7 @@ export const VirusMicroscope = (_props: unknown) => {
       cells: createInitialCells(virusSeeds),
       particles: [],
     });
-  }, [cultureGeneration, virusSeeds]);
+  }, [cultureGeneration, microscopeSamplePresent, virusSeeds]);
 
   useEffect(() => {
     if (cells.length > 0) {
@@ -825,6 +841,7 @@ export const VirusMicroscope = (_props: unknown) => {
     }
 
     if (
+      !microscopeSamplePresent ||
       !virusSeeds.length ||
       initializedCultureGeneration.current !== cultureGeneration ||
       reportedExtinctionGeneration.current === cultureGeneration
@@ -834,7 +851,7 @@ export const VirusMicroscope = (_props: unknown) => {
 
     reportedExtinctionGeneration.current = cultureGeneration;
     act('microscopePopulationExtinct', { generation: cultureGeneration });
-  }, [act, cells.length, cultureGeneration, virusSeeds.length]);
+  }, [act, cells.length, cultureGeneration, microscopeSamplePresent, virusSeeds.length]);
 
   useEffect(() => {
     const interval = window.setInterval(() => {
