@@ -9,8 +9,8 @@ type PandemicSuperData = {
   blood_data: PandemicSuperBloodData;
   diseases: PandemicSuperDiseaseData[];
   antibodies: PandemicSuperAntibodyData[];
-  microscope_food_receiver_loaded: boolean;
   microscope_food_amount: number;
+  microscope_food_capacity: number;
 };
 
 type PandemicSuperBloodData = {
@@ -45,8 +45,8 @@ export const PandemicSuper = (_props: unknown) => {
     blood_data,
     diseases,
     antibodies,
-    microscope_food_receiver_loaded,
     microscope_food_amount,
+    microscope_food_capacity,
   } = data;
 
   const blocks: React.JSX.Element[] = [];
@@ -228,22 +228,15 @@ export const PandemicSuper = (_props: unknown) => {
       <Window.Content scrollable>
         <Stack fill vertical>
           <Stack.Item>
-            <Section title="Приёмник питательной среды">
-              {microscope_food_receiver_loaded ? (
-                <Box>
-                  <span>
-                    Запас питания: {microscope_food_amount.toFixed(1)} ед.
-                  </span>
-                  <Button
-                    icon="eject"
-                    onClick={() => act('extractVirusFood')}
-                  >
-                    Извлечь
-                  </Button>
-                </Box>
-              ) : (
-                <b>Не загружен. Вставьте ёмкость с питательной средой.</b>
-              )}
+            <Section title="Внутреннее хранилище питательной среды">
+              <Box>
+                Запас питания: {microscope_food_amount.toFixed(1)} /{' '}
+                {microscope_food_capacity.toFixed(1)} ед.
+              </Box>
+              <Box color="label" mt={1}>
+                Пополняется переливанием питательной среды из открытой ёмкости
+                или капельницей в автомат.
+              </Box>
             </Section>
           </Stack.Item>
           <Stack.Item>
