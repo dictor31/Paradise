@@ -161,8 +161,10 @@ const AREA_HEIGHT = 460;
 const MAX_CELLS = 10;
 const START_CELLS = 6;
 
-const PHYSICS_INTERVAL = 40;
-const BIOLOGICAL_DELTA_SCALE = 0.5;
+// A slightly faster visual step smooths membrane motion. The smaller delta
+// keeps movement, particle travel, and biological timing at their previous rates.
+const PHYSICS_INTERVAL = 32;
+const BIOLOGICAL_DELTA_SCALE = 0.4;
 const INNER_STRENGTH_DECAY_INTERVAL = 18;
 const INNER_REPAIR_INTERVAL = 10;
 const FOOD_PER_INNER_REPAIR = 0.1;
@@ -184,13 +186,17 @@ const PARTICLE_RADIUS = 1;
 // Each membrane segment behaves like a damped spring. Impact first stores
 // energy as inward deformation; the spring then returns that energy over time.
 const MEMBRANE_SPRING_STIFFNESS = 0.12;
-const MEMBRANE_SPRING_DAMPING = 0.91;
-const MEMBRANE_NEIGHBOR_STIFFNESS = 0.17;
+const MEMBRANE_SPRING_DAMPING = 0.82;
+const MEMBRANE_NEIGHBOR_STIFFNESS = 0.2;
 const MEMBRANE_MAX_COMPRESSION = 16;
-const MEMBRANE_RECOIL_TRANSFER = 1.9;
-const CONTACT_POSITION_CORRECTION = 0.38;
-const CONTACT_POSITION_MAX_CORRECTION = 2;
-const CONTACT_VELOCITY_DAMPING = 0.12;
+// Recoil is intentionally subtle and comes only from compressed membrane
+// sections that are actually springing back toward their resting position.
+const MEMBRANE_RECOIL_TRANSFER = 0.52;
+const MEMBRANE_RECOIL_MAX_STEP = 0.13;
+const CONTACT_POSITION_CORRECTION = 0.12;
+const CONTACT_POSITION_MAX_CORRECTION = 0.45;
+const CONTACT_VELOCITY_DAMPING = 0.72;
+const MIN_COLLISION_IMPACT_SPEED = 0.18;
 
 const GROWTH_TICKS = 28;
 const STRETCH_TICKS = 30;
@@ -396,22 +402,21 @@ const deformMembrane = (
     const vertexAngle = (index / MEMBRANE_POINTS) * Math.PI * 2;
     const relativeAngle = vertexAngle - direction;
     const alignment = Math.cos(relativeAngle);
-    const compression = Math.pow(Math.max(0, alignment), 1.55);
-    // A wide patch folds inward while the membrane on both sides bulges out.
-    const flank = Math.exp(-Math.pow((Math.abs(alignment) - 0.52) / 0.31, 2));
+    const compression = Math.pow(Math.max(0, alignment), 1.35);
+    // Spread the dent over a wider arc to avoid sharp, frame-to-frame pinches.
+    const flank = Math.exp(-Math.pow((Math.abs(alignment) - 0.5) / 0.34, 2));
     membrane[index] = clamp(
-      membrane[index] - pressure * compression * 0.78 + pressure * flank * 0.36,
+      membrane[index] - pressure * compression * 0.62 + pressure * flank * 0.28,
       -MEMBRANE_MAX_COMPRESSION,
       5,
     );
-    // The collision injects momentum into the membrane itself. The spring
-    // then releases this stored energy over several frames.
+    // A measured impulse starts the spring response without over-exciting it.
     membraneVelocity[index] = clamp(
-      membraneVelocity[index] * 0.22 -
-        pressure * compression * 0.48 +
-        pressure * flank * 0.18,
-      -8,
-      8,
+      membraneVelocity[index] * 0.3 -
+        pressure * compression * 0.3 +
+        pressure * flank * 0.11,
+      -5.5,
+      5.5,
     );
   }
 
@@ -477,21 +482,25 @@ const moveCell = (cell: VirusCell, deltaScale: number): VirusCell => {
     x = wallRadius + 4;
     const impactSpeed = Math.max(0, -vx);
     vx = Math.max(0, vx);
-    updated = deformMembrane(
-      updated,
-      Math.PI,
-      clamp(0.85 + penetration * 0.8 + impactSpeed * 0.85, 0.85, 5.6),
-    );
+    if (impactSpeed > MIN_COLLISION_IMPACT_SPEED) {
+      updated = deformMembrane(
+        updated,
+        Math.PI,
+        clamp(0.25 + penetration * 0.35 + impactSpeed * 0.75, 0.25, 3.8),
+      );
+    }
   } else if (x > AREA_WIDTH - wallRadius - 4) {
     const penetration = x - (AREA_WIDTH - wallRadius - 4);
     x = AREA_WIDTH - wallRadius - 4;
     const impactSpeed = Math.max(0, vx);
     vx = Math.min(0, vx);
-    updated = deformMembrane(
-      updated,
-      0,
-      clamp(0.85 + penetration * 0.8 + impactSpeed * 0.85, 0.85, 5.6),
-    );
+    if (impactSpeed > MIN_COLLISION_IMPACT_SPEED) {
+      updated = deformMembrane(
+        updated,
+        0,
+        clamp(0.25 + penetration * 0.35 + impactSpeed * 0.75, 0.25, 3.8),
+      );
+    }
   }
 
   if (y < wallRadius + 4) {
@@ -499,21 +508,25 @@ const moveCell = (cell: VirusCell, deltaScale: number): VirusCell => {
     y = wallRadius + 4;
     const impactSpeed = Math.max(0, -vy);
     vy = Math.max(0, vy);
-    updated = deformMembrane(
-      updated,
-      -Math.PI / 2,
-      clamp(0.85 + penetration * 0.8 + impactSpeed * 0.85, 0.85, 5.6),
-    );
+    if (impactSpeed > MIN_COLLISION_IMPACT_SPEED) {
+      updated = deformMembrane(
+        updated,
+        -Math.PI / 2,
+        clamp(0.25 + penetration * 0.35 + impactSpeed * 0.75, 0.25, 3.8),
+      );
+    }
   } else if (y > AREA_HEIGHT - wallRadius - 4) {
     const penetration = y - (AREA_HEIGHT - wallRadius - 4);
     y = AREA_HEIGHT - wallRadius - 4;
     const impactSpeed = Math.max(0, vy);
     vy = Math.min(0, vy);
-    updated = deformMembrane(
-      updated,
-      Math.PI / 2,
-      clamp(0.85 + penetration * 0.8 + impactSpeed * 0.85, 0.85, 5.6),
-    );
+    if (impactSpeed > MIN_COLLISION_IMPACT_SPEED) {
+      updated = deformMembrane(
+        updated,
+        Math.PI / 2,
+        clamp(0.25 + penetration * 0.35 + impactSpeed * 0.75, 0.25, 3.8),
+      );
+    }
   }
 
   return updated.with({ x, y, vx, vy });
@@ -558,20 +571,32 @@ const resolveCellCollisions = (
       membrane.push(offset);
       membraneVelocity.push(velocity);
 
-      if (velocity > 0) {
+      // Ignore tiny resting oscillations and outward motion from uncompressed
+      // areas: only a genuinely dented section may push the cell's center.
+      if (source[index] < -0.25 && velocity > 0.06) {
+        const compressionWeight = clamp((-source[index] - 0.25) / 5, 0, 1);
         const angle = (index / MEMBRANE_POINTS) * Math.PI * 2;
-        recoilX -=
-          Math.cos(angle) * velocity * MEMBRANE_RECOIL_TRANSFER * deltaScale;
-        recoilY -=
-          Math.sin(angle) * velocity * MEMBRANE_RECOIL_TRANSFER * deltaScale;
+        recoilX -= Math.cos(angle) * velocity * compressionWeight;
+        recoilY -= Math.sin(angle) * velocity * compressionWeight;
       }
     }
+
+    // Several membrane points can release energy together. Cap the total
+    // center impulse so the recoil feels like one soft push, not repeated kicks.
+    const recoilLength = Math.hypot(recoilX, recoilY);
+    const recoilScale =
+      recoilLength > 0
+        ? Math.min(
+            MEMBRANE_RECOIL_TRANSFER * deltaScale,
+            MEMBRANE_RECOIL_MAX_STEP / recoilLength,
+          )
+        : 0;
 
     return cell.with({
       membrane,
       membraneVelocity,
-      vx: clamp(cell.vx + recoilX, -3.4, 3.4),
-      vy: clamp(cell.vy + recoilY, -3.4, 3.4),
+      vx: clamp(cell.vx + recoilX * recoilScale, -3.4, 3.4),
+      vy: clamp(cell.vy + recoilY * recoilScale, -3.4, 3.4),
     });
   });
 
@@ -646,9 +671,10 @@ const resolveCellCollisions = (
         });
       }
 
-      // Dampen the incoming normal velocity without reversing it. The cells
-      // will separate later, as their compressed membranes spring back.
-      if (approachSpeed > 0) {
+      // Absorb most of the incoming speed on the first contact. If the cells
+      // are already resting against one another, do not keep injecting new
+      // membrane impulses every simulation step.
+      if (approachSpeed > MIN_COLLISION_IMPACT_SPEED) {
         const impulse =
           (approachSpeed * CONTACT_VELOCITY_DAMPING) / inverseMassTotal;
         first = first.with({
@@ -659,20 +685,20 @@ const resolveCellCollisions = (
           vx: second.vx + impulse * secondInverseMass * normalX,
           vy: second.vy + impulse * secondInverseMass * normalY,
         });
-      }
 
-      const contactPressure = clamp(
-        1.15 + penetration * 0.85 + approachSpeed * 0.9,
-        1.15,
-        7.0,
-      );
-      const contactAngle = Math.atan2(normalY, normalX);
-      first = deformMembrane(first, contactAngle, contactPressure);
-      second = deformMembrane(
-        second,
-        contactAngle + Math.PI,
-        contactPressure,
-      );
+        const contactPressure = clamp(
+          0.25 + approachSpeed * 0.82 + Math.min(penetration, 4) * 0.2,
+          0.25,
+          4.0,
+        );
+        const contactAngle = Math.atan2(normalY, normalX);
+        first = deformMembrane(first, contactAngle, contactPressure);
+        second = deformMembrane(
+          second,
+          contactAngle + Math.PI,
+          contactPressure,
+        );
+      }
 
       resolved[firstIndex] = first;
       resolved[secondIndex] = second;
@@ -1149,7 +1175,7 @@ const createSoftMembranePath = (
       Math.sin(phase * 2.1 + angle * 3 + cell.id * 0.7) * 0.72 +
       Math.sin(phase * 3.4 - angle * 5 + cell.id * 1.3) * 0.38 +
       Math.sin(phase * 1.3 + angle * 8) * 0.2 +
-      Math.sin(phase * 7.2 + angle * 9 + cell.id * 2.4) * 0.28;
+      Math.sin(phase * 6.2 + angle * 7 + cell.id * 2.4) * 0.12;
     const breathing =
       Math.sin(phase * 0.7 + angle * 2 + cell.id * 0.7) * 0.55;
     const strainShape =
@@ -1227,7 +1253,7 @@ const renderCellSprite = (
       style={{
         cursor: 'pointer',
         opacity,
-        transition: 'transform 40ms linear, opacity 40ms linear',
+        transition: 'transform 32ms linear, opacity 32ms linear',
       }}
       role="button"
       aria-label={'Выбрать ' + cell.name + ' №' + cell.id}
@@ -2150,7 +2176,7 @@ export const VirusMicroscope = (_props: unknown) => {
                     key={particle.id}
                     className="VirusMicroscope__particle"
                     transform={`translate(${particle.x} ${particle.y})`}
-                    style={{ transition: 'transform 40ms linear' }}
+                    style={{ transition: 'transform 32ms linear' }}
                     pointerEvents="none"
                   >
                     <rect
