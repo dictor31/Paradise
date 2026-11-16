@@ -82,6 +82,7 @@ type VirusCellData = {
   stage: CellStage;
   stageTicks: number;
   membrane: number[];
+  membraneVelocity: number[];
   membranePhase: number;
 };
 
@@ -107,6 +108,7 @@ class VirusCell {
   stage: CellStage;
   stageTicks: number;
   membrane: number[];
+  membraneVelocity: number[];
   membranePhase: number;
 
   constructor(properties: VirusCellData) {
@@ -128,6 +130,8 @@ class VirusCell {
     this.stage = properties.stage;
     this.stageTicks = properties.stageTicks;
     this.membrane = properties.membrane || createRestingMembrane();
+    this.membraneVelocity =
+      properties.membraneVelocity || createRestingMembrane();
     this.membranePhase = properties.membranePhase ?? this.id * 0.73;
   }
 
@@ -162,10 +166,15 @@ const PARTICLES_PER_UNIT = 1;
 const MAX_REAGENT_PARTICLES = 80;
 const PARTICLE_RADIUS = 1;
 
-const MEMBRANE_RELAXATION = 0.965;
-const MEMBRANE_NEIGHBOR_STIFFNESS = 0.16;
+// Each membrane segment behaves like a damped spring. Impact first stores
+// energy as inward deformation; the spring then returns that energy over time.
+const MEMBRANE_SPRING_STIFFNESS = 0.18;
+const MEMBRANE_SPRING_DAMPING = 0.86;
+const MEMBRANE_NEIGHBOR_STIFFNESS = 0.12;
 const MEMBRANE_MAX_COMPRESSION = 11;
-const CELL_RESTITUTION = 0.18;
+const MEMBRANE_RECOIL_TRANSFER = 1.9;
+const CONTACT_POSITION_CORRECTION = 0.12;
+const CONTACT_VELOCITY_DAMPING = 0.12;
 
 const GROWTH_TICKS = 28;
 const STRETCH_TICKS = 24;
@@ -225,6 +234,7 @@ const createInitialCells = (
       stage: 'normal',
       stageTicks: 0,
       membrane: createRestingMembrane(),
+      membraneVelocity: createRestingMembrane(),
       membranePhase: Math.random() * Math.PI * 2,
     });
   });
@@ -245,6 +255,10 @@ const restoreMicroscopeSimulation = (
             membrane:
               cell.membrane?.length === MEMBRANE_POINTS
                 ? cell.membrane
+                : createRestingMembrane(),
+            membraneVelocity:
+              cell.membraneVelocity?.length === MEMBRANE_POINTS
+                ? cell.membraneVelocity
                 : createRestingMembrane(),
             membranePhase: cell.membranePhase ?? cell.id * 0.73,
           }),
@@ -316,23 +330,30 @@ const deformMembrane = (
     cell.membrane?.length === MEMBRANE_POINTS
       ? cell.membrane.slice()
       : createRestingMembrane();
+  const membraneVelocity =
+    cell.membraneVelocity?.length === MEMBRANE_POINTS
+      ? cell.membraneVelocity.slice()
+      : createRestingMembrane();
 
   for (let index = 0; index < MEMBRANE_POINTS; index++) {
     const vertexAngle = (index / MEMBRANE_POINTS) * Math.PI * 2;
     const relativeAngle = vertexAngle - direction;
     const alignment = Math.cos(relativeAngle);
-    const compression = Math.pow(Math.max(0, alignment), 2.25);
-    // Displaced membrane material swells gently around the impact zone,
-    // rather than producing a narrow, pinched dent.
-    const flank = Math.exp(-Math.pow((Math.abs(alignment) - 0.48) / 0.24, 2));
+    const compression = Math.pow(Math.max(0, alignment), 2.1);
+    // The impact pushes a broad patch of membrane inward. Material beside
+    // the impact zone bulges outward, keeping the cell's volume-like shape.
+    const flank = Math.exp(-Math.pow((Math.abs(alignment) - 0.56) / 0.28, 2));
     membrane[index] = clamp(
-      membrane[index] - pressure * compression + pressure * flank * 0.22,
+      membrane[index] - pressure * compression + pressure * flank * 0.2,
       -MEMBRANE_MAX_COMPRESSION,
       3.5,
     );
+    // A new impact absorbs some of the membrane's outward motion instead of
+    // allowing the cell to bounce immediately like a rigid ball.
+    membraneVelocity[index] *= 0.42;
   }
 
-  return cell.with({ membrane });
+  return cell.with({ membrane, membraneVelocity });
 };
 
 const getCellCollisionRadius = (cell: VirusCell): number => {
@@ -368,24 +389,50 @@ const moveCell = (cell: VirusCell, deltaScale: number): VirusCell => {
   let y = cell.y + vy * deltaScale;
   let updated = cell;
 
+  // Walls absorb the incoming motion and compress the membrane. They do not
+  // reverse the cell's velocity; the membrane's recovery supplies the rebound.
   if (x < wallRadius + 4) {
+    const penetration = wallRadius + 4 - x;
     x = wallRadius + 4;
-    vx = Math.abs(vx) * 0.9;
-    updated = deformMembrane(updated, Math.PI, 4.2);
+    const impactSpeed = Math.max(0, -vx);
+    vx = Math.max(0, vx);
+    updated = deformMembrane(
+      updated,
+      Math.PI,
+      clamp(0.12 + penetration * 0.3 + impactSpeed * 0.25, 0.12, 1.4),
+    );
   } else if (x > AREA_WIDTH - wallRadius - 4) {
+    const penetration = x - (AREA_WIDTH - wallRadius - 4);
     x = AREA_WIDTH - wallRadius - 4;
-    vx = -Math.abs(vx) * 0.9;
-    updated = deformMembrane(updated, 0, 4.2);
+    const impactSpeed = Math.max(0, vx);
+    vx = Math.min(0, vx);
+    updated = deformMembrane(
+      updated,
+      0,
+      clamp(0.12 + penetration * 0.3 + impactSpeed * 0.25, 0.12, 1.4),
+    );
   }
 
   if (y < wallRadius + 4) {
+    const penetration = wallRadius + 4 - y;
     y = wallRadius + 4;
-    vy = Math.abs(vy) * 0.9;
-    updated = deformMembrane(updated, -Math.PI / 2, 4.2);
+    const impactSpeed = Math.max(0, -vy);
+    vy = Math.max(0, vy);
+    updated = deformMembrane(
+      updated,
+      -Math.PI / 2,
+      clamp(0.12 + penetration * 0.3 + impactSpeed * 0.25, 0.12, 1.4),
+    );
   } else if (y > AREA_HEIGHT - wallRadius - 4) {
+    const penetration = y - (AREA_HEIGHT - wallRadius - 4);
     y = AREA_HEIGHT - wallRadius - 4;
-    vy = -Math.abs(vy) * 0.9;
-    updated = deformMembrane(updated, Math.PI / 2, 4.2);
+    const impactSpeed = Math.max(0, vy);
+    vy = Math.min(0, vy);
+    updated = deformMembrane(
+      updated,
+      Math.PI / 2,
+      clamp(0.12 + penetration * 0.3 + impactSpeed * 0.25, 0.12, 1.4),
+    );
   }
 
   return updated.with({ x, y, vx, vy });
@@ -395,23 +442,59 @@ const resolveCellCollisions = (
   cells: VirusCell[],
   deltaScale: number,
 ): VirusCell[] => {
-  const relaxation = Math.pow(MEMBRANE_RELAXATION, deltaScale);
+  const damping = Math.pow(MEMBRANE_SPRING_DAMPING, deltaScale);
   const resolved = cells.map((cell) => {
-    const source = cell.membrane || createRestingMembrane();
-    const relaxed = source.map((value) => value * relaxation);
-    // Adjacent membrane segments share tension, spreading each impact over
-    // a wider, smoother patch instead of leaving a single sharp notch.
-    const membrane = relaxed.map((value, index) => {
-      const previous = relaxed[(index + MEMBRANE_POINTS - 1) % MEMBRANE_POINTS];
-      const next = relaxed[(index + 1) % MEMBRANE_POINTS];
-      const neighbors = (previous + next) * 0.5;
-      return value * (1 - MEMBRANE_NEIGHBOR_STIFFNESS) +
-        neighbors * MEMBRANE_NEIGHBOR_STIFFNESS;
+    const source =
+      cell.membrane?.length === MEMBRANE_POINTS
+        ? cell.membrane
+        : createRestingMembrane();
+    const sourceVelocity =
+      cell.membraneVelocity?.length === MEMBRANE_POINTS
+        ? cell.membraneVelocity
+        : createRestingMembrane();
+    const membrane: number[] = [];
+    const membraneVelocity: number[] = [];
+    let recoilX = 0;
+    let recoilY = 0;
+
+    // The membrane is a ring of damped springs. Neighbor tension smooths the
+    // dent, while the outward spring velocity transfers its stored energy
+    // into the cell's center of mass as a delayed, soft rebound.
+    for (let index = 0; index < MEMBRANE_POINTS; index++) {
+      const previous = source[(index + MEMBRANE_POINTS - 1) % MEMBRANE_POINTS];
+      const next = source[(index + 1) % MEMBRANE_POINTS];
+      const neighborMean = (previous + next) * 0.5;
+      const springForce =
+        -source[index] * MEMBRANE_SPRING_STIFFNESS +
+        (neighborMean - source[index]) * MEMBRANE_NEIGHBOR_STIFFNESS;
+      const velocity =
+        (sourceVelocity[index] + springForce * deltaScale) * damping;
+      const offset = clamp(
+        source[index] + velocity * deltaScale,
+        -MEMBRANE_MAX_COMPRESSION,
+        3.5,
+      );
+      membrane.push(offset);
+      membraneVelocity.push(velocity);
+
+      if (velocity > 0) {
+        const angle = (index / MEMBRANE_POINTS) * Math.PI * 2;
+        recoilX -=
+          Math.cos(angle) * velocity * MEMBRANE_RECOIL_TRANSFER * deltaScale;
+        recoilY -=
+          Math.sin(angle) * velocity * MEMBRANE_RECOIL_TRANSFER * deltaScale;
+      }
+    }
+
+    return cell.with({
+      membrane,
+      membraneVelocity,
+      vx: clamp(cell.vx + recoilX, -3.4, 3.4),
+      vy: clamp(cell.vy + recoilY, -3.4, 3.4),
     });
-    return cell.with({ membrane });
   });
 
-  // At most ten cells means only 45 pair checks per tick are needed.
+  // With at most ten cells this checks no more than 45 pairs per physics step.
   for (let firstIndex = 0; firstIndex < resolved.length; firstIndex++) {
     let first = resolved[firstIndex];
     if (first.stage === 'dying') {
@@ -430,29 +513,40 @@ const resolveCellCollisions = (
 
       const dx = second.x - first.x;
       const dy = second.y - first.y;
-      const distance = Math.hypot(dx, dy) || 0.001;
-      const firstRadius = getCellCollisionRadius(first);
-      const secondRadius = getCellCollisionRadius(second);
-      const minimumDistance = firstRadius + secondRadius;
+      const rawDistance = Math.hypot(dx, dy);
+      const distance = rawDistance || 0.001;
+      const normalX = rawDistance > 0.001 ? dx / distance : 1;
+      const normalY = rawDistance > 0.001 ? dy / distance : 0;
+      const minimumDistance =
+        getCellCollisionRadius(first) + getCellCollisionRadius(second);
 
-      if (distance >= minimumDistance + 0.75) {
+      if (distance >= minimumDistance + 1.2) {
         continue;
       }
 
-      const normalX = dx / distance;
-      const normalY = dy / distance;
       const relativeVelocityX = second.vx - first.vx;
       const relativeVelocityY = second.vy - first.vy;
       const normalVelocity =
         relativeVelocityX * normalX + relativeVelocityY * normalY;
       const penetration = Math.max(0, minimumDistance - distance);
+      const approachSpeed = Math.max(0, -normalVelocity);
 
+      if (penetration <= 0 && approachSpeed <= 0.08) {
+        continue;
+      }
+
+      const firstInverseMass = 1 / Math.max(1, first.size * first.size);
+      const secondInverseMass = 1 / Math.max(1, second.size * second.size);
+      const inverseMassTotal = firstInverseMass + secondInverseMass;
+
+      // Only a small positional correction prevents deep overlap. Most of
+      // the collision is absorbed by the deforming membrane, not by teleporting
+      // the centers apart.
       if (penetration > 0) {
-        const firstInverseMass = 1 / Math.max(1, first.size * first.size);
-        const secondInverseMass = 1 / Math.max(1, second.size * second.size);
-        const inverseMassTotal = firstInverseMass + secondInverseMass;
-        const correction = penetration * 0.82;
-
+        const correction = Math.min(
+          penetration * CONTACT_POSITION_CORRECTION,
+          0.65,
+        );
         first = first.with({
           x:
             first.x -
@@ -471,14 +565,11 @@ const resolveCellCollisions = (
         });
       }
 
-      let impactSpeed = 0;
-      if (normalVelocity < 0) {
-        const firstInverseMass = 1 / Math.max(1, first.size * first.size);
-        const secondInverseMass = 1 / Math.max(1, second.size * second.size);
-        const inverseMassTotal = firstInverseMass + secondInverseMass;
+      // Dampen the incoming normal velocity without reversing it. The cells
+      // will separate later, as their compressed membranes spring back.
+      if (approachSpeed > 0) {
         const impulse =
-          (-(1 + CELL_RESTITUTION) * normalVelocity) / inverseMassTotal;
-
+          (approachSpeed * CONTACT_VELOCITY_DAMPING) / inverseMassTotal;
         first = first.with({
           vx: first.vx - impulse * firstInverseMass * normalX,
           vy: first.vy - impulse * firstInverseMass * normalY,
@@ -487,13 +578,12 @@ const resolveCellCollisions = (
           vx: second.vx + impulse * secondInverseMass * normalX,
           vy: second.vy + impulse * secondInverseMass * normalY,
         });
-        impactSpeed = -normalVelocity;
       }
 
       const contactPressure = clamp(
-        0.65 + penetration * 0.95 + impactSpeed * 2.8,
-        0,
-        12,
+        0.12 + penetration * 0.28 + approachSpeed * 0.22,
+        0.12,
+        1.4,
       );
       const contactAngle = Math.atan2(normalY, normalX);
       first = deformMembrane(first, contactAngle, contactPressure);
@@ -689,6 +779,7 @@ const advanceCells = (
             stage: 'normal',
             stageTicks: 0,
             membrane: createRestingMembrane(),
+            membraneVelocity: createRestingMembrane(),
             membranePhase: updated.membranePhase,
           }),
         );
@@ -718,6 +809,7 @@ const advanceCells = (
               stage: 'normal',
               stageTicks: 0,
               membrane: createRestingMembrane(),
+              membraneVelocity: createRestingMembrane(),
               membranePhase: updated.membranePhase + Math.PI,
             }),
           );
