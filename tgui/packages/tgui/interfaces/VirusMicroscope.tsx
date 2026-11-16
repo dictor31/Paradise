@@ -959,7 +959,7 @@ const renderCellSprite = (
     style={{
       cursor: 'pointer',
       opacity,
-      transition: 'transform 80ms linear, opacity 80ms linear',
+      transition: 'transform 40ms linear, opacity 40ms linear',
     }}
     role="button"
     aria-label={'Выбрать ' + cell.name + ' №' + cell.id}
@@ -1551,7 +1551,7 @@ export const VirusMicroscope = (_props: unknown) => {
                     key={particle.id}
                     className="VirusMicroscope__particle"
                     transform={`translate(${particle.x} ${particle.y})`}
-                    style={{ transition: 'transform 80ms linear' }}
+                    style={{ transition: 'transform 40ms linear' }}
                     pointerEvents="none"
                   >
                     <rect
