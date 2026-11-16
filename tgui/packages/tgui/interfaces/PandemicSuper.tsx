@@ -11,6 +11,10 @@ type PandemicSuperData = {
   antibodies: PandemicSuperAntibodyData[];
   microscope_food_amount: number;
   microscope_food_capacity: number;
+  microscope_reagent_storage_amount: number;
+  microscope_reagent_storage_capacity: number;
+  microscope_reagent_storage_types: number;
+  microscope_reagent_type_limit: number;
 };
 
 type PandemicSuperBloodData = {
@@ -47,6 +51,10 @@ export const PandemicSuper = (_props: unknown) => {
     antibodies,
     microscope_food_amount,
     microscope_food_capacity,
+    microscope_reagent_storage_amount,
+    microscope_reagent_storage_capacity,
+    microscope_reagent_storage_types,
+    microscope_reagent_type_limit,
   } = data;
 
   const blocks: React.JSX.Element[] = [];
@@ -236,6 +244,14 @@ export const PandemicSuper = (_props: unknown) => {
               <Box color="label" mt={1}>
                 Пополняется переливанием питательной среды из открытой ёмкости
                 или капельницей в автомат.
+              </Box>
+              <Box mt={2}>
+                Реагенты для микроскопа: {microscope_reagent_storage_amount.toFixed(1)} /{' '}
+                {microscope_reagent_storage_capacity.toFixed(1)} ед. ·{' '}
+                {microscope_reagent_storage_types}/{microscope_reagent_type_limit} типов
+              </Box>
+              <Box color="label" mt={1}>
+                Другие реагенты также можно заливать в автомат из открытой ёмкости или капельницы.
               </Box>
             </Section>
           </Stack.Item>
