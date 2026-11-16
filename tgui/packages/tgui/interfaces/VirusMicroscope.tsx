@@ -82,9 +82,10 @@ type VirusCellData = {
   stage: CellStage;
   stageTicks: number;
   membrane: number[];
+  membranePhase: number;
 };
 
-const MEMBRANE_POINTS = 16;
+const MEMBRANE_POINTS = 24;
 const createRestingMembrane = () => Array(MEMBRANE_POINTS).fill(0);
 
 class VirusCell {
@@ -106,6 +107,7 @@ class VirusCell {
   stage: CellStage;
   stageTicks: number;
   membrane: number[];
+  membranePhase: number;
 
   constructor(properties: VirusCellData) {
     this.id = properties.id;
@@ -126,6 +128,7 @@ class VirusCell {
     this.stage = properties.stage;
     this.stageTicks = properties.stageTicks;
     this.membrane = properties.membrane || createRestingMembrane();
+    this.membranePhase = properties.membranePhase ?? this.id * 0.73;
   }
 
   with(changes: Partial<VirusCellData>): VirusCell {
@@ -159,8 +162,9 @@ const PARTICLES_PER_UNIT = 1;
 const MAX_REAGENT_PARTICLES = 80;
 const PARTICLE_RADIUS = 1;
 
-const MEMBRANE_RELAXATION = 0.84;
-const MEMBRANE_MAX_COMPRESSION = 6;
+const MEMBRANE_RELAXATION = 0.965;
+const MEMBRANE_NEIGHBOR_STIFFNESS = 0.16;
+const MEMBRANE_MAX_COMPRESSION = 11;
 const CELL_RESTITUTION = 0.18;
 
 const GROWTH_TICKS = 28;
@@ -221,6 +225,7 @@ const createInitialCells = (
       stage: 'normal',
       stageTicks: 0,
       membrane: createRestingMembrane(),
+      membranePhase: Math.random() * Math.PI * 2,
     });
   });
 };
@@ -241,6 +246,7 @@ const restoreMicroscopeSimulation = (
               cell.membrane?.length === MEMBRANE_POINTS
                 ? cell.membrane
                 : createRestingMembrane(),
+            membranePhase: cell.membranePhase ?? cell.id * 0.73,
           }),
       ),
       particles: data.microscope_simulation_particles || [],
@@ -313,12 +319,16 @@ const deformMembrane = (
 
   for (let index = 0; index < MEMBRANE_POINTS; index++) {
     const vertexAngle = (index / MEMBRANE_POINTS) * Math.PI * 2;
-    const alignment = Math.max(0, Math.cos(vertexAngle - direction));
-    const influence = Math.pow(alignment, 5);
+    const relativeAngle = vertexAngle - direction;
+    const alignment = Math.cos(relativeAngle);
+    const compression = Math.pow(Math.max(0, alignment), 2.25);
+    // Displaced membrane material swells gently around the impact zone,
+    // rather than producing a narrow, pinched dent.
+    const flank = Math.exp(-Math.pow((Math.abs(alignment) - 0.48) / 0.24, 2));
     membrane[index] = clamp(
-      membrane[index] - pressure * influence,
+      membrane[index] - pressure * compression + pressure * flank * 0.22,
       -MEMBRANE_MAX_COMPRESSION,
-      1.5,
+      3.5,
     );
   }
 
@@ -387,9 +397,17 @@ const resolveCellCollisions = (
 ): VirusCell[] => {
   const relaxation = Math.pow(MEMBRANE_RELAXATION, deltaScale);
   const resolved = cells.map((cell) => {
-    const membrane = (cell.membrane || createRestingMembrane()).map(
-      (value) => value * relaxation,
-    );
+    const source = cell.membrane || createRestingMembrane();
+    const relaxed = source.map((value) => value * relaxation);
+    // Adjacent membrane segments share tension, spreading each impact over
+    // a wider, smoother patch instead of leaving a single sharp notch.
+    const membrane = relaxed.map((value, index) => {
+      const previous = relaxed[(index + MEMBRANE_POINTS - 1) % MEMBRANE_POINTS];
+      const next = relaxed[(index + 1) % MEMBRANE_POINTS];
+      const neighbors = (previous + next) * 0.5;
+      return value * (1 - MEMBRANE_NEIGHBOR_STIFFNESS) +
+        neighbors * MEMBRANE_NEIGHBOR_STIFFNESS;
+    });
     return cell.with({ membrane });
   });
 
@@ -473,9 +491,9 @@ const resolveCellCollisions = (
       }
 
       const contactPressure = clamp(
-        penetration * 0.42 + impactSpeed * 1.35,
+        0.65 + penetration * 0.95 + impactSpeed * 2.8,
         0,
-        5.2,
+        12,
       );
       const contactAngle = Math.atan2(normalY, normalX);
       first = deformMembrane(first, contactAngle, contactPressure);
@@ -527,6 +545,7 @@ const advanceCells = (
       cell.stage === 'dying' ? cell : moveCell(cell, deltaScale);
     let updated = moved.with({
       age: cell.age + (biologicalTick ? 1 : 0),
+      membranePhase: (cell.membranePhase ?? 0) + 0.14 * deltaScale,
     });
 
     if (
@@ -670,6 +689,7 @@ const advanceCells = (
             stage: 'normal',
             stageTicks: 0,
             membrane: createRestingMembrane(),
+            membranePhase: updated.membranePhase,
           }),
         );
 
@@ -698,6 +718,7 @@ const advanceCells = (
               stage: 'normal',
               stageTicks: 0,
               membrane: createRestingMembrane(),
+              membranePhase: updated.membranePhase + Math.PI,
             }),
           );
         }
@@ -910,30 +931,49 @@ const createSoftMembranePath = (
   cell: VirusCell,
   baseRadius: number,
   deformationScale: number,
+  flutterScale = 0,
 ): string => {
   const membrane =
     cell.membrane?.length === MEMBRANE_POINTS
       ? cell.membrane
       : createRestingMembrane();
-  const vertices: string[] = [];
+  const vertices: { x: number; y: number }[] = [];
 
   for (let index = 0; index < MEMBRANE_POINTS; index++) {
     const angle = (index / MEMBRANE_POINTS) * Math.PI * 2;
+    const phase = cell.membranePhase ?? cell.id * 0.73;
+    const membraneTwitch =
+      Math.sin(phase * 2.1 + angle * 3 + cell.id * 0.7) * 0.72 +
+      Math.sin(phase * 3.4 - angle * 5 + cell.id * 1.3) * 0.38 +
+      Math.sin(phase * 1.3 + angle * 8) * 0.2;
     const breathing =
-      Math.sin(cell.age * 0.055 + angle * 3 + cell.id * 0.7) * 0.8;
-    const fineRipple =
-      Math.sin(cell.age * 0.027 + angle * 5 + cell.id) * 0.35;
+      Math.sin(phase * 0.7 + angle * 2 + cell.id * 0.7) * 0.55;
     const radius =
       baseRadius +
       membrane[index] * deformationScale +
-      breathing +
-      fineRipple;
-    const x = Math.cos(angle) * radius;
-    const y = Math.sin(angle) * radius;
-    vertices.push((index === 0 ? 'M ' : 'L ') + x.toFixed(2) + ' ' + y.toFixed(2));
+      (membraneTwitch + breathing) * flutterScale;
+    vertices.push({
+      x: Math.cos(angle) * radius,
+      y: Math.sin(angle) * radius,
+    });
   }
 
-  return vertices.join(' ') + ' Z';
+  // Quadratic curves through the membrane vertices keep the silhouette
+  // rounded and organic even while individual segments are twitching.
+  const midpoints = vertices.map((point, index) => {
+    const next = vertices[(index + 1) % vertices.length];
+    return { x: (point.x + next.x) / 2, y: (point.y + next.y) / 2 };
+  });
+  const last = midpoints[midpoints.length - 1];
+  let path = `M ${last.x.toFixed(2)} ${last.y.toFixed(2)}`;
+
+  for (let index = 0; index < vertices.length; index++) {
+    const point = vertices[index];
+    const midpoint = midpoints[index];
+    path += ` Q ${point.x.toFixed(2)} ${point.y.toFixed(2)} ${midpoint.x.toFixed(2)} ${midpoint.y.toFixed(2)}`;
+  }
+
+  return path + ' Z';
 };
 
 const renderCellSprite = (
@@ -980,7 +1020,7 @@ const renderCellSprite = (
       />
     )}
     <path
-      d={createSoftMembranePath(cell, 20, 1)}
+      d={createSoftMembranePath(cell, 20, 1, 1.15)}
       fill={
         cell.outerStrength > 65
           ? '#741b2c'
@@ -994,7 +1034,7 @@ const renderCellSprite = (
       opacity={0.35 + cell.outerStrength / 150}
     />
     <path
-      d={createSoftMembranePath(cell, 15.5, 0.58)}
+      d={createSoftMembranePath(cell, 15.5, 0.58, 0.22)}
       fill="#df4b5b"
       stroke="#f06a70"
       strokeWidth="0.65"
@@ -1002,7 +1042,7 @@ const renderCellSprite = (
       opacity={0.94}
     />
     <path
-      d={createSoftMembranePath(cell, 7.2, 0.22)}
+      d={createSoftMembranePath(cell, 7.2, 0.22, 0.04)}
       fill="#641629"
     />
     <path
