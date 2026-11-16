@@ -650,7 +650,7 @@
 					for(var/membrane_value as anything in cell_data["membrane"])
 						if(!isnum(membrane_value))
 							return TRUE
-						saved_membrane += max(-6, min(1.5, membrane_value))
+						saved_membrane += max(-11, min(3.5, membrane_value))
 					saved_cell["membrane"] = saved_membrane
 				if(istext(cell_data["outerReagentId"]))
 					saved_cell["outerReagentId"] = cell_data["outerReagentId"]
