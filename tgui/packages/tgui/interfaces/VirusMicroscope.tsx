@@ -19,13 +19,6 @@ type MicroscopeAddedReagent = {
   is_vaccine: boolean;
 };
 
-type MicroscopeStorageData = {
-  amount: number;
-  capacity: number;
-  types: number;
-  type_limit: number;
-};
-
 type MicroscopeVirusSeed = {
   name: string;
   cure_reagents: string[];
