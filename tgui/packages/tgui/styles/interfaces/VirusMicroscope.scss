@@ -764,3 +764,70 @@
     justify-content: center;
   }
 }
+
+
+/* Microscope scan console: a compact instrument panel below temperature control. */
+.VirusMicroscope__scan-panel {
+  flex: 0 0 auto;
+  padding: 11px 12px;
+  background: var(--vm-surface-raised);
+  border-bottom: 1px solid var(--vm-border);
+}
+
+.VirusMicroscope__scan-button {
+  margin-top: 9px !important;
+  border: 1px solid #78978b !important;
+  background: #354f50 !important;
+  color: var(--vm-ink) !important;
+
+  &:hover:not(:disabled) {
+    border-color: var(--vm-accent) !important;
+    background: #405d5b !important;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+  }
+}
+
+.VirusMicroscope__scan-result,
+.VirusMicroscope__scan-empty {
+  margin-top: 9px;
+  padding: 8px 9px;
+  border: 1px solid var(--vm-border);
+  border-left: 3px solid var(--vm-accent);
+  background: rgba(23, 38, 42, 0.58);
+  color: var(--vm-muted);
+  font-size: 11px;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.VirusMicroscope__scan-result {
+  > b,
+  > span {
+    display: block;
+  }
+
+  > b {
+    margin-bottom: 5px;
+    color: var(--vm-accent);
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  > span {
+    color: var(--vm-ink);
+    font-weight: 700;
+  }
+
+  > p {
+    margin: 4px 0 0;
+  }
+}
+
+.VirusMicroscope__scan-empty {
+  border-left-color: var(--vm-muted);
+}
