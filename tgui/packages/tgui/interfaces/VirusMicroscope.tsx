@@ -371,21 +371,21 @@ const moveCell = (cell: VirusCell, deltaScale: number): VirusCell => {
   if (x < wallRadius + 4) {
     x = wallRadius + 4;
     vx = Math.abs(vx) * 0.9;
-    updated = deformMembrane(updated, Math.PI, 2.2);
+    updated = deformMembrane(updated, Math.PI, 4.2);
   } else if (x > AREA_WIDTH - wallRadius - 4) {
     x = AREA_WIDTH - wallRadius - 4;
     vx = -Math.abs(vx) * 0.9;
-    updated = deformMembrane(updated, 0, 2.2);
+    updated = deformMembrane(updated, 0, 4.2);
   }
 
   if (y < wallRadius + 4) {
     y = wallRadius + 4;
     vy = Math.abs(vy) * 0.9;
-    updated = deformMembrane(updated, -Math.PI / 2, 2.2);
+    updated = deformMembrane(updated, -Math.PI / 2, 4.2);
   } else if (y > AREA_HEIGHT - wallRadius - 4) {
     y = AREA_HEIGHT - wallRadius - 4;
     vy = -Math.abs(vy) * 0.9;
-    updated = deformMembrane(updated, Math.PI / 2, 2.2);
+    updated = deformMembrane(updated, Math.PI / 2, 4.2);
   }
 
   return updated.with({ x, y, vx, vy });
