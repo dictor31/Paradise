@@ -269,6 +269,8 @@
 	// Microscope reagents are taken from the machine's separate internal stock.
 	var/list/available_microscope_reagents = list()
 	for(var/list/stored_reagent as anything in microscope_reagent_storage)
+		if(stored_reagent["amount"] <= 0.001)
+			continue
 		available_microscope_reagents += list(list(
 			"id" = stored_reagent["id"],
 			"name" = stored_reagent["name"],
@@ -471,14 +473,21 @@
 
 		if("removeMicroscopeStoredReagent")
 			var/reagent_id = params["id"]
-			for(var/list/stored_reagent as anything in microscope_reagent_storage.Copy())
-				if(stored_reagent["id"] != reagent_id)
-					continue
-				microscope_reagent_storage.Remove(stored_reagent)
-				break
-			for(var/list/queued_reagent as anything in microscope_reagents.Copy())
+			if(!istext(reagent_id) || !length(reagent_id))
+				return TRUE
+
+			// Remove by numeric index so nested associative lists are deleted reliably.
+			for(var/reagent_index = length(microscope_reagent_storage), reagent_index >= 1, reagent_index--)
+				var/list/stored_reagent = microscope_reagent_storage[reagent_index]
+				if(stored_reagent["id"] == reagent_id)
+					microscope_reagent_storage.Cut(reagent_index, reagent_index + 1)
+					break
+
+			for(var/queued_index = length(microscope_reagents), queued_index >= 1, queued_index--)
+				var/list/queued_reagent = microscope_reagents[queued_index]
 				if(queued_reagent["id"] == reagent_id)
-					microscope_reagents.Remove(queued_reagent)
+					microscope_reagents.Cut(queued_index, queued_index + 1)
+
 			SStgui.update_uis(src)
 			return TRUE
 
@@ -486,24 +495,23 @@
 			if(!length(microscope_reagents))
 				return TRUE
 
-			var/list/depleted_reagents = list()
 			for(var/list/sample as anything in microscope_reagents)
 				var/reagent_id = sample["id"]
 				var/selected_amount = sample["amount"]
 				if(!istext(reagent_id) || !isnum(selected_amount) || selected_amount <= 0)
 					continue
 
-				for(var/list/stored_reagent as anything in microscope_reagent_storage)
+				for(var/reagent_index = length(microscope_reagent_storage), reagent_index >= 1, reagent_index--)
+					var/list/stored_reagent = microscope_reagent_storage[reagent_index]
 					if(stored_reagent["id"] != reagent_id)
 						continue
-					var/actual_amount = min(selected_amount, stored_reagent["amount"])
-					stored_reagent["amount"] -= actual_amount
-					if(stored_reagent["amount"] <= 0)
-						depleted_reagents += list(stored_reagent)
-					break
 
-			for(var/list/depleted_reagent as anything in depleted_reagents)
-				microscope_reagent_storage.Remove(depleted_reagent)
+					var/actual_amount = min(selected_amount, stored_reagent["amount"])
+					stored_reagent["amount"] = max(0, stored_reagent["amount"] - actual_amount)
+					// Treat tiny floating-point leftovers as depleted stock.
+					if(stored_reagent["amount"] <= 0.001)
+						microscope_reagent_storage.Cut(reagent_index, reagent_index + 1)
+					break
 
 			// The queued quantities are consumed once and cannot be started a second time.
 			microscope_reagents = list()
