@@ -220,7 +220,12 @@ const restoreMicroscopeSimulation = (
   if (data.microscope_simulation_initialized) {
     return {
       cells: (data.microscope_simulation_cells || []).map(
-        (cell) => new VirusCell(cell),
+        (cell) =>
+          new VirusCell({
+            ...cell,
+            outerReagentId: cell.outerReagentId || null,
+            innerReagentId: cell.innerReagentId || null,
+          }),
       ),
       particles: data.microscope_simulation_particles || [],
     };
@@ -839,7 +844,14 @@ export const VirusMicroscope = (_props: unknown) => {
     reportedExtinctionGeneration.current = null;
     setSelectedId(null);
     setSimulation(restoreMicroscopeSimulation(data, virusSeeds));
-  }, [cultureGeneration, microscopeSamplePresent, virusSeeds]);
+  }, [
+    cultureGeneration,
+    data.microscope_simulation_cells,
+    data.microscope_simulation_initialized,
+    data.microscope_simulation_particles,
+    microscopeSamplePresent,
+    virusSeeds,
+  ]);
 
   useEffect(() => {
     const noViableCells =
