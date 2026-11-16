@@ -114,7 +114,9 @@ GLOBAL_LIST_INIT(diseases, subtypesof(/datum/disease))
 	else
 		try_increase_stage()
 
-	if(curable && cure && prob(cure_prob))
+	// A virus-specific treatment only suppresses its progression. Complete
+	// eradication now requires a vaccine; ordinary diseases retain their cures.
+	if(curable && cure && !istype(src, /datum/disease/virus) && prob(cure_prob))
 		cure()
 		return FALSE
 
