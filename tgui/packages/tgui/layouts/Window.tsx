@@ -152,6 +152,7 @@ export function Window(props: Props) {
 type ContentProps = Partial<{
   className: string;
   fitted: boolean;
+  allowWindowDrag: BooleanLike;
   scrollable: boolean;
   vertical: boolean;
 }> &
@@ -159,11 +160,17 @@ type ContentProps = Partial<{
   PropsWithChildren;
 
 function WindowContent(props: ContentProps) {
-  const { className, fitted, children, ...rest } = props;
+  const {
+    className,
+    fitted,
+    allowWindowDrag = true,
+    children,
+    ...rest
+  } = props;
   const [altDown, setAltDown] = useState(false);
 
   function dragStartIfAltHeld(event: React.MouseEvent<HTMLDivElement>): void {
-    if (altDown) {
+    if (allowWindowDrag && altDown) {
       dragStartHandler(event);
     }
   }
