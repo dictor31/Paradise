@@ -368,10 +368,14 @@ const getCellCollisionRadius = (cell: VirusCell): number => {
     return cell.size * (1.08 + 0.27 * clamp(cell.stageTicks / GROWTH_TICKS, 0, 1));
   }
   if (cell.stage === 'stretching') {
-    return cell.size * 1.35;
+    const progress = clamp(cell.stageTicks / STRETCH_TICKS, 0, 1);
+    return cell.size * (1.35 + 0.45 * progress);
   }
   if (cell.stage === 'splitting') {
-    return cell.size * 1.38;
+    const progress = clamp(cell.stageTicks / SPLIT_TICKS, 0, 1);
+    // Enclose both budding lobes so nearby cells cannot cut through the
+    // widening division furrow before the daughters become independent.
+    return cell.size * (1.13 + 1.05 * progress);
   }
   return cell.size;
 };
