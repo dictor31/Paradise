@@ -579,3 +579,188 @@
     justify-content: space-between;
   }
 }
+
+
+/* Centered, icon-free instrument readouts with slightly larger lettering. */
+.VirusMicroscope {
+  font-size: 13px;
+  text-align: center;
+
+  .Button {
+    font-size: 12px;
+  }
+}
+
+.VirusMicroscope__panel-title {
+  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  font-size: 12px;
+  text-align: center;
+
+  > span {
+    font-size: 10px;
+  }
+}
+
+.VirusMicroscope__inventory-readout {
+  font-size: 12px;
+}
+
+.VirusMicroscope__reagent-heading,
+.VirusMicroscope__assay-heading {
+  justify-content: center;
+  text-align: center;
+}
+
+.VirusMicroscope__reagent-name {
+  font-size: 13px;
+  text-align: center;
+}
+
+.VirusMicroscope__reagent-stock {
+  font-size: 11px;
+  text-align: center;
+}
+
+.VirusMicroscope__reagent-actions {
+  justify-content: center;
+
+  .Button:last-child {
+    margin-left: 0;
+  }
+}
+
+.VirusMicroscope__assay-heading {
+  flex-direction: column;
+  align-items: center;
+}
+
+.VirusMicroscope__assay-row {
+  justify-content: center;
+  font-size: 12px;
+  text-align: center;
+}
+
+.VirusMicroscope__assay-name {
+  flex: 0 1 auto;
+  text-align: center;
+}
+
+.VirusMicroscope__empty-state {
+  font-size: 12px;
+  text-align: center;
+}
+
+.VirusMicroscope__particle-count {
+  justify-content: center;
+  gap: 8px;
+  font-size: 10px;
+}
+
+.VirusMicroscope__culture-header {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.VirusMicroscope__culture-title {
+  font-size: 17px;
+  text-align: center;
+}
+
+.VirusMicroscope__culture-subtitle {
+  font-size: 10px;
+  text-align: center;
+}
+
+.VirusMicroscope__culture-readouts {
+  justify-content: center;
+  font-size: 11px;
+}
+
+.VirusMicroscope__cell-count,
+.VirusMicroscope__food-readout {
+  text-align: center;
+  font-size: 12px;
+}
+
+.VirusMicroscope__cell-count b,
+.VirusMicroscope__food-readout b {
+  font-size: 14px;
+}
+
+.VirusMicroscope__food-control {
+  justify-content: center;
+  padding-left: 0;
+  border-left: 0;
+}
+
+.VirusMicroscope__dose-label {
+  font-size: 10px;
+}
+
+.VirusMicroscope__temperature-reading {
+  justify-content: center;
+  margin-top: 12px;
+  text-align: center;
+}
+
+.VirusMicroscope__temperature-value {
+  flex: 1 1 100%;
+  text-align: center;
+
+  > strong {
+    font-size: 28px;
+  }
+}
+
+.VirusMicroscope__temperature-note {
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.VirusMicroscope__temperature-scale {
+  justify-content: center;
+  gap: 90px;
+  font-size: 11px;
+}
+
+.VirusMicroscope__selected-cell-name {
+  font-size: 14px;
+  text-align: center;
+}
+
+.VirusMicroscope__meter-head {
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12px;
+  text-align: center;
+}
+
+.VirusMicroscope__division {
+  font-size: 12px;
+  text-align: center;
+}
+
+.VirusMicroscope__division-value {
+  font-size: 15px;
+}
+
+.VirusMicroscope__reserve-note {
+  font-size: 11px;
+  text-align: center;
+}
+
+.VirusMicroscope__sidebar > .VirusMicroscope__empty-state {
+  text-align: center;
+}
+
+@media (max-width: 1100px) {
+  .VirusMicroscope__culture-readouts {
+    justify-content: center;
+  }
+}
