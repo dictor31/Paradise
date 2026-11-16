@@ -95,7 +95,7 @@
 			continue
 		// A previously inoculated blood sample can never restart an extinct culture.
 		if(blood_reagent.data["microscope_sample_used"])
-			return FALSE
+			continue
 
 		var/list/virus_seeds = list()
 		for(var/datum/disease/disease as anything in blood_reagent.data["diseases"])
@@ -466,6 +466,8 @@
 			return TRUE
 
 		if("microscopePopulationExtinct")
+			if(params["generation"] != microscope_culture_generation)
+				return TRUE
 			microscope_virus_seeds = list()
 			SStgui.update_uis(src)
 			return TRUE
