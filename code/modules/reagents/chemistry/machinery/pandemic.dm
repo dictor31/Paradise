@@ -621,6 +621,15 @@
 					return TRUE
 				if(!isnum(cell_data["outerStrength"]) || !isnum(cell_data["innerStrength"]) || !isnum(cell_data["nucleusStrength"]) || !isnum(cell_data["stageTicks"]))
 					return TRUE
+				var/visual_pulse_type = cell_data["visualPulseType"]
+				if(!isnull(visual_pulse_type) && !(visual_pulse_type in list("impact", "food", "damage")))
+					return TRUE
+				if(!isnull(cell_data["visualPulse"]) && !isnum(cell_data["visualPulse"]))
+					return TRUE
+				if(!isnull(cell_data["visualPulseAngle"]) && !isnum(cell_data["visualPulseAngle"]))
+					return TRUE
+				if(!isnull(cell_data["membraneVelocity"]) && !islist(cell_data["membraneVelocity"]))
+					return TRUE
 
 				var/list/saved_cell = list(
 					"id" = round(cell_data["id"]),
@@ -639,6 +648,10 @@
 					"stage" = cell_stage,
 					"stageTicks" = max(0, min(60, round(cell_data["stageTicks"]))),
 					"membrane" = list(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+					"membraneVelocity" = list(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+					"visualPulse" = isnum(cell_data["visualPulse"]) ? max(0, min(1, cell_data["visualPulse"])) : 0,
+					"visualPulseType" = istext(visual_pulse_type) ? visual_pulse_type : "impact",
+					"visualPulseAngle" = isnum(cell_data["visualPulseAngle"]) ? max(-6.3, min(6.3, cell_data["visualPulseAngle"])) : 0,
 					"membranePhase" = isnum(cell_data["membranePhase"]) ? cell_data["membranePhase"] : cell_data["id"] * 0.73
 				)
 				if(!isnum(cell_data["membranePhase"]) && !isnull(cell_data["membranePhase"]))
@@ -652,6 +665,15 @@
 							return TRUE
 						saved_membrane += max(-11, min(3.5, membrane_value))
 					saved_cell["membrane"] = saved_membrane
+				if(islist(cell_data["membraneVelocity"]))
+					if(length(cell_data["membraneVelocity"]) != 24)
+						return TRUE
+					var/list/saved_membrane_velocity = list()
+					for(var/velocity_value as anything in cell_data["membraneVelocity"])
+						if(!isnum(velocity_value))
+							return TRUE
+						saved_membrane_velocity += max(-20, min(20, velocity_value))
+					saved_cell["membraneVelocity"] = saved_membrane_velocity
 				if(istext(cell_data["outerReagentId"]))
 					saved_cell["outerReagentId"] = cell_data["outerReagentId"]
 				if(istext(cell_data["innerReagentId"]))
