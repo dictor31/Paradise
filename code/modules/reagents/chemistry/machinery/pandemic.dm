@@ -628,6 +628,8 @@
 					return TRUE
 				if(!isnull(cell_data["visualPulseAngle"]) && !isnum(cell_data["visualPulseAngle"]))
 					return TRUE
+				if(!isnull(cell_data["divisionAngle"]) && !isnum(cell_data["divisionAngle"]))
+					return TRUE
 				if(!isnull(cell_data["membraneVelocity"]) && !islist(cell_data["membraneVelocity"]))
 					return TRUE
 
@@ -663,8 +665,10 @@
 					for(var/membrane_value as anything in cell_data["membrane"])
 						if(!isnum(membrane_value))
 							return TRUE
-						saved_membrane += max(-11, min(3.5, membrane_value))
+						saved_membrane += max(-16, min(5, membrane_value))
 					saved_cell["membrane"] = saved_membrane
+				if(isnum(cell_data["divisionAngle"]))
+					saved_cell["divisionAngle"] = max(-6.3, min(6.3, cell_data["divisionAngle"]))
 				if(islist(cell_data["membraneVelocity"]))
 					if(length(cell_data["membraneVelocity"]) != 24)
 						return TRUE
