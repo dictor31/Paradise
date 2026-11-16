@@ -9,7 +9,7 @@
 	var/obj/item/reagent_containers/beaker = null
 	var/list/microscope_reagents = list()
 	var/list/microscope_virus_seeds = list()
-	var/microscope_culture_claimed = TRUE
+	var/microscope_culture_generation = 0
 	var/microscope_food_amount = 0
 	var/microscope_food_capacity = 100
 	var/wait = null
@@ -85,9 +85,6 @@
 
 
 /obj/machinery/computer/pandemic/proc/load_microscope_sample()
-	microscope_virus_seeds = list()
-	microscope_culture_claimed = TRUE
-
 	if(!beaker?.reagents)
 		return FALSE
 
@@ -96,6 +93,7 @@
 			continue
 		if(!islist(blood_reagent.data) || !blood_reagent.data["diseases"])
 			continue
+		// A previously inoculated blood sample can never restart an extinct culture.
 		if(blood_reagent.data["microscope_sample_used"])
 			return FALSE
 
@@ -121,7 +119,7 @@
 		// The marker stays inside this blood sample after it is removed from the machine.
 		blood_reagent.data["microscope_sample_used"] = TRUE
 		microscope_virus_seeds = virus_seeds
-		microscope_culture_claimed = FALSE
+		microscope_culture_generation++
 		return TRUE
 
 	return FALSE
@@ -220,7 +218,8 @@
 
 	data["microscope_food_amount"] = microscope_food_amount
 	data["microscope_food_capacity"] = microscope_food_capacity
-	data["microscope_virus_seeds"] = microscope_culture_claimed ? list() : microscope_virus_seeds
+	data["microscope_virus_seeds"] = microscope_virus_seeds
+	data["microscope_culture_generation"] = microscope_culture_generation
 
 	var/list/added_microscope_reagents = list()
 	for(var/list/added_reagent in microscope_reagents)
@@ -466,14 +465,9 @@
 			SStgui.update_uis(src)
 			return TRUE
 
-		if("claimMicroscopeCulture")
-			if(length(microscope_virus_seeds))
-				microscope_culture_claimed = TRUE
-			return TRUE
-
 		if("microscopePopulationExtinct")
 			microscope_virus_seeds = list()
-			microscope_culture_claimed = TRUE
+			SStgui.update_uis(src)
 			return TRUE
 
 		if("clearAndExtractBeaker")
@@ -586,8 +580,6 @@
 	beaker.forceMove(drop_location())
 	beaker = null
 	microscope_reagents = list()
-	microscope_virus_seeds = list()
-	microscope_culture_claimed = TRUE
 	update_icon(UPDATE_ICON_STATE)
 	SStgui.update_uis(src)
 
