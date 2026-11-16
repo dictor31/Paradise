@@ -165,6 +165,10 @@
 			if(!istype(disease, /datum/disease/virus))
 				continue
 
+			var/datum/disease/virus/virus_disease = disease
+			if(isnull(virus_disease.microscope_comfort_temperature))
+				virus_disease.microscope_comfort_temperature = rand(0, 30)
+
 			var/list/cure_reagent_ids = list()
 			for(var/cure_type in disease.cures)
 				var/datum/reagent/cure_reagent = GLOB.chemical_reagents_list[cure_type]
@@ -174,6 +178,7 @@
 			virus_seeds += list(list(
 				"name" = disease.name,
 				"cure_reagents" = cure_reagent_ids,
+				"comfortable_temperature" = virus_disease.microscope_comfort_temperature,
 			))
 
 		if(!length(virus_seeds))
@@ -490,6 +495,13 @@
 				if(queued_reagent["id"] == reagent_id)
 					microscope_reagents.Cut(queued_index, queued_index + 1)
 
+			SStgui.update_uis(src)
+			return TRUE
+
+		if("clearMicroscopeReagents")
+			// Queued reagents have not left the internal stock yet; clearing the
+			// selection simply returns the full queued amounts to available stock.
+			microscope_reagents = list()
 			SStgui.update_uis(src)
 			return TRUE
 
