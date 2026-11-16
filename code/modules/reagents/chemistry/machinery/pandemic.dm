@@ -638,7 +638,7 @@
 					"nucleusStrength" = max(0, min(100, cell_data["nucleusStrength"])),
 					"stage" = cell_stage,
 					"stageTicks" = max(0, min(60, round(cell_data["stageTicks"]))),
-					"membrane" = list(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+					"membrane" = list(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 				)
 				if(islist(cell_data["membrane"]))
 					if(length(cell_data["membrane"]) != 16)
