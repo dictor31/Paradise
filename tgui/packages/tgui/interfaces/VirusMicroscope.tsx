@@ -945,7 +945,10 @@ const createSoftMembranePath = (
     const membraneTwitch =
       Math.sin(phase * 2.1 + angle * 3 + cell.id * 0.7) * 0.72 +
       Math.sin(phase * 3.4 - angle * 5 + cell.id * 1.3) * 0.38 +
-      Math.sin(phase * 1.3 + angle * 8) * 0.2;
+      Math.sin(phase * 1.3 + angle * 8) * 0.2 +
+      // A quicker, low-amplitude shiver makes the outer membrane feel alive
+      // even when the cell is resting without touching another cell.
+      Math.sin(phase * 7.2 + angle * 9 + cell.id * 2.4) * 0.28;
     const breathing =
       Math.sin(phase * 0.7 + angle * 2 + cell.id * 0.7) * 0.55;
     const radius =
