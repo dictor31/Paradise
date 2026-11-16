@@ -430,7 +430,10 @@
 
 		if("addMicroscopeReagent")
 			var/reagent_id = params["id"]
+			var/transfer_amount = params["amount"]
 			if(!istext(reagent_id) || !length(reagent_id))
+				return TRUE
+			if(!isnum(transfer_amount) || (transfer_amount != 1 && transfer_amount != 5 && transfer_amount != 10))
 				return TRUE
 
 			var/list/selected_reagent
@@ -452,11 +455,10 @@
 					break
 
 			var/available_amount = selected_reagent["amount"] - selected_amount
-			if(available_amount <= 0)
-				balloon_alert(usr, "весь реагент уже выбран")
+			if(available_amount + 0.001 < transfer_amount)
+				balloon_alert(usr, "недостаточно реагента для выбранной порции")
 				return TRUE
 
-			var/transfer_amount = min(1, available_amount)
 			if(existing_sample)
 				existing_sample["amount"] += transfer_amount
 			else
@@ -522,9 +524,14 @@
 			eject_beaker()
 
 		if("feedMicroscopeCells")
-			if(microscope_food_amount <= 0)
+			var/food_to_feed = params["amount"]
+			if(!isnum(food_to_feed))
+				food_to_feed = 1
+			food_to_feed = round(food_to_feed)
+			food_to_feed = max(1, min(5, food_to_feed))
+			if(microscope_food_amount < food_to_feed)
 				return TRUE
-			microscope_food_amount = max(0, microscope_food_amount - min(1, microscope_food_amount))
+			microscope_food_amount = max(0, microscope_food_amount - food_to_feed)
 			SStgui.update_uis(src)
 			return TRUE
 
