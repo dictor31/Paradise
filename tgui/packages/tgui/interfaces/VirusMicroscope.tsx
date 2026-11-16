@@ -127,6 +127,8 @@ const START_CELLS = 6;
 const TICK_INTERVAL = 80;
 const INNER_STRENGTH_DECAY_INTERVAL = 18;
 const UNCOMFORTABLE_INNER_DECAY_INTERVAL = 5;
+const INNER_REPAIR_INTERVAL = 20;
+const FOOD_PER_INNER_REPAIR = 0.1;
 const NUCLEUS_STRENGTH_DECAY_INTERVAL = 54;
 const UNCOMFORTABLE_NUCLEUS_DECAY_INTERVAL = 15;
 const COMFORTABLE_TEMP_MIN = 10;
@@ -138,7 +140,7 @@ const VACCINE_NUCLEUS_DAMAGE = 35;
 const LAYER_DAMAGE_PER_PARTICLE = 8;
 const FOOD_FOR_DIVISION = 5;
 const MAX_CELL_FOOD = 5;
-const PARTICLES_PER_UNIT = 2;
+const PARTICLES_PER_UNIT = 1;
 const MAX_REAGENT_PARTICLES = 80;
 const PARTICLE_RADIUS = 1;
 
@@ -298,20 +300,37 @@ const advanceCells = (
       const nucleusDecayInterval = comfortable
         ? NUCLEUS_STRENGTH_DECAY_INTERVAL
         : UNCOMFORTABLE_NUCLEUS_DECAY_INTERVAL;
+      let cellFood = updated.food;
 
-      // Старение ядра намного медленнее, чтобы после разрушения внутреннего слоя
-      // оставалось время испытать реагент, воздействующий на ядро.
-      if (innerStrength > 0 && updated.age % innerDecayInterval === 0) {
-        innerStrength = Math.max(0, innerStrength - 1);
+      // Nutrients protect the inner layer from age damage and slowly repair it.
+      // One repair point costs 0.1 food and is applied every 1.6 seconds.
+      if (cellFood > 0) {
+        if (
+          innerStrength < 100 &&
+          updated.age % INNER_REPAIR_INTERVAL === 0
+        ) {
+          innerStrength = Math.min(100, innerStrength + 1);
+          cellFood = Math.max(0, cellFood - FOOD_PER_INNER_REPAIR);
+        }
       } else if (
+        innerStrength > 0 &&
+        updated.age % innerDecayInterval === 0
+      ) {
+        innerStrength = Math.max(0, innerStrength - 1);
+      }
+
+      // The nucleus only starts aging after the inner layer is gone and the
+      // cell has no nutrients left to recover it.
+      if (
         innerStrength === 0 &&
+        cellFood <= 0 &&
         nucleusStrength > 0 &&
         updated.age % nucleusDecayInterval === 0
       ) {
         nucleusStrength = Math.max(0, nucleusStrength - 1);
       }
 
-      updated = updated.with({ innerStrength, nucleusStrength });
+      updated = updated.with({ innerStrength, nucleusStrength, food: cellFood });
     }
 
     if (
@@ -490,10 +509,41 @@ const advanceReagentParticles = (
   const nextCells = cells.slice();
 
   for (const particle of particles) {
-    let x = particle.x + particle.vx * deltaScale;
-    let y = particle.y + particle.vy * deltaScale;
     let vx = particle.vx;
     let vy = particle.vy;
+
+    const nearestCell = nextCells
+      .filter((cell) => cell.stage !== 'dying')
+      .reduce<{ cell: VirusCell | null; distance: number }>(
+        (nearest, cell) => {
+          const distance = Math.hypot(
+            cell.x - particle.x,
+            cell.y - particle.y,
+          );
+          return distance < nearest.distance
+            ? { cell, distance }
+            : nearest;
+        },
+        { cell: null, distance: Number.POSITIVE_INFINITY },
+      ).cell;
+
+    if (nearestCell) {
+      const targetX = nearestCell.x - particle.x;
+      const targetY = nearestCell.y - particle.y;
+      const targetDistance = Math.hypot(targetX, targetY) || 1;
+      const currentSpeed = Math.max(Math.hypot(vx, vy), 4.5);
+      const desiredVx = (targetX / targetDistance) * currentSpeed;
+      const desiredVy = (targetY / targetDistance) * currentSpeed;
+      const attraction = clamp(0.18 * deltaScale, 0, 0.25);
+
+      // Smooth steering keeps particles moving naturally while biasing them
+      // toward the closest cell instead of letting them drift indefinitely.
+      vx += (desiredVx - vx) * attraction;
+      vy += (desiredVy - vy) * attraction;
+    }
+
+    let x = particle.x + vx * deltaScale;
+    let y = particle.y + vy * deltaScale;
 
     if (x < particle.radius || x > AREA_WIDTH - particle.radius) {
       vx *= -1;
@@ -1212,16 +1262,6 @@ export const VirusMicroscope = (_props: unknown) => {
                 ))}
               </svg>
             </div>
-            <div
-              style={{
-                color: '#9eacbf',
-                fontSize: '10px',
-                textAlign: 'center',
-              }}
-            >
-              Еда расходуется из внутреннего хранилища и попадает в клетку при контакте
-              с ней.
-            </div>
           </section>
 
           <section
@@ -1358,19 +1398,6 @@ export const VirusMicroscope = (_props: unknown) => {
               )}
             </div>
 
-            <div
-              style={{
-                padding: '8px 10px',
-                border: '1px solid #34465f',
-                borderRadius: '4px',
-                backgroundColor: '#111d2e',
-                fontSize: '10px',
-                color: '#aabbd0',
-              }}
-            >
-              Питательная среда: {foodReceiverAmount.toFixed(1)} /{' '}
-              {foodReceiverCapacity.toFixed(1)} ед.
-            </div>
           </section>
         </div>
       </Window.Content>
