@@ -16,6 +16,7 @@
 	var/microscope_culture_generation = 0
 	var/list/microscope_simulation_cells = list()
 	var/list/microscope_simulation_particles = list()
+	var/list/microscope_simulation_blood_cells = list()
 	var/microscope_simulation_initialized = FALSE
 	var/microscope_temperature = 15
 	var/microscope_food_amount = 0
@@ -122,6 +123,7 @@
 		var/incoming_name = incoming.name
 		var/incoming_color = incoming.color
 		var/incoming_is_vaccine = istype(incoming, /datum/reagent/vaccine)
+		var/list/incoming_data = islist(incoming.data) ? incoming.data.Copy() : null
 		var/amount_to_transfer = min(available_space, incoming.volume)
 		if(amount_to_transfer <= 0)
 			continue
@@ -129,6 +131,12 @@
 		source.remove_reagent(incoming_type, amount_to_transfer)
 		if(existing_entry)
 			existing_entry["amount"] += amount_to_transfer
+			if(islist(incoming_data))
+				if(!islist(existing_entry["data"]))
+					existing_entry["data"] = incoming_data.Copy()
+				else
+					var/list/combined_data = existing_entry["data"]
+					combined_data |= incoming_data
 		else
 			microscope_reagent_storage += list(list(
 				"id" = incoming_id,
@@ -137,6 +145,7 @@
 				"color" = incoming_color,
 				"is_vaccine" = incoming_is_vaccine,
 				"type" = incoming_type,
+				"data" = incoming_data,
 			))
 		transferred_amount += amount_to_transfer
 
@@ -168,6 +177,7 @@
 		microscope_culture_generation++
 		microscope_simulation_cells = list()
 		microscope_simulation_particles = list()
+		microscope_simulation_blood_cells = list()
 		microscope_simulation_initialized = FALSE
 
 	if(!blood_reagent || !islist(blood_reagent.data) || !blood_reagent.data["diseases"])
@@ -242,9 +252,21 @@
 				break
 			microscope_reagent_ids += fallback_reagent.id
 
+		// Every strain also has one hidden defensive reagent. A blue blood
+		// cell will survive this virus only when that reagent has been added
+		// to the sample and the virus has had time to recognize the protection.
+		var/list/protective_reagent_candidates = list()
+		for(var/protective_type in microscope_fallback_reagent_types)
+			var/datum/reagent/protective_candidate = GLOB.chemical_reagents_list[protective_type]
+			if(istype(protective_candidate) && !(protective_candidate.id in microscope_reagent_ids))
+				protective_reagent_candidates += protective_candidate.id
+		var/protective_reagent_id = length(protective_reagent_candidates) ? pick(protective_reagent_candidates) : null
+
 		virus_seeds += list(list(
 			"name" = disease.name,
+			"disease_id" = disease.GetDiseaseID(),
 			"microscope_reagents" = microscope_reagent_ids,
+			"protective_reagent_id" = protective_reagent_id,
 			"comfortable_temperature" = virus_disease.microscope_comfort_temperature,
 		))
 
@@ -369,6 +391,11 @@
 	data["microscope_simulation_initialized"] = microscope_simulation_initialized
 	data["microscope_simulation_cells"] = microscope_sample_present ? microscope_simulation_cells : list()
 	data["microscope_simulation_particles"] = microscope_sample_present ? microscope_simulation_particles : list()
+	data["microscope_simulation_blood_cells"] = microscope_sample_present ? microscope_simulation_blood_cells : list()
+	var/list/applied_blood_reagents = list()
+	if(microscope_sample_present && microscope_sample_reagent && islist(microscope_sample_reagent.data) && islist(microscope_sample_reagent.data["microscope_protective_reagents"]))
+		applied_blood_reagents = microscope_sample_reagent.data["microscope_protective_reagents"].Copy()
+	data["microscope_applied_protective_reagents"] = applied_blood_reagents
 
 	var/list/added_microscope_reagents = list()
 	for(var/list/added_reagent in microscope_reagents)
@@ -624,6 +651,163 @@
 			SStgui.update_uis(src)
 			return TRUE
 
+		if("addMicroscopeBloodReagent")
+			var/reagent_id = params["id"]
+			if(!istext(reagent_id) || !beaker?.reagents || !microscope_sample_reagent)
+				return TRUE
+
+			var/sample_present = FALSE
+			for(var/datum/reagent/sample_reagent as anything in beaker.reagents.reagent_list)
+				if(sample_reagent == microscope_sample_reagent)
+					sample_present = TRUE
+					break
+			if(!sample_present || !islist(microscope_sample_reagent.data))
+				balloon_alert(usr, "образец крови отсутствует")
+				return TRUE
+
+			var/list/stored_entry
+			var/stored_index = 0
+			for(var/index = 1, index <= length(microscope_reagent_storage), index++)
+				var/list/entry = microscope_reagent_storage[index]
+				if(entry["id"] == reagent_id)
+					stored_entry = entry
+					stored_index = index
+					break
+			if(!stored_entry || stored_entry["is_vaccine"] || stored_entry["amount"] < 1)
+				balloon_alert(usr, "нужен один юнит обычного реагента")
+				return TRUE
+
+			var/list/applied_reagents = microscope_sample_reagent.data["microscope_protective_reagents"]
+			if(!islist(applied_reagents))
+				applied_reagents = list()
+				microscope_sample_reagent.data["microscope_protective_reagents"] = applied_reagents
+			if(reagent_id in applied_reagents)
+				balloon_alert(usr, "этот реагент уже добавлен в образец")
+				return TRUE
+
+			applied_reagents += reagent_id
+			stored_entry["amount"] = max(0, stored_entry["amount"] - 1)
+			if(stored_entry["amount"] <= 0.001)
+				microscope_reagent_storage.Cut(stored_index, stored_index + 1)
+			balloon_alert(usr, "реагент добавлен в кровь")
+			SStgui.update_uis(src)
+			return TRUE
+
+		if("synthesizeMicroscopeVaccine")
+			if(wait)
+				return TRUE
+			var/list/selected_ids = params["reagents"]
+			if(!islist(selected_ids) || !length(selected_ids) || length(selected_ids) > 2)
+				balloon_alert(usr, "выберите один или два компонента")
+				return TRUE
+			if(!beaker?.reagents || !microscope_sample_reagent || !length(microscope_virus_seeds))
+				balloon_alert(usr, "для синтеза нужен образец заражённой крови")
+				return TRUE
+
+			var/list/selected_entries = list()
+			var/list/validated_ids = list()
+			for(var/reagent_id as anything in selected_ids)
+				if(!istext(reagent_id) || reagent_id in validated_ids)
+					return TRUE
+				validated_ids += reagent_id
+				var/list/selected_entry
+				for(var/list/stored_reagent as anything in microscope_reagent_storage)
+					if(stored_reagent["id"] == reagent_id && stored_reagent["amount"] >= 1)
+						selected_entry = stored_reagent
+						break
+				if(!selected_entry)
+					balloon_alert(usr, "компонент отсутствует в хранилище")
+					return TRUE
+				selected_entries += list(selected_entry)
+
+			var/vaccine_type
+			var/list/vaccine_targets = list()
+			var/vaccine_name = null
+			var/vaccine_label = null
+
+			if(length(selected_entries) == 1)
+				var/reagent_id = validated_ids[1]
+				var/list/applied_reagents = microscope_sample_reagent.data["microscope_protective_reagents"]
+				if(!islist(applied_reagents) || !(reagent_id in applied_reagents))
+					balloon_alert(usr, "сначала проверьте реагент на клетках крови")
+					return TRUE
+				for(var/list/seed as anything in microscope_virus_seeds)
+					if(seed["protective_reagent_id"] != reagent_id)
+						continue
+					var/rejected_cell_found = FALSE
+					for(var/list/blood_cell as anything in microscope_simulation_blood_cells)
+						if(blood_cell["virusName"] == seed["name"] && blood_cell["rejectionTicks"] >= 60)
+							rejected_cell_found = TRUE
+							break
+					if(!rejected_cell_found)
+						continue
+				vaccine_type = /datum/reagent/vaccine/immunity
+				vaccine_targets += seed["disease_id"]
+				vaccine_name = seed["name"]
+				vaccine_label = "иммунная"
+				break
+
+			if(length(selected_entries) == 2 && !vaccine_type)
+				var/first_id = validated_ids[1]
+				var/second_id = validated_ids[2]
+				for(var/list/seed as anything in microscope_virus_seeds)
+					var/list/virus_reagents = seed["microscope_reagents"]
+					if(length(virus_reagents) < 2)
+						continue
+					if((first_id == virus_reagents[1] && second_id == virus_reagents[2]) || (first_id == virus_reagents[2] && second_id == virus_reagents[1]))
+						vaccine_type = /datum/reagent/vaccine/antiviral
+						vaccine_targets += seed["disease_id"]
+						vaccine_name = seed["name"]
+						vaccine_label = "вирусоцидная"
+						break
+
+			if(length(selected_entries) == 2 && !vaccine_type)
+				var/list/first_entry = selected_entries[1]
+				var/list/second_entry = selected_entries[2]
+				var/first_type = first_entry["type"]
+				var/second_type = second_entry["type"]
+				var/list/first_targets = first_entry["data"]
+				var/list/second_targets = second_entry["data"]
+				if(islist(first_targets) && islist(second_targets) && ((first_type == /datum/reagent/vaccine/antiviral && second_type == /datum/reagent/vaccine/immunity) || (second_type == /datum/reagent/vaccine/antiviral && first_type == /datum/reagent/vaccine/immunity)))
+					for(var/target_id in first_targets)
+						if(target_id in second_targets)
+							vaccine_targets += target_id
+				if(length(vaccine_targets))
+					vaccine_type = /datum/reagent/vaccine/combined
+					for(var/list/seed as anything in microscope_virus_seeds)
+						if(seed["disease_id"] in vaccine_targets)
+							vaccine_name = seed["name"]
+							break
+					if(!vaccine_name)
+						vaccine_name = "смешанный штамм"
+					vaccine_label = "комплексная"
+
+			if(!vaccine_type || !length(vaccine_targets))
+				balloon_alert(usr, "состав не соответствует ни одной известной формуле")
+				return TRUE
+
+			var/obj/item/reagent_containers/cup/bottle/vaccine_bottle = new(loc)
+			if(!vaccine_bottle)
+				return TRUE
+			vaccine_bottle.pixel_x = rand(-3, 3)
+			vaccine_bottle.pixel_y = rand(-3, 3)
+			vaccine_bottle.name = "[capitalize(vaccine_label)] вакцина [vaccine_name]"
+			vaccine_bottle.desc = "Синтезированная [vaccine_label] вакцина против [vaccine_name]."
+			vaccine_bottle.reagents.add_reagent(vaccine_type, 15, vaccine_targets)
+
+			for(var/reagent_id as anything in validated_ids)
+				for(var/index = length(microscope_reagent_storage), index >= 1, index--)
+					var/list/entry = microscope_reagent_storage[index]
+					if(entry["id"] == reagent_id)
+						entry["amount"] = max(0, entry["amount"] - 1)
+						if(entry["amount"] <= 0.001)
+							microscope_reagent_storage.Cut(index, index + 1)
+						break
+
+			replicator_cooldown(20 SECONDS)
+			SStgui.update_uis(src)
+			return TRUE
+
 		if("setMicroscopeTemperature")
 			var/new_temperature = params["temperature"]
 			if(isnum(new_temperature))
@@ -650,9 +834,12 @@
 
 			var/list/incoming_cells = params["cells"]
 			var/list/incoming_particles = params["particles"]
+			var/list/incoming_blood_cells = params["bloodCells"]
 			if(!islist(incoming_cells) || !islist(incoming_particles))
 				return TRUE
-			if(length(incoming_cells) > 10 || length(incoming_particles) > 80)
+			if(!islist(incoming_blood_cells))
+				incoming_blood_cells = list()
+			if(length(incoming_cells) > 10 || length(incoming_particles) > 80 || length(incoming_blood_cells) > 40)
 				return TRUE
 
 			var/list/saved_cells = list()
@@ -761,8 +948,33 @@
 					"radius" = max(0.5, min(3, particle_data["radius"])),
 				))
 
+			var/list/saved_blood_cells = list()
+			for(var/list/blood_cell_data as anything in incoming_blood_cells)
+				if(!islist(blood_cell_data))
+					return TRUE
+				if(!isnum(blood_cell_data["id"]) || !istext(blood_cell_data["virusName"]))
+					return TRUE
+				if(!isnum(blood_cell_data["x"]) || !isnum(blood_cell_data["y"]) || !isnum(blood_cell_data["vx"]) || !isnum(blood_cell_data["vy"]))
+					return TRUE
+				if(!isnum(blood_cell_data["size"]) || !isnum(blood_cell_data["rejectionTicks"]))
+					return TRUE
+				var/list/saved_blood_cell = list(
+					"id" = round(blood_cell_data["id"]),
+					"virusName" = copytext(blood_cell_data["virusName"], 1, 64),
+					"x" = max(0, min(800, blood_cell_data["x"])),
+					"y" = max(0, min(460, blood_cell_data["y"])),
+					"vx" = max(-12, min(12, blood_cell_data["vx"])),
+					"vy" = max(-12, min(12, blood_cell_data["vy"])),
+					"size" = max(6, min(24, blood_cell_data["size"])),
+					"rejectionTicks" = max(0, min(1000, round(blood_cell_data["rejectionTicks"]))),
+				)
+				if(istext(blood_cell_data["protectiveReagentId"]))
+					saved_blood_cell["protectiveReagentId"] = copytext(blood_cell_data["protectiveReagentId"], 1, 64)
+				saved_blood_cells += list(saved_blood_cell)
+
 			microscope_simulation_cells = saved_cells
 			microscope_simulation_particles = saved_particles
+			microscope_simulation_blood_cells = saved_blood_cells
 			microscope_simulation_initialized = TRUE
 			return TRUE
 
@@ -770,6 +982,7 @@
 			if(params["generation"] != microscope_culture_generation)
 				return TRUE
 			microscope_virus_seeds = list()
+			microscope_simulation_blood_cells = list()
 			SStgui.update_uis(src)
 			return TRUE
 
