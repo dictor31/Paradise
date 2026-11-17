@@ -269,6 +269,8 @@
 			"disease_id" = disease.GetDiseaseID(),
 			"microscope_reagents" = microscope_reagent_ids,
 			"protective_reagent_id" = protective_reagent_id,
+			"vaccine_allowed" = !virus_disease.no_vaccine,
+			"immunity_allowed" = virus_disease.can_immunity,
 			"comfortable_temperature" = virus_disease.microscope_comfort_temperature,
 		))
 
@@ -744,6 +746,8 @@
 					balloon_alert(usr, "сначала проверьте реагент на клетках крови")
 					return TRUE
 				for(var/list/seed as anything in microscope_virus_seeds)
+					if(!seed["vaccine_allowed"] || !seed["immunity_allowed"])
+						continue
 					if(seed["protective_reagent_id"] != reagent_id)
 						continue
 					var/rejected_cell_found = FALSE
@@ -763,6 +767,8 @@
 				var/first_id = validated_ids[1]
 				var/second_id = validated_ids[2]
 				for(var/list/seed as anything in microscope_virus_seeds)
+					if(!seed["vaccine_allowed"])
+						continue
 					var/list/virus_reagents = seed["microscope_reagents"]
 					if(length(virus_reagents) < 2)
 						continue
