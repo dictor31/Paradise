@@ -300,6 +300,51 @@ GLOBAL_LIST_INIT(diseases_carrier_reagents, list(
 	if(istype(data))
 		data |= data.Copy()
 
+// Intermediate virus vaccines are deliberately split into two effects:
+// one removes an active infection without granting immunity, the other
+// grants resistance only when the target virus is no longer present.
+// The combined formula performs both actions.
+ 
+/datum/reagent/vaccine/antiviral
+	name = "Вирусоцидная вакцина"
+	id = "antiviral_vaccine"
+	description = "Состав, распознающий вирус и уничтожающий его, но не формирующий длительную защиту."
+	color = "#D85A62"
+
+/datum/reagent/vaccine/antiviral/reaction_mob(mob/living/M, method=REAGENT_TOUCH, volume)
+	if(!islist(data) || !(method in list(REAGENT_INGEST, REAGENT_INJECT)))
+		return
+	for(var/datum/disease/D as anything in M.diseases.Copy())
+		if(D.GetDiseaseID() in data)
+			D.cure(need_immunity = FALSE)
+
+/datum/reagent/vaccine/immunity
+	name = "Иммунная вакцина"
+	id = "immunity_vaccine"
+	description = "Состав, обучающий иммунную систему распознавать определённый вирус."
+	color = "#4E9AD8"
+
+/datum/reagent/vaccine/immunity/reaction_mob(mob/living/M, method=REAGENT_TOUCH, volume)
+	if(!islist(data) || !(method in list(REAGENT_INGEST, REAGENT_INJECT)))
+		return
+	for(var/virus_type in data)
+		if(!M.HasDisease(virus_type))
+			LAZYOR(M.resistances, virus_type)
+
+/datum/reagent/vaccine/combined
+	name = "Комплексная вакцина"
+	id = "combined_vaccine"
+	description = "Комбинированный состав: уничтожает активный вирус и формирует защиту от повторного заражения."
+	color = "#66BFA2"
+
+/datum/reagent/vaccine/combined/reaction_mob(mob/living/M, method=REAGENT_TOUCH, volume)
+	if(!islist(data) || !(method in list(REAGENT_INGEST, REAGENT_INJECT)))
+		return
+	for(var/datum/disease/D as anything in M.diseases.Copy())
+		if(D.GetDiseaseID() in data)
+			D.cure(need_immunity = FALSE)
+	LAZYOR(M.resistances, data)
+
 /datum/reagent/fishwater
 	name = "Аквариумная вода"
 	id = "fishwater"
