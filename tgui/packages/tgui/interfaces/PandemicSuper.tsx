@@ -22,6 +22,7 @@ type PandemicSuperData = {
     volume: number;
     color: string;
     is_vaccine: boolean;
+    vaccine_kind: 'antiviral' | 'immunity' | 'combined' | null;
   }[];
   microscope_applied_protective_reagents: string[];
 };
@@ -59,6 +60,13 @@ export const PandemicSuper = (_props: unknown) => {
   const appliedReagentNames = appliedReagentIds.map(
     (reagentId) => reagentStock.find((reagent) => reagent.id === reagentId)?.name || reagentId,
   );
+  const selectedStockReagents = selectedReagents
+    .map((reagentId) => reagentStock.find((reagent) => reagent.id === reagentId))
+    .filter((reagent) => !!reagent);
+  const canCombineVaccines =
+    selectedStockReagents.length === 2 &&
+    selectedStockReagents.some((reagent) => reagent.vaccine_kind === 'antiviral') &&
+    selectedStockReagents.some((reagent) => reagent.vaccine_kind === 'immunity');
   const toggleReagent = (reagentId: string) => {
     setSelectedReagents((current) =>
       current.includes(reagentId)
@@ -306,7 +314,7 @@ export const PandemicSuper = (_props: unknown) => {
               <Stack.Item>
                 <Section title="Синтез вакцин" mb="15px">
                   <Box color="label" mb={2}>
-                    Добавляйте реагенты из хранилища в кровь, чтобы проверить защиту синих клеток. Для синтеза выберите один проверенный защитный реагент или два реагента, разрушающих оболочку и ядро. Две промежуточные вакцины можно соединить в комплексную.
+                    Добавляйте реагенты из хранилища в кровь, чтобы проверить защиту синих клеток. Для синтеза выберите один проверенный защитный реагент или два реагента, разрушающих оболочку и ядро. Две промежуточные вакцины можно соединить в комплексную даже без образца крови.
                   </Box>
                   {!beaker_exists ? (
                     <Box color="bad">Установите ёмкость с заражённой кровью.</Box>
@@ -355,6 +363,7 @@ export const PandemicSuper = (_props: unknown) => {
                             <Stack.Item>
                               <Button
                                 color={selected ? 'good' : 'default'}
+                                disabled={reagent.volume < 1 || (reagent.is_vaccine && !reagent.vaccine_kind)}
                                 onClick={() => toggleReagent(reagent.id)}
                               >
                                 {selected ? 'Выбрано' : 'Выбрать'}
@@ -380,11 +389,16 @@ export const PandemicSuper = (_props: unknown) => {
                   <Box mt={2}>
                     Выбрано компонентов: {selectedReagents.length} / 2
                   </Box>
+                  {canCombineVaccines && error_message !== null ? (
+                    <Box color="good" mt={1}>
+                      Выбраны вирусоцидная и иммунная вакцины. Для их объединения образец крови не требуется.
+                    </Box>
+                  ) : null}
                   <Button
                     fluid
                     color="good"
                     mt={1}
-                    disabled={error_message !== null || !beaker_exists || !selectedReagents.length}
+                    disabled={!selectedReagents.length || (error_message !== null && !canCombineVaccines)}
                     onClick={() =>
                       act('synthesizeMicroscopeVaccine', {
                         reagents: selectedReagents,
