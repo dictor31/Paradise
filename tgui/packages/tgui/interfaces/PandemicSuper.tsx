@@ -23,6 +23,7 @@ type PandemicSuperData = {
     color: string;
     is_vaccine: boolean;
   }[];
+  microscope_applied_protective_reagents: string[];
 };
 
 type PandemicSuperBloodData = {
@@ -54,6 +55,10 @@ export const PandemicSuper = (_props: unknown) => {
   const [activeTab, setActiveTab] = useState<'analysis' | 'synthesis'>('analysis');
   const [selectedReagents, setSelectedReagents] = useState<string[]>([]);
   const reagentStock = data.microscope_available_reagents || [];
+  const appliedReagentIds = data.microscope_applied_protective_reagents || [];
+  const appliedReagentNames = appliedReagentIds.map(
+    (reagentId) => reagentStock.find((reagent) => reagent.id === reagentId)?.name || reagentId,
+  );
   const toggleReagent = (reagentId: string) => {
     setSelectedReagents((current) =>
       current.includes(reagentId)
@@ -312,6 +317,16 @@ export const PandemicSuper = (_props: unknown) => {
                       Образец крови установлен. Реагенты для проверки будут расходоваться из внутреннего хранилища.
                     </Box>
                   )}
+                  <Box mt={2} mb={2}>
+                    <Box bold>Добавлено в образец крови:</Box>
+                    {appliedReagentNames.length ? (
+                      <Box color="good">
+                        {appliedReagentNames.join(', ')}
+                      </Box>
+                    ) : (
+                      <Box color="label">Пока не добавлено ни одного реагента.</Box>
+                    )}
+                  </Box>
                   {reagentStock.length ? (
                     reagentStock.map((reagent) => {
                       const selected = selectedReagents.includes(reagent.id);
@@ -347,10 +362,10 @@ export const PandemicSuper = (_props: unknown) => {
                             </Stack.Item>
                             <Stack.Item>
                               <Button
-                                disabled={error_message !== null || !beaker_exists || reagent.is_vaccine || reagent.volume < 1}
+                                disabled={error_message !== null || !beaker_exists || appliedReagentIds.includes(reagent.id) || reagent.is_vaccine || reagent.volume < 1}
                                 onClick={() => act('addMicroscopeBloodReagent', { id: reagent.id })}
                               >
-                                Добавить в кровь
+                                {appliedReagentIds.includes(reagent.id) ? 'Уже в крови' : 'Добавить в кровь'}
                               </Button>
                             </Stack.Item>
                           </Stack>
