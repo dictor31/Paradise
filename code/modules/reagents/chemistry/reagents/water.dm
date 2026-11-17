@@ -312,7 +312,7 @@ GLOBAL_LIST_INIT(diseases_carrier_reagents, list(
 	color = "#D85A62"
 
 /datum/reagent/vaccine/antiviral/reaction_mob(mob/living/M, method=REAGENT_TOUCH, volume)
-	if(!islist(data) || !(method in list(REAGENT_INGEST, REAGENT_INJECT)))
+	if(!islist(data) || method != REAGENT_INGEST)
 		return
 	for(var/datum/disease/D as anything in M.diseases.Copy())
 		if(D.GetDiseaseID() in data)
@@ -325,7 +325,7 @@ GLOBAL_LIST_INIT(diseases_carrier_reagents, list(
 	color = "#4E9AD8"
 
 /datum/reagent/vaccine/immunity/reaction_mob(mob/living/M, method=REAGENT_TOUCH, volume)
-	if(!islist(data) || !(method in list(REAGENT_INGEST, REAGENT_INJECT)))
+	if(!islist(data) || method != REAGENT_INGEST)
 		return
 	for(var/virus_type in data)
 		var/virus_is_active = FALSE
@@ -343,7 +343,7 @@ GLOBAL_LIST_INIT(diseases_carrier_reagents, list(
 	color = "#66BFA2"
 
 /datum/reagent/vaccine/combined/reaction_mob(mob/living/M, method=REAGENT_TOUCH, volume)
-	if(!islist(data) || !(method in list(REAGENT_INGEST, REAGENT_INJECT)))
+	if(!islist(data) || method != REAGENT_INGEST)
 		return
 	for(var/datum/disease/D as anything in M.diseases.Copy())
 		if(D.GetDiseaseID() in data)
