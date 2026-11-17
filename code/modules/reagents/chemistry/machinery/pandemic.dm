@@ -760,11 +760,11 @@
 							break
 					if(!rejected_cell_found)
 						continue
-				vaccine_type = /datum/reagent/vaccine/immunity
-				vaccine_targets += seed["disease_id"]
-				vaccine_name = seed["name"]
-				vaccine_label = "иммунная"
-				break
+					vaccine_type = /datum/reagent/vaccine/immunity
+					vaccine_targets += seed["disease_id"]
+					vaccine_name = seed["name"]
+					vaccine_label = "иммунная"
+					break
 
 			if(length(selected_entries) == 2 && !vaccine_type && has_virus_sample)
 				var/first_id = validated_ids[1]
