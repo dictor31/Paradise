@@ -360,14 +360,25 @@ export const PandemicSuper = (_props: unknown) => {
                                 <Box bold>{reagent.name}</Box>
                                 <Box color="label">
                                   В хранилище: {reagent.volume.toFixed(1)} ед.
-                                  {reagent.is_vaccine ? ' · компонент вакцины' : ''}
+                                  {reagent.vaccine_kind === 'antiviral'
+                                    ? ' · вирусоцидная вакцина'
+                                    : reagent.vaccine_kind === 'immunity'
+                                      ? ' · иммунная вакцина'
+                                      : reagent.vaccine_kind === 'combined'
+                                        ? ' · комплексная вакцина'
+                                        : ''}
                                 </Box>
                               </Box>
                             </Stack.Item>
                             <Stack.Item>
                               <Button
                                 color={selected ? 'good' : 'default'}
-                                disabled={reagent.volume < 1 || (reagent.is_vaccine && !reagent.vaccine_kind)}
+                                disabled={
+                                  reagent.volume < 1 ||
+                                  (reagent.is_vaccine &&
+                                    reagent.vaccine_kind !== 'antiviral' &&
+                                    reagent.vaccine_kind !== 'immunity')
+                                }
                                 onClick={() => toggleReagent(reagent.id)}
                               >
                                 {selected ? 'Выбрано' : 'Выбрать'}
