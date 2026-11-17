@@ -60,9 +60,9 @@ export const PandemicSuper = (_props: unknown) => {
   const appliedReagentNames = appliedReagentIds.map(
     (reagentId) => reagentStock.find((reagent) => reagent.id === reagentId)?.name || reagentId,
   );
-  const selectedStockReagents = selectedReagents
-    .map((reagentId) => reagentStock.find((reagent) => reagent.id === reagentId))
-    .filter((reagent) => !!reagent);
+  const selectedStockReagents = reagentStock.filter((reagent) =>
+    selectedReagents.includes(reagent.id),
+  );
   const canCombineVaccines =
     selectedStockReagents.length === 2 &&
     selectedStockReagents.some((reagent) => reagent.vaccine_kind === 'antiviral') &&
@@ -316,8 +316,12 @@ export const PandemicSuper = (_props: unknown) => {
                   <Box color="label" mb={2}>
                     Добавляйте реагенты из хранилища в кровь, чтобы проверить защиту синих клеток. Для синтеза выберите один проверенный защитный реагент или два реагента, разрушающих оболочку и ядро. Две промежуточные вакцины можно соединить в комплексную даже без образца крови.
                   </Box>
-                  {!beaker_exists ? (
-                    <Box color="bad">Установите ёмкость с заражённой кровью.</Box>
+                  {canCombineVaccines ? (
+                    <Box color="good" mb={2}>
+                      Выбраны вирусоцидная и иммунная вакцины. Для их объединения образец крови не требуется.
+                    </Box>
+                  ) : !beaker_exists ? (
+                    <Box color="bad">Для создания новых компонентов установите ёмкость с заражённой кровью.</Box>
                   ) : error_message !== null ? (
                     <Box color="bad">{error_message}</Box>
                   ) : (
@@ -389,11 +393,6 @@ export const PandemicSuper = (_props: unknown) => {
                   <Box mt={2}>
                     Выбрано компонентов: {selectedReagents.length} / 2
                   </Box>
-                  {canCombineVaccines && error_message !== null ? (
-                    <Box color="good" mt={1}>
-                      Выбраны вирусоцидная и иммунная вакцины. Для их объединения образец крови не требуется.
-                    </Box>
-                  ) : null}
                   <Button
                     fluid
                     color="good"
