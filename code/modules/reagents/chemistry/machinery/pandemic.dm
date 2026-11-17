@@ -1000,8 +1000,11 @@
 		if("microscopePopulationExtinct")
 			if(params["generation"] != microscope_culture_generation)
 				return TRUE
-			microscope_virus_seeds = list()
-			microscope_simulation_blood_cells = list()
+			// Keep the strain recipe and any surviving, protected blood cells:
+			// they are still needed to synthesize vaccines after the culture dies.
+			// An initialized empty virus list prevents this same sample respawning.
+			microscope_simulation_cells = list()
+			microscope_simulation_initialized = TRUE
 			microscope_simulation_blood_cells_initialized = TRUE
 			SStgui.update_uis(src)
 			return TRUE
