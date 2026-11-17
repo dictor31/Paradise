@@ -1,4 +1,5 @@
 import { Box, Button, LabeledList, Section, Stack } from 'tgui-core/components';
+import { useState } from 'react';
 import { useBackend } from '../backend';
 import { Window } from '../layouts';
 import { ComplexModal } from './common/ComplexModal';
@@ -15,6 +16,13 @@ type PandemicSuperData = {
   microscope_reagent_storage_capacity: number;
   microscope_reagent_storage_types: number;
   microscope_reagent_type_limit: number;
+  microscope_available_reagents: {
+    id: string;
+    name: string;
+    volume: number;
+    color: string;
+    is_vaccine: boolean;
+  }[];
 };
 
 type PandemicSuperBloodData = {
@@ -43,6 +51,18 @@ type PandemicSuperAntibodyData = {
 
 export const PandemicSuper = (_props: unknown) => {
   const { act, data } = useBackend<PandemicSuperData>();
+  const [activeTab, setActiveTab] = useState<'analysis' | 'synthesis'>('analysis');
+  const [selectedReagents, setSelectedReagents] = useState<string[]>([]);
+  const reagentStock = data.microscope_available_reagents || [];
+  const toggleReagent = (reagentId: string) => {
+    setSelectedReagents((current) =>
+      current.includes(reagentId)
+        ? current.filter((id) => id !== reagentId)
+        : current.length < 2
+          ? [...current, reagentId]
+          : [current[1], reagentId],
+    );
+  };
   const {
     error_message,
     beaker_exists,
@@ -209,16 +229,9 @@ export const PandemicSuper = (_props: unknown) => {
                 antibodies.map((antibody) => (
                   <Box key={antibody.index}>
                     {antibody.name}
-                    <Button
-                      icon="medkit"
-                      onClick={() =>
-                        act('createVaccine', {
-                          index: antibody.index,
-                        })
-                      }
-                    >
-                      Создать бутылку с вакциной
-                    </Button>
+                    <Box color="label" inline>
+                      Защита уже присутствует в образце
+                    </Box>
                   </Box>
                 ))
               ) : (
@@ -236,7 +249,28 @@ export const PandemicSuper = (_props: unknown) => {
       <Window.Content scrollable>
         <Stack fill vertical>
           <Stack.Item>
-            <Section title="Внутреннее хранилище питательной среды">
+            <Box>
+              <Button
+                selected={activeTab === 'analysis'}
+                onClick={() => setActiveTab('analysis')}
+              >
+                Анализ образца
+              </Button>
+              <Button
+                selected={activeTab === 'synthesis'}
+                onClick={() => {
+                  setActiveTab('synthesis');
+                  setSelectedReagents([]);
+                }}
+              >
+                Синтез вакцин
+              </Button>
+            </Box>
+          </Stack.Item>
+          {activeTab === 'analysis' ? (
+            <>
+              <Stack.Item>
+                <Section title="Внутреннее хранилище питательной среды">
               <Box>
                 Запас питания: {microscope_food_amount.toFixed(1)} /{' '}
                 {microscope_food_capacity.toFixed(1)} ед.
@@ -260,7 +294,115 @@ export const PandemicSuper = (_props: unknown) => {
               Открыть микроскоп
             </Button>
           </Stack.Item>
-          {blocks}
+              {blocks}
+            </>
+          ) : (
+            <>
+              <Stack.Item>
+                <Section title="Синтез вакцин" mb="15px">
+                  <Box color="label" mb={2}>
+                    Добавляйте реагенты из хранилища в кровь, чтобы проверить защиту синих клеток. Для синтеза выберите один проверенный защитный реагент или два реагента, разрушающих оболочку и ядро. Две промежуточные вакцины можно соединить в комплексную.
+                  </Box>
+                  {!beaker_exists ? (
+                    <Box color="bad">Установите ёмкость с заражённой кровью.</Box>
+                  ) : (
+                    <Box color="good" mb={2}>
+                      Образец крови установлен. Реагенты для проверки будут расходоваться из внутреннего хранилища.
+                    </Box>
+                  )}
+                  {reagentStock.length ? (
+                    reagentStock.map((reagent) => {
+                      const selected = selectedReagents.includes(reagent.id);
+                      return (
+                        <Box
+                          key={reagent.id}
+                          mb={1}
+                          p={1}
+                          background={selected ? 'rgba(91, 161, 190, 0.16)' : 'transparent'}
+                          style={{
+                            border: selected
+                              ? '1px solid #5a9cb5'
+                              : '1px solid rgba(130, 150, 150, 0.25)',
+                          }}
+                        >
+                          <Stack align="center">
+                            <Stack.Item grow>
+                              <Box>
+                                <Box bold>{reagent.name}</Box>
+                                <Box color="label">
+                                  В хранилище: {reagent.volume.toFixed(1)} ед.
+                                  {reagent.is_vaccine ? ' · компонент вакцины' : ''}
+                                </Box>
+                              </Box>
+                            </Stack.Item>
+                            <Stack.Item>
+                              <Button
+                                color={selected ? 'good' : 'default'}
+                                onClick={() => toggleReagent(reagent.id)}
+                              >
+                                {selected ? 'Выбрано' : 'Выбрать'}
+                              </Button>
+                            </Stack.Item>
+                            <Stack.Item>
+                              <Button
+                                disabled={!beaker_exists || reagent.is_vaccine || reagent.volume < 1}
+                                onClick={() => act('addMicroscopeBloodReagent', { id: reagent.id })}
+                              >
+                                Добавить в кровь
+                              </Button>
+                            </Stack.Item>
+                          </Stack>
+                        </Box>
+                      );
+                    })
+                  ) : (
+                    <Box color="label">
+                      Хранилище пусто. Сначала добавьте химические реагенты через открытый сосуд или капельницу.
+                    </Box>
+                  )}
+                  <Box mt={2}>
+                    Выбрано компонентов: {selectedReagents.length} / 2
+                  </Box>
+                  <Button
+                    fluid
+                    color="good"
+                    mt={1}
+                    disabled={!beaker_exists || !selectedReagents.length}
+                    onClick={() =>
+                      act('synthesizeMicroscopeVaccine', {
+                        reagents: selectedReagents,
+                      })
+                    }
+                  >
+                    Синтезировать вакцину
+                  </Button>
+                  <Button
+                    fluid
+                    mt={1}
+                    disabled={!selectedReagents.length}
+                    onClick={() => setSelectedReagents([])}
+                  >
+                    Сбросить выбор
+                  </Button>
+                </Section>
+              </Stack.Item>
+              <Stack.Item>
+                <Section title="Последовательность синтеза">
+                  <LabeledList>
+                    <LabeledList.Item label="Вирусоцидная вакцина">
+                      Два реагента, подобранные для внешней оболочки и ядра. Уничтожает активный вирус без формирования иммунитета.
+                    </LabeledList.Item>
+                    <LabeledList.Item label="Иммунная вакцина">
+                      Один реагент, который защищает клетки крови. Даёт сопротивляемость только после успешного испытания на клетках.
+                    </LabeledList.Item>
+                    <LabeledList.Item label="Комплексная вакцина">
+                      Смешение двух промежуточных вакцин. Уничтожает вирус и формирует защиту от повторного заражения.
+                    </LabeledList.Item>
+                  </LabeledList>
+                </Section>
+              </Stack.Item>
+            </>
+          )}
         </Stack>
       </Window.Content>
     </Window>
