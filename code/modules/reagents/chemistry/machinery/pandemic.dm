@@ -17,6 +17,7 @@
 	var/list/microscope_simulation_cells = list()
 	var/list/microscope_simulation_particles = list()
 	var/list/microscope_simulation_blood_cells = list()
+	var/microscope_simulation_blood_cells_initialized = FALSE
 	var/microscope_simulation_initialized = FALSE
 	var/microscope_temperature = 15
 	var/microscope_food_amount = 0
@@ -178,6 +179,7 @@
 		microscope_simulation_cells = list()
 		microscope_simulation_particles = list()
 		microscope_simulation_blood_cells = list()
+		microscope_simulation_blood_cells_initialized = FALSE
 		microscope_simulation_initialized = FALSE
 
 	if(!blood_reagent || !islist(blood_reagent.data) || !blood_reagent.data["diseases"])
@@ -392,6 +394,7 @@
 	data["microscope_simulation_cells"] = microscope_sample_present ? microscope_simulation_cells : list()
 	data["microscope_simulation_particles"] = microscope_sample_present ? microscope_simulation_particles : list()
 	data["microscope_simulation_blood_cells"] = microscope_sample_present ? microscope_simulation_blood_cells : list()
+	data["microscope_simulation_blood_cells_initialized"] = microscope_simulation_blood_cells_initialized
 	var/list/applied_blood_reagents = list()
 	if(microscope_sample_present && microscope_sample_reagent && islist(microscope_sample_reagent.data) && islist(microscope_sample_reagent.data["microscope_protective_reagents"]))
 		applied_blood_reagents = microscope_sample_reagent.data["microscope_protective_reagents"].Copy()
@@ -975,6 +978,7 @@
 			microscope_simulation_cells = saved_cells
 			microscope_simulation_particles = saved_particles
 			microscope_simulation_blood_cells = saved_blood_cells
+			microscope_simulation_blood_cells_initialized = TRUE
 			microscope_simulation_initialized = TRUE
 			return TRUE
 
@@ -983,6 +987,7 @@
 				return TRUE
 			microscope_virus_seeds = list()
 			microscope_simulation_blood_cells = list()
+			microscope_simulation_blood_cells_initialized = TRUE
 			SStgui.update_uis(src)
 			return TRUE
 
