@@ -1280,14 +1280,14 @@ const advanceBloodCellInteractions = (
     const dx = virusCell.x - bloodCell.x;
     const dy = virusCell.y - bloodCell.y;
     const distance = Math.max(0.001, Math.hypot(dx, dy));
-    if (distance > virusCell.size + bloodCell.size + 3) {
-      continue;
-    }
-
+    const inContact = distance <= virusCell.size + bloodCell.size + 3;
     const hasMatchingProtection =
       !!bloodCell.protectiveReagentId &&
       appliedProtectiveReagents.includes(bloodCell.protectiveReagentId);
-    if (hasMatchingProtection) {
+
+    // Once a virus has begun attacking a protected blood cell, keep its
+    // rejection timer running while it continues to pursue that cell.
+    if (hasMatchingProtection && (inContact || bloodCell.rejectionTicks > 0)) {
       if (biologicalTick) {
         const rejectionTicks = Math.min(
           PROTECTED_CELL_REJECTION_TICKS,
@@ -1314,6 +1314,10 @@ const advanceBloodCellInteractions = (
           nextCells[matchingVirusIndex] = virusCell;
         }
       }
+      continue;
+    }
+
+    if (!inContact) {
       continue;
     }
 
