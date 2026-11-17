@@ -5,7 +5,7 @@ import { Window } from '../layouts';
 import { ComplexModal } from './common/ComplexModal';
 
 type PandemicSuperData = {
-  error_message: string;
+  error_message: string | null;
   beaker_exists: boolean;
   blood_data: PandemicSuperBloodData;
   diseases: PandemicSuperDiseaseData[];
@@ -229,7 +229,7 @@ export const PandemicSuper = (_props: unknown) => {
                 antibodies.map((antibody) => (
                   <Box key={antibody.index}>
                     {antibody.name}
-                    <Box color="label" inline>
+                    <Box color="label">
                       Защита уже присутствует в образце
                     </Box>
                   </Box>
@@ -251,13 +251,13 @@ export const PandemicSuper = (_props: unknown) => {
           <Stack.Item>
             <Box>
               <Button
-                selected={activeTab === 'analysis'}
+                color={activeTab === 'analysis' ? 'good' : 'default'}
                 onClick={() => setActiveTab('analysis')}
               >
                 Анализ образца
               </Button>
               <Button
-                selected={activeTab === 'synthesis'}
+                color={activeTab === 'synthesis' ? 'good' : 'default'}
                 onClick={() => {
                   setActiveTab('synthesis');
                   setSelectedReagents([]);
@@ -305,6 +305,8 @@ export const PandemicSuper = (_props: unknown) => {
                   </Box>
                   {!beaker_exists ? (
                     <Box color="bad">Установите ёмкость с заражённой кровью.</Box>
+                  ) : error_message !== null ? (
+                    <Box color="bad">{error_message}</Box>
                   ) : (
                     <Box color="good" mb={2}>
                       Образец крови установлен. Реагенты для проверки будут расходоваться из внутреннего хранилища.
@@ -345,7 +347,7 @@ export const PandemicSuper = (_props: unknown) => {
                             </Stack.Item>
                             <Stack.Item>
                               <Button
-                                disabled={!beaker_exists || reagent.is_vaccine || reagent.volume < 1}
+                                disabled={error_message !== null || !beaker_exists || reagent.is_vaccine || reagent.volume < 1}
                                 onClick={() => act('addMicroscopeBloodReagent', { id: reagent.id })}
                               >
                                 Добавить в кровь
@@ -367,7 +369,7 @@ export const PandemicSuper = (_props: unknown) => {
                     fluid
                     color="good"
                     mt={1}
-                    disabled={!beaker_exists || !selectedReagents.length}
+                    disabled={error_message !== null || !beaker_exists || !selectedReagents.length}
                     onClick={() =>
                       act('synthesizeMicroscopeVaccine', {
                         reagents: selectedReagents,
