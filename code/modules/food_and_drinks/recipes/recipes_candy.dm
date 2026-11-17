@@ -34,12 +34,14 @@
 	reagents = list("soymilk" = 2, "cocoa" = 2, "sugar" = 2)
 	items = list()
 	result = /obj/item/reagent_containers/food/snacks/chocolatebar
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/chocolate_bar2
 	name = "Шоколадная плитка на молоке"
 	reagents = list("milk" = 2, "cocoa" = 2, "sugar" = 2)
 	items = list()
 	result = /obj/item/reagent_containers/food/snacks/chocolatebar
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/fudge_peanut
 	name = "Шоколадная долька с арахисом"
@@ -49,6 +51,7 @@
 		/obj/item/reagent_containers/food/snacks/grown/peanuts, /obj/item/reagent_containers/food/snacks/grown/peanuts,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/fudge/peanut
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/fudge_cherry
 	name = "Шоколадная долька с вишней"
@@ -58,6 +61,7 @@
 		/obj/item/reagent_containers/food/snacks/grown/cherries, /obj/item/reagent_containers/food/snacks/grown/cherries,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/fudge/cherry
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/fudge_cookies_n_cream
 	name = "Шоколадная долька с печеньем и сливками"
@@ -67,6 +71,7 @@
 		/obj/item/reagent_containers/food/snacks/cookie,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/fudge/cookies_n_cream
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/fudge_turtle
 	name = "Шоколадная долька «Черепашка»"
@@ -77,6 +82,7 @@
 		/obj/item/reagent_containers/food/snacks/grown/peanuts,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/fudge/turtle
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/fudge
 	name = "Шоколадная долька"
@@ -89,23 +95,27 @@
 	reagents = list("sugar" = 5, "cream" = 5)
 	items = list()
 	result = /obj/item/reagent_containers/food/snacks/candy/caramel
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/toffee
 	name = "Ириска"
 	reagents = list("sugar" = 5, "flour" = 10)
 	result = /obj/item/reagent_containers/food/snacks/candy/toffee
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/taffy
 	name = "Тянучка"
 	reagents = list("salglu_solution" = 15)
 	items = list()
 	result = /obj/item/reagent_containers/food/snacks/candy/taffy
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/nougat
 	name = "Нуга"
 	reagents = list("sugar" = 5, "cornoil" = 5)
 	items = list(/obj/item/reagent_containers/food/snacks/egg)
 	result = /obj/item/reagent_containers/food/snacks/candy/nougat
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/nougat/make_food(obj/container)
 	var/obj/item/reagent_containers/food/snacks/candy/nougat/being_cooked = ..()
@@ -123,6 +133,7 @@
 		/obj/item/c_tube,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/cotton
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/gummybear
 	name = "Жевательный мишка"
@@ -132,6 +143,7 @@
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/gummybear
 	byproduct = /obj/item/kitchen/mould/bear
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/gummyworm
 	name = "Жевательный червячок"
@@ -141,6 +153,7 @@
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/gummyworm
 	byproduct = /obj/item/kitchen/mould/worm
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/jellybean
 	name = "Мармеладный боб"
@@ -150,6 +163,7 @@
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/jellybean
 	byproduct = /obj/item/kitchen/mould/bean
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/jawbreaker
 	name = "Зубодробитель"
@@ -159,6 +173,7 @@
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/jawbreaker
 	byproduct = /obj/item/kitchen/mould/ball
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/candycane
 	name = "Леденец-трость"
@@ -169,12 +184,14 @@
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/candycane
 	byproduct = /obj/item/kitchen/mould/cane
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/gum
 	name = "Жевательная резинка"
 	reagents = list("sugar" = 5, "water" = 5, "cornoil" = 5)
 	items = list()
 	result = /obj/item/reagent_containers/food/snacks/candy/gum
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/candybar
 	name = "Шоколадный батончик"
@@ -183,6 +200,7 @@
 		/obj/item/reagent_containers/food/snacks/chocolatebar,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/candybar
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/cash
 	name = "Шоколадная купюра"
@@ -192,6 +210,7 @@
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/cash
 	byproduct = /obj/item/kitchen/mould/cash
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/coin
 	name = "Шоколадная монета"
@@ -201,6 +220,7 @@
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/coin
 	byproduct = /obj/item/kitchen/mould/coin
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/sucker
 	name = "Леденец на палочке"
@@ -210,6 +230,7 @@
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/sucker
 	byproduct = /obj/item/kitchen/mould/loli
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 // ***********************************************************
 // Cotton Candy Recipes (flavored)
@@ -222,6 +243,7 @@
 		/obj/item/reagent_containers/food/snacks/candy/cotton,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/cotton/red
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/cottoncandy_blue
 	name = "Голубая сахарная вата"
@@ -230,6 +252,7 @@
 		/obj/item/reagent_containers/food/snacks/candy/cotton,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/cotton/blue
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/cottoncandy_poison
 	name = "Ядовитая сахарная вата"
@@ -238,6 +261,7 @@
 		/obj/item/reagent_containers/food/snacks/candy/cotton,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/cotton/poison
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/cottoncandy_green
 	name = "Зелёная сахарная вата"
@@ -246,6 +270,7 @@
 		/obj/item/reagent_containers/food/snacks/candy/cotton,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/cotton/green
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/cottoncandy_yellow
 	name = "Жёлтая сахарная вата"
@@ -254,6 +279,7 @@
 		/obj/item/reagent_containers/food/snacks/candy/cotton,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/cotton/yellow
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/cottoncandy_orange
 	name = "Оранжевая сахарная вата"
@@ -262,6 +288,7 @@
 		/obj/item/reagent_containers/food/snacks/candy/cotton,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/cotton/orange
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/cottoncandy_purple
 	name = "Фиолетовая сахарная вата"
@@ -270,6 +297,7 @@
 		/obj/item/reagent_containers/food/snacks/candy/cotton,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/cotton/purple
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/cottoncandy_pink
 	name = "Розовая сахарная вата"
@@ -278,6 +306,7 @@
 		/obj/item/reagent_containers/food/snacks/candy/cotton,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/cotton/pink
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/cottoncandy_rainbow
 	name = "Радужная сахарная вата"
@@ -292,6 +321,7 @@
 		/obj/item/reagent_containers/food/snacks/candy/cotton/pink,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/cotton/rainbow
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/cottoncandy_rainbow2
 	name = "Не Радужная сахарная вата"
@@ -306,6 +336,7 @@
 		/obj/item/reagent_containers/food/snacks/candy/cotton/pink,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/cotton/bad_rainbow
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 // ***********************************************************
 // Gummy Bear Recipes (flavored)
@@ -318,6 +349,7 @@
 		/obj/item/reagent_containers/food/snacks/candy/gummybear,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/gummybear/red
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/gummybear_blue
 	name = "Голубой жевательный мишка"
@@ -326,6 +358,7 @@
 		/obj/item/reagent_containers/food/snacks/candy/gummybear,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/gummybear/blue
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/gummybear_poison
 	name = "Ядовитый жевательный мишка"
@@ -334,6 +367,7 @@
 		/obj/item/reagent_containers/food/snacks/candy/gummybear,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/gummybear/poison
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/gummybear_green
 	name = "Зелёный жевательный мишка"
@@ -342,6 +376,7 @@
 		/obj/item/reagent_containers/food/snacks/candy/gummybear,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/gummybear/green
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/gummybear_yellow
 	name = "Жёлтый жевательный мишка"
@@ -350,6 +385,7 @@
 		/obj/item/reagent_containers/food/snacks/candy/gummybear,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/gummybear/yellow
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/gummybear_orange
 	name = "Оранжевый жевательный мишка"
@@ -358,6 +394,7 @@
 		/obj/item/reagent_containers/food/snacks/candy/gummybear,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/gummybear/orange
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/gummybear_purple
 	name = "Фиолетовый жевательный мишка"
@@ -366,6 +403,7 @@
 		/obj/item/reagent_containers/food/snacks/candy/gummybear,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/gummybear/purple
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/gummybear_wtf
 	name = "Странный жевательный мишка"
@@ -374,12 +412,14 @@
 		/obj/item/reagent_containers/food/snacks/candy/gummybear,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/gummybear/wtf
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/gummybear_wtf2
 	name = "Странный жевательный мишка с амброзией"
 	reagents = list()
 	items = list(/obj/item/reagent_containers/food/snacks/candy/gummybear, /obj/item/reagent_containers/food/snacks/grown/ambrosia/vulgaris)
 	result = /obj/item/reagent_containers/food/snacks/candy/gummybear/wtf
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 // ***********************************************************
 // Gummy Worm Recipes (flavored)
@@ -392,6 +432,7 @@
 		/obj/item/reagent_containers/food/snacks/candy/gummyworm,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/gummyworm/red
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/gummyworm_blue
 	name = "Голубой жевательный червячок"
@@ -400,6 +441,7 @@
 		/obj/item/reagent_containers/food/snacks/candy/gummyworm,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/gummyworm/blue
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/gummyworm_poison
 	name = "Ядовитый жевательный червячок"
@@ -408,6 +450,7 @@
 		/obj/item/reagent_containers/food/snacks/candy/gummyworm,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/gummyworm/poison
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/gummyworm_green
 	name = "Зелёный жевательный червячок"
@@ -416,6 +459,7 @@
 		/obj/item/reagent_containers/food/snacks/candy/gummyworm,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/gummyworm/green
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/gummyworm_yellow
 	name = "Жёлтый жевательный червячок"
@@ -424,6 +468,7 @@
 		/obj/item/reagent_containers/food/snacks/candy/gummyworm,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/gummyworm/yellow
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/gummyworm_orange
 	name = "Оранжевый жевательный червячок"
@@ -432,6 +477,7 @@
 		/obj/item/reagent_containers/food/snacks/candy/gummyworm,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/gummyworm/orange
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/gummyworm_purple
 	name = "Фиолетовый жевательный червячок"
@@ -440,6 +486,7 @@
 		/obj/item/reagent_containers/food/snacks/candy/gummyworm,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/gummyworm/purple
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/gummyworm_wtf
 	name = "Странный жевательный червячок"
@@ -448,11 +495,13 @@
 		/obj/item/reagent_containers/food/snacks/candy/gummyworm,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/gummyworm/wtf
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/gummyworm_wtf2
 	name = "Странный жевательный червячок с амброзией"
 	items = list(/obj/item/reagent_containers/food/snacks/candy/gummyworm, /obj/item/reagent_containers/food/snacks/grown/ambrosia/vulgaris)
 	result = /obj/item/reagent_containers/food/snacks/candy/gummyworm/wtf
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 // ***********************************************************
 // Jelly Bean Recipes (flavored)
@@ -465,6 +514,7 @@
 		/obj/item/reagent_containers/food/snacks/candy/jellybean,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/jellybean/red
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/jellybean_blue
 	name = "Голубой мармеладный боб"
@@ -473,6 +523,7 @@
 		/obj/item/reagent_containers/food/snacks/candy/jellybean,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/jellybean/blue
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/jellybean_poison
 	name = "Ядовитый мармеладный боб"
@@ -481,6 +532,7 @@
 		/obj/item/reagent_containers/food/snacks/candy/jellybean,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/jellybean/poison
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/jellybean_green
 	name = "Зелёный мармеладный боб"
@@ -489,6 +541,7 @@
 		/obj/item/reagent_containers/food/snacks/candy/jellybean,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/jellybean/green
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/jellybean_yellow
 	name = "Жёлтый мармеладный боб"
@@ -497,6 +550,7 @@
 		/obj/item/reagent_containers/food/snacks/candy/jellybean,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/jellybean/yellow
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/jellybean_orange
 	name = "Оранжевый мармеладный боб"
@@ -505,6 +559,7 @@
 		/obj/item/reagent_containers/food/snacks/candy/jellybean,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/jellybean/orange
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/jellybean_purple
 	name = "Фиолетовый мармеладный боб"
@@ -513,6 +568,7 @@
 		/obj/item/reagent_containers/food/snacks/candy/jellybean,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/jellybean/purple
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/jellybean_chocolate
 	name = "Шоколадный мармеладный боб"
@@ -522,6 +578,7 @@
 		/obj/item/reagent_containers/food/snacks/chocolatebar,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/jellybean/chocolate
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/jellybean_cola
 	name = "Мармеладный боб со вкусом колы"
@@ -530,6 +587,7 @@
 		/obj/item/reagent_containers/food/snacks/candy/jellybean,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/jellybean/cola
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/jellybean_popcorn
 	name = "Мармеладный боб с попкорном"
@@ -539,6 +597,7 @@
 		/obj/item/reagent_containers/food/snacks/candy/jellybean,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/jellybean/popcorn
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/jellybean_coffee
 	name = "Мармеладный боб со вкусом кофе"
@@ -547,6 +606,7 @@
 		/obj/item/reagent_containers/food/snacks/candy/jellybean,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/jellybean/cola
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/jellybean_drgibb
 	name = "Мармеладный боб со вкусом Dr. Gibb"
@@ -555,6 +615,7 @@
 		/obj/item/reagent_containers/food/snacks/candy/jellybean,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/jellybean/cola
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/jellybean_wtf
 	name = "Странный мармеладный боб"
@@ -563,11 +624,13 @@
 		/obj/item/reagent_containers/food/snacks/candy/jellybean,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/jellybean/wtf
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/jellybean_wtf2
 	name = "Странный мармеладный боб с амброзией"
 	items = list(/obj/item/reagent_containers/food/snacks/candy/jellybean, /obj/item/reagent_containers/food/snacks/grown/ambrosia/vulgaris)
 	result = /obj/item/reagent_containers/food/snacks/candy/jellybean/wtf
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 // ***********************************************************
 // Candybar Recipes (flavored)
@@ -581,6 +644,7 @@
 		/obj/item/reagent_containers/food/snacks/candy/caramel,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/confectionery/caramel
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/toolerone
 	name = "Нуга в шоколаде"
@@ -590,6 +654,7 @@
 		/obj/item/reagent_containers/food/snacks/candy/nougat,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/confectionery/nougat
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/yumbaton
 	name = "Ирисовый батончик"
@@ -599,6 +664,7 @@
 		/obj/item/reagent_containers/food/snacks/candy/toffee,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/confectionery/toffee
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/crunch
 	name = "Хрустящий рисовый батончик"
@@ -607,6 +673,7 @@
 		/obj/item/reagent_containers/food/snacks/candy/candybar,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/confectionery/rice
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/candy/toxinstest
 	name = "Токсичная бомба"
@@ -617,3 +684,4 @@
 		/obj/item/reagent_containers/food/snacks/candy/nougat,
 	)
 	result = /obj/item/reagent_containers/food/snacks/candy/confectionery/caramel_nougat
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL

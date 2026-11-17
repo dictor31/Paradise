@@ -21,6 +21,7 @@
 		/obj/item/reagent_containers/food/snacks/raw_bacon,
 	)
 	result = /obj/item/reagent_containers/food/snacks/bacon
+	required_skill_level = SKILL_LEVEL_BEGINNER
 
 /datum/recipe/grill/telebacon
 	name = "Теле-Бекон"
@@ -30,6 +31,7 @@
 		/obj/item/assembly/signaler,
 	)
 	result = /obj/item/reagent_containers/food/snacks/telebacon
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/syntitelebacon
 	name = "Синтетический Теле-Бекон"
@@ -39,6 +41,7 @@
 		/obj/item/assembly/signaler,
 	)
 	result = /obj/item/reagent_containers/food/snacks/telebacon
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/friedegg
 	name = "Яичница"
@@ -47,6 +50,7 @@
 		/obj/item/reagent_containers/food/snacks/egg,
 	)
 	result = /obj/item/reagent_containers/food/snacks/friedegg
+	required_skill_level = SKILL_LEVEL_BASIC
 
 /datum/recipe/grill/birdsteak
 	name = "Куринный стейк"
@@ -55,6 +59,7 @@
 		/obj/item/reagent_containers/food/snacks/meat/bird,
 	)
 	result = /obj/item/reagent_containers/food/snacks/birdsteak
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/meatsteak
 	name = "Мясной стейк"
@@ -63,6 +68,7 @@
 		/obj/item/reagent_containers/food/snacks/meat,
 	)
 	result = /obj/item/reagent_containers/food/snacks/meatsteak
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/salmonsteak
 	name = "Рыбный стейк"
@@ -71,6 +77,7 @@
 		/obj/item/reagent_containers/food/snacks/salmonmeat,
 	)
 	result = /obj/item/reagent_containers/food/snacks/salmonsteak
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/syntisteak
 	name = "Синтетический стейк"
@@ -79,6 +86,7 @@
 		/obj/item/reagent_containers/food/snacks/meat/syntiflesh,
 	)
 	result = /obj/item/reagent_containers/food/snacks/meatsteak
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/meatsteak_human
 	name = "Стейк из человечины"
@@ -88,6 +96,7 @@
 		/obj/item/reagent_containers/food/snacks/grown/eggplant,
 	)
 	result = /obj/item/reagent_containers/food/snacks/meatsteak/human
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/meatsteak_vulpkanin
 	name = "Стейк из вульпканина"
@@ -98,6 +107,7 @@
 		/obj/item/reagent_containers/food/snacks/grown/mushroom/chanterelle,
 	)
 	result = /obj/item/reagent_containers/food/snacks/meatsteak/vulpkanin
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/meatsteak_tajaran
 	name = "Стейк из таяры"
@@ -107,6 +117,7 @@
 		/obj/item/grown/nettle/basic,
 	)
 	result = /obj/item/reagent_containers/food/snacks/meatsteak/tajaran
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/meatsteak_unathi
 	name = "Стейк из унати"
@@ -116,6 +127,7 @@
 		/obj/item/reagent_containers/food/snacks/grown/harebell,
 	)
 	result = /obj/item/reagent_containers/food/snacks/meatsteak/unathi
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/meatsteak_drask
 	name = "Стейк из драска"
@@ -129,6 +141,7 @@
 		/obj/item/reagent_containers/food/snacks/grown/berries,
 	)
 	result = /obj/item/reagent_containers/food/snacks/meatsteak/drask
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/meatsteak_grey
 	name = "Стейк из грея"
@@ -139,6 +152,7 @@
 		/obj/item/reagent_containers/food/snacks/grown/cabbage,
 	)
 	result = /obj/item/reagent_containers/food/snacks/meatsteak/grey
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/meatsteak_skrell
 	name = "Стейк из скрелла"
@@ -148,6 +162,7 @@
 		/obj/item/reagent_containers/food/snacks/grown/banana,
 	)
 	result = /obj/item/reagent_containers/food/snacks/meatsteak/skrell
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/meatsteak_vox
 	name = "Стейк из вокса"
@@ -159,6 +174,7 @@
 		/obj/item/reagent_containers/food/snacks/grown/potato/sweet,
 	)
 	result = /obj/item/reagent_containers/food/snacks/meatsteak/vox
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/meatsteak_slime
 	name = "Стейк из слизи"
@@ -168,6 +184,7 @@
 		/obj/item/reagent_containers/food/snacks/grown/ambrosia/vulgaris,
 	)
 	result = /obj/item/reagent_containers/food/snacks/meatsteak/slime
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/meatsteak_wryn
 	name = "Стейк из врина"
@@ -178,6 +195,7 @@
 		/obj/item/reagent_containers/food/snacks/grown/potato,
 	)
 	result = /obj/item/reagent_containers/food/snacks/meatsteak/wryn
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/meatsteak_kidan
 	name = "Стейк из кидана"
@@ -190,6 +208,7 @@
 		/obj/item/reagent_containers/food/snacks/grown/olive,
 	)
 	result = /obj/item/reagent_containers/food/snacks/meatsteak/kidan
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/meatsteak_nian
 	name = "Стейк из ниана"
@@ -199,6 +218,7 @@
 		/obj/item/reagent_containers/food/snacks/grown/citrus/orange,
 	)
 	result = /obj/item/reagent_containers/food/snacks/meatsteak/nian
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/meatsteak_diona
 	name = "Стейк из дионы"
@@ -209,6 +229,7 @@
 		/obj/item/reagent_containers/food/snacks/grown/citrus/lemon,
 	)
 	result = /obj/item/reagent_containers/food/snacks/meatsteak/diona
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/meatsteak_monkey
 	name = "Стейк из обезьяны"
@@ -220,6 +241,7 @@
 		/obj/item/reagent_containers/food/snacks/grown/citrus/lemon,
 	)
 	result = /obj/item/reagent_containers/food/snacks/meatsteak/monkey
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/meatsteak_farwa
 	name = "Стейк из фарвы"
@@ -230,6 +252,7 @@
 		/obj/item/reagent_containers/food/snacks/grown/poppy,
 	)
 	result = /obj/item/reagent_containers/food/snacks/meatsteak/farwa
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/meatsteak_wolpin
 	name = "Стейк из вульпы"
@@ -240,6 +263,7 @@
 		/obj/item/reagent_containers/food/snacks/onion_slice/red,
 	)
 	result = /obj/item/reagent_containers/food/snacks/meatsteak/wolpin
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/meatsteak_neara
 	name = "Стейк из неары"
@@ -250,6 +274,8 @@
 		/obj/item/reagent_containers/food/snacks/grown/soybeans,
 	)
 	result = /obj/item/reagent_containers/food/snacks/meatsteak/neara
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
+
 
 /datum/recipe/grill/meatsteak_stok
 	name = "Стейк из стока"
@@ -260,6 +286,7 @@
 		/obj/item/reagent_containers/food/snacks/cucumberslice,
 	)
 	result = /obj/item/reagent_containers/food/snacks/meatsteak/stok
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/waffles
 	name = "Вафли"
@@ -269,6 +296,7 @@
 		/obj/item/reagent_containers/food/snacks/dough,
 	)
 	result = /obj/item/reagent_containers/food/snacks/waffles
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/rofflewaffles
 	name = "Рофл-вафли"
@@ -278,6 +306,7 @@
 		/obj/item/reagent_containers/food/snacks/dough,
 	)
 	result = /obj/item/reagent_containers/food/snacks/rofflewaffles
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/grilledcheese
 	name = "Сэндвич с сыром"
@@ -287,6 +316,7 @@
 		/obj/item/reagent_containers/food/snacks/cheesewedge,
 	)
 	result = /obj/item/reagent_containers/food/snacks/grilledcheese
+	required_skill_level = SKILL_LEVEL_BASIC
 
 /datum/recipe/grill/sausage
 	name = "Сосиска"
@@ -296,6 +326,7 @@
 		/obj/item/reagent_containers/food/snacks/cutlet,
 	)
 	result = /obj/item/reagent_containers/food/snacks/sausage
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/fishfingers
 	name = "Рыбные палочки"
@@ -305,6 +336,7 @@
 		/obj/item/reagent_containers/food/snacks/carpmeat,
 	)
 	result = /obj/item/reagent_containers/food/snacks/fishfingers
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/fishfingers/make_food(obj/container)
 	var/obj/item/reagent_containers/food/snacks/fishfingers/being_cooked = ..()
@@ -318,6 +350,7 @@
 		/obj/item/reagent_containers/food/snacks/rawcutlet,
 	)
 	result = /obj/item/reagent_containers/food/snacks/cutlet
+	required_skill_level = SKILL_LEVEL_BASIC
 
 /datum/recipe/grill/omelette
 	name = "Омлет"
@@ -329,6 +362,7 @@
 		/obj/item/reagent_containers/food/snacks/cheesewedge,
 	)
 	result = /obj/item/reagent_containers/food/snacks/omelette
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/wingfangchu
 	name = "Крыло Фенг-Чу"
@@ -337,6 +371,7 @@
 		/obj/item/reagent_containers/food/snacks/monstermeat/xenomeat,
 	)
 	result = /obj/item/reagent_containers/food/snacks/wingfangchu
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/human/kabob
 	name = "Мясной кебаб"
@@ -347,6 +382,7 @@
 		/obj/item/reagent_containers/food/snacks/meat/humanoid/human,
 	)
 	result = /obj/item/reagent_containers/food/snacks/kabob
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/monkeykabob
 	name = "Обезьянский кебаб"
@@ -357,6 +393,7 @@
 		/obj/item/reagent_containers/food/snacks/meat/humanoid/monkey,
 	)
 	result = /obj/item/reagent_containers/food/snacks/monkeykabob
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/syntikabob
 	name = "Синтетический кебаб"
@@ -367,6 +404,7 @@
 		/obj/item/reagent_containers/food/snacks/meat/syntiflesh,
 	)
 	result = /obj/item/reagent_containers/food/snacks/monkeykabob
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/tofukabob
 	name = "Тофу-кебаб"
@@ -377,6 +415,7 @@
 		/obj/item/reagent_containers/food/snacks/tofu,
 	)
 	result = /obj/item/reagent_containers/food/snacks/tofukabob
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/sushi_Tamago
 	name = "Суши Тамаго"
@@ -386,6 +425,7 @@
 		/obj/item/reagent_containers/food/snacks/boiledrice,
 	)
 	result = /obj/item/reagent_containers/food/snacks/sushi_Tamago
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/sushi_Unagi
 	name = "Суши Унаги"
@@ -395,6 +435,7 @@
 		/obj/item/reagent_containers/food/snacks/boiledrice,
 	)
 	result = /obj/item/reagent_containers/food/snacks/sushi_Unagi
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/sushi_Ebi
 	name = "Суши Эби"
@@ -404,6 +445,7 @@
 		/obj/item/reagent_containers/food/snacks/boiled_shrimp,
 	)
 	result = /obj/item/reagent_containers/food/snacks/sushi_Ebi
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/sushi_Ikura
 	name =  "Суши Икура"
@@ -413,6 +455,7 @@
 		/obj/item/fish_eggs/salmon,
 	)
 	result = /obj/item/reagent_containers/food/snacks/sushi_Ikura
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/sushi_Inari
 	name = "Суши Инара"
@@ -422,6 +465,7 @@
 		/obj/item/reagent_containers/food/snacks/fried_tofu,
 	)
 	result = /obj/item/reagent_containers/food/snacks/sushi_Inari
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/sushi_Sake
 	name = "Суши Саке"
@@ -431,6 +475,7 @@
 		/obj/item/reagent_containers/food/snacks/salmonmeat,
 	)
 	result = /obj/item/reagent_containers/food/snacks/sushi_Sake
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/sushi_SmokedSalmon
 	name = "Суши с копченым лососем"
@@ -440,6 +485,7 @@
 		/obj/item/reagent_containers/food/snacks/salmonsteak,
 	)
 	result = /obj/item/reagent_containers/food/snacks/sushi_SmokedSalmon
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/sushi_Masago
 	name = "Суши Масаго"
@@ -449,6 +495,7 @@
 		/obj/item/fish_eggs/goldfish,
 	)
 	result = /obj/item/reagent_containers/food/snacks/sushi_Masago
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/sushi_Tobiko
 	name = "Суши Тобико"
@@ -458,6 +505,7 @@
 		/obj/item/fish_eggs/shark,
 	)
 	result = /obj/item/reagent_containers/food/snacks/sushi_Tobiko
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/sushi_TobikoEgg
 	name = "Суши Тобико с яйцом"
@@ -467,6 +515,7 @@
 		/obj/item/reagent_containers/food/snacks/egg,
 	)
 	result = /obj/item/reagent_containers/food/snacks/sushi_TobikoEgg
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/sushi_Tai
 	name = "Суши Тай"
@@ -476,11 +525,13 @@
 		/obj/item/reagent_containers/food/snacks/catfishmeat,
 	)
 	result = /obj/item/reagent_containers/food/snacks/sushi_Tai
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/goliath
 	name = "Стейк из голиафа"
 	items = list(/obj/item/reagent_containers/food/snacks/monstermeat/goliath)
 	result = /obj/item/reagent_containers/food/snacks/goliath_steak
+	required_skill_level = SKILL_LEVEL_BASIC
 
 /datum/recipe/grill/shrimp_skewer
 	name = "Креветочный шашлык"
@@ -493,6 +544,7 @@
 		/obj/item/stack/rods,
 	)
 	result = /obj/item/reagent_containers/food/snacks/shrimp_skewer
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/fish_skewer
 	name = "Рыбный шашлык"
@@ -503,6 +555,7 @@
 		/obj/item/stack/rods,
 	)
 	result = /obj/item/reagent_containers/food/snacks/fish_skewer
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/pancake
 	name = "Блины"
@@ -511,6 +564,7 @@
 		/obj/item/reagent_containers/food/snacks/cookiedough,
 	)
 	result = /obj/item/reagent_containers/food/snacks/pancake
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/berry_pancake
 	name = "Блины с ягодами"
@@ -520,6 +574,7 @@
 		/obj/item/reagent_containers/food/snacks/grown/berries,
 	)
 	result = /obj/item/reagent_containers/food/snacks/pancake/berry_pancake
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/choc_chip_pancake
 	name = "Блины с шоколадной крошкой"
@@ -529,6 +584,7 @@
 		/obj/item/reagent_containers/food/snacks/choc_pile,
 	)
 	result = /obj/item/reagent_containers/food/snacks/pancake/choc_chip_pancake
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/unathi
 	name = "Жаренный хвост унати"
@@ -537,6 +593,7 @@
 		/obj/item/organ/external/tail/unathi,
 	)
 	result = /obj/item/reagent_containers/food/snacks/sliceable/lizard
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL
 
 /datum/recipe/grill/plov
 	name = "Плов"
@@ -549,3 +606,4 @@
 		/obj/item/reagent_containers/food/snacks/grown/garlic,
 	)
 	result = /obj/item/reagent_containers/food/snacks/plov
+	required_skill_level = SKILL_LEVEL_PROFESSIONAL

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { LabeledList, Section, Tabs } from 'tgui-core/components';
 import { useBackend } from '../backend';
@@ -13,6 +12,7 @@ type Recipe = {
   name: string;
   items: Ingredient[];
   reagents: Ingredient[];
+  saturation: number;
 };
 
 type CookData = {
@@ -52,42 +52,35 @@ export const CookWindow = (props: unknown) => {
           ))}
         </Tabs>
 
-        <Section title="Рецепты">
-          {recipes.map((recipe, index) => (
-            <Section
-              key={`${recipe.name}-${index}`}
-              title={recipe.name}
-            >
+        {recipes.map((recipe, index) => (
+          <Section key={`${recipe.name}-${index}`} title={recipe.name}>
+            <LabeledList>
+              {recipe.items.length > 0 && (
+                <LabeledList.Item label="Ингредиенты">
+                  <ul>
+                    {recipe.items.map((item, itemIndex) => (
+                      <li key={`${item.name}-${itemIndex}`}>
+                        {item.name} — {item.amount} шт.
+                      </li>
+                    ))}
+                  </ul>
+                </LabeledList.Item>
+              )}
 
-<LabeledList>
-  {recipe.items.length > 0 && (
-    <LabeledList.Item label="Ингредиенты">
-      <ul>
-        {recipe.items.map((item, itemIndex) => (
-          <li key={`${item.name}-${itemIndex}`}>
-            {item.name} — {item.amount} шт.
-          </li>
+              {recipe.reagents.length > 0 && (
+                <LabeledList.Item label="Реагенты">
+                  <ul>
+                    {recipe.reagents.map((reagent, reagentIndex) => (
+                      <li key={`${reagent.name}-${reagentIndex}`}>
+                        {reagent.name} — {reagent.amount} ед.
+                      </li>
+                    ))}
+                  </ul>
+                </LabeledList.Item>
+              )}
+            </LabeledList>
+          </Section>
         ))}
-      </ul>
-    </LabeledList.Item>
-  )}
-
-  {recipe.reagents.length > 0 && (
-    <LabeledList.Item label="Реагенты">
-      <ul>
-        {recipe.reagents.map((reagent, reagentIndex) => (
-          <li key={`${reagent.name}-${reagentIndex}`}>
-            {reagent.name} — {reagent.amount} ед.
-          </li>
-        ))}
-      </ul>
-    </LabeledList.Item>
-  )}
-</LabeledList>
-
-            </Section>
-          ))}
-        </Section>
       </Window.Content>
     </Window>
   );
