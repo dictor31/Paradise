@@ -365,12 +365,20 @@
 	for(var/list/stored_reagent as anything in microscope_reagent_storage)
 		if(stored_reagent["amount"] <= 0.001)
 			continue
+		var/vaccine_kind = null
+		if(stored_reagent["type"] == /datum/reagent/vaccine/antiviral)
+			vaccine_kind = "antiviral"
+		else if(stored_reagent["type"] == /datum/reagent/vaccine/immunity)
+			vaccine_kind = "immunity"
+		else if(stored_reagent["type"] == /datum/reagent/vaccine/combined)
+			vaccine_kind = "combined"
 		available_microscope_reagents += list(list(
 			"id" = stored_reagent["id"],
 			"name" = stored_reagent["name"],
 			"volume" = stored_reagent["amount"],
 			"color" = stored_reagent["color"],
 			"is_vaccine" = stored_reagent["is_vaccine"],
+			"vaccine_kind" = vaccine_kind,
 		))
 	data["microscope_available_reagents"] = available_microscope_reagents
 	data["microscope_reagent_storage_amount"] = get_microscope_reagent_storage_amount()
@@ -705,18 +713,13 @@
 			if(!islist(selected_ids) || !length(selected_ids) || length(selected_ids) > 2)
 				balloon_alert(usr, "выберите один или два компонента")
 				return TRUE
-			if(!beaker?.reagents || !microscope_sample_reagent || !length(microscope_virus_seeds))
-				balloon_alert(usr, "для синтеза нужен образец заражённой крови")
-				return TRUE
-
 			var/sample_is_installed = FALSE
-			for(var/datum/reagent/sample_reagent as anything in beaker.reagents.reagent_list)
-				if(sample_reagent == microscope_sample_reagent)
-					sample_is_installed = TRUE
-					break
-			if(!sample_is_installed || !islist(microscope_sample_reagent.data))
-				balloon_alert(usr, "образец крови изменился")
-				return TRUE
+			if(beaker?.reagents && microscope_sample_reagent)
+				for(var/datum/reagent/sample_reagent as anything in beaker.reagents.reagent_list)
+					if(sample_reagent == microscope_sample_reagent)
+						sample_is_installed = TRUE
+						break
+			var/has_virus_sample = sample_is_installed && islist(microscope_sample_reagent.data) && length(microscope_virus_seeds)
 
 			var/list/selected_entries = list()
 			var/list/validated_ids = list()
@@ -739,7 +742,7 @@
 			var/vaccine_name = null
 			var/vaccine_label = null
 
-			if(length(selected_entries) == 1)
+			if(length(selected_entries) == 1 && has_virus_sample)
 				var/reagent_id = validated_ids[1]
 				var/list/applied_reagents = microscope_sample_reagent.data["microscope_protective_reagents"]
 				if(!islist(applied_reagents) || !(reagent_id in applied_reagents))
@@ -763,7 +766,7 @@
 				vaccine_label = "иммунная"
 				break
 
-			if(length(selected_entries) == 2 && !vaccine_type)
+			if(length(selected_entries) == 2 && !vaccine_type && has_virus_sample)
 				var/first_id = validated_ids[1]
 				var/second_id = validated_ids[2]
 				for(var/list/seed as anything in microscope_virus_seeds)
