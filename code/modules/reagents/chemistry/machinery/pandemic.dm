@@ -707,6 +707,15 @@
 				balloon_alert(usr, "для синтеза нужен образец заражённой крови")
 				return TRUE
 
+			var/sample_is_installed = FALSE
+			for(var/datum/reagent/sample_reagent as anything in beaker.reagents.reagent_list)
+				if(sample_reagent == microscope_sample_reagent)
+					sample_is_installed = TRUE
+					break
+			if(!sample_is_installed || !islist(microscope_sample_reagent.data))
+				balloon_alert(usr, "образец крови изменился")
+				return TRUE
+
 			var/list/selected_entries = list()
 			var/list/validated_ids = list()
 			for(var/reagent_id as anything in selected_ids)
@@ -1053,42 +1062,6 @@
 		if("removeSympthom")
 			remove_random_symptom(text2num(params["index"]))
 			SStgui.update_uis(src)
-
-		if("createVaccine")
-			if(wait)
-				return
-			var/obj/item/reagent_containers/cup/bottle/bottle = new/obj/item/reagent_containers/cup/bottle(loc)
-			if(!bottle)
-				return
-			bottle.pixel_x = rand(-3, 3)
-			bottle.pixel_y = rand(-3, 3)
-			var/path = GetResistancesByIndex(text2num(params["index"]))
-			var/vaccine_type = path
-			var/vaccine_name = UNKNOWN_STATUS_RUS
-
-			if(!ispath(vaccine_type))
-				if(GLOB.archive_diseases[path])
-					var/datum/disease/disease = GLOB.archive_diseases[path]
-					if(disease)
-						vaccine_name = disease.name
-						vaccine_type = path
-			else if(vaccine_type)
-				var/datum/disease/disease = new vaccine_type
-				if(disease)
-					vaccine_name = disease.name
-
-			if(vaccine_type)
-				bottle.name = "вакцина [capitalize(vaccine_name)]"
-				bottle.ru_names = alist(
-					NOMINATIVE = "вакцина [capitalize(vaccine_name)]",
-					GENITIVE = "вакцины [capitalize(vaccine_name)]",
-					DATIVE = "вакцине [capitalize(vaccine_name)]",
-					ACCUSATIVE = "вакцину [capitalize(vaccine_name)]",
-					INSTRUMENTAL = "вакциной [capitalize(vaccine_name)]",
-					PREPOSITIONAL = "вакцине [capitalize(vaccine_name)]",
-				)
-				bottle.reagents.add_reagent(/datum/reagent/vaccine, 15, list(vaccine_type))
-				replicator_cooldown(20 SECONDS)
 
 /obj/machinery/computer/pandemic/proc/ui_act_modal(action, params)
 	return FALSE
