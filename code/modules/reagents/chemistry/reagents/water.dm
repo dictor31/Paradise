@@ -328,7 +328,12 @@ GLOBAL_LIST_INIT(diseases_carrier_reagents, list(
 	if(!islist(data) || !(method in list(REAGENT_INGEST, REAGENT_INJECT)))
 		return
 	for(var/virus_type in data)
-		if(!M.HasDisease(virus_type))
+		var/virus_is_active = FALSE
+		for(var/datum/disease/active_disease as anything in M.diseases)
+			if(active_disease.GetDiseaseID() == virus_type)
+				virus_is_active = TRUE
+				break
+		if(!virus_is_active)
 			LAZYOR(M.resistances, virus_type)
 
 /datum/reagent/vaccine/combined
