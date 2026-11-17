@@ -2328,7 +2328,7 @@ export const VirusMicroscope = (_props: unknown) => {
 
       act('feedMicroscopeCells', { amount: foodDose });
       setSimulation((current) => ({
-        cells: current.cells,
+        ...current,
         particles: [...current.particles, ...newParticles],
       }));
     }, 3000);
