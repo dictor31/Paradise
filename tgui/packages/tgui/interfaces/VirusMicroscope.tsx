@@ -21,8 +21,22 @@ type MicroscopeAddedReagent = {
 
 type MicroscopeVirusSeed = {
   name: string;
+  disease_id: string;
   microscope_reagents: string[];
+  protective_reagent_id: string | null;
   comfortable_temperature: number;
+};
+
+type BloodCellData = {
+  id: number;
+  virusName: string;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  size: number;
+  protectiveReagentId: string | null;
+  rejectionTicks: number;
 };
 
 type VirusMicroscopeData = {
@@ -41,6 +55,9 @@ type VirusMicroscopeData = {
   microscope_simulation_initialized: boolean;
   microscope_simulation_cells: VirusCellData[];
   microscope_simulation_particles: ReagentParticle[];
+  microscope_simulation_blood_cells: BloodCellData[];
+  microscope_simulation_blood_cells_initialized: boolean;
+  microscope_applied_protective_reagents: string[];
 };
 
 type ReagentParticle = {
@@ -59,6 +76,7 @@ type ReagentParticle = {
 type MicroscopeSimulation = {
   cells: VirusCell[];
   particles: ReagentParticle[];
+  bloodCells: BloodCellData[];
 };
 
 type CellStage = 'normal' | 'growing' | 'stretching' | 'splitting' | 'dying';
@@ -341,6 +359,8 @@ const MAX_CELL_FOOD = 5;
 const PARTICLES_PER_UNIT = 1;
 const MAX_REAGENT_PARTICLES = 80;
 const PARTICLE_RADIUS = 1;
+const BLOOD_CELLS_PER_STRAIN = 4;
+const PROTECTED_CELL_REJECTION_TICKS = 60;
 
 // Each membrane segment behaves like a damped spring. Impact first stores
 // energy as inward deformation; the spring then returns that energy over time.
@@ -456,6 +476,31 @@ const createInitialCells = (
   });
 };
 
+const createInitialBloodCells = (
+  virusSeeds: MicroscopeVirusSeed[],
+): BloodCellData[] => {
+  const positions = [
+    [140, 135],
+    [350, 285],
+    [575, 110],
+    [690, 330],
+  ];
+
+  return virusSeeds.slice(0, 10).flatMap((seed, seedIndex) =>
+    positions.map(([x, y], cellIndex) => ({
+      id: seedIndex * BLOOD_CELLS_PER_STRAIN + cellIndex + 1,
+      virusName: seed.name,
+      x: clamp(x + (Math.random() - 0.5) * 70, 30, AREA_WIDTH - 30),
+      y: clamp(y + (Math.random() - 0.5) * 70, 30, AREA_HEIGHT - 30),
+      vx: (Math.random() - 0.5) * 0.9,
+      vy: (Math.random() - 0.5) * 0.9,
+      size: 9,
+      protectiveReagentId: seed.protective_reagent_id || null,
+      rejectionTicks: 0,
+    })),
+  );
+};
+
 const restoreMicroscopeSimulation = (
   data: VirusMicroscopeData,
   virusSeeds: MicroscopeVirusSeed[],
@@ -488,12 +533,16 @@ const restoreMicroscopeSimulation = (
           }),
       ),
       particles: data.microscope_simulation_particles || [],
+      bloodCells: data.microscope_simulation_blood_cells_initialized
+        ? data.microscope_simulation_blood_cells || []
+        : createInitialBloodCells(virusSeeds),
     };
   }
 
   return {
     cells: createInitialCells(virusSeeds),
     particles: [],
+    bloodCells: createInitialBloodCells(virusSeeds),
   };
 };
 
@@ -620,7 +669,11 @@ const getCellCollisionRadius = (cell: VirusCell): number => {
   return cell.size;
 };
 
-const moveCell = (cell: VirusCell, deltaScale: number): VirusCell => {
+const moveCell = (
+  cell: VirusCell,
+  deltaScale: number,
+  bloodTarget?: BloodCellData,
+): VirusCell => {
   const wallRadius = getCellCollisionRadius(cell);
   // A gentle, deterministic drift keeps each culture from looking like a
   // collection of particles on perfectly straight trajectories.
@@ -630,6 +683,14 @@ const moveCell = (cell: VirusCell, deltaScale: number): VirusCell => {
   let vy =
     cell.vy +
     Math.cos(cell.age * 0.032 + cell.id * 1.7) * 0.035 * deltaScale;
+  if (bloodTarget) {
+    const dx = bloodTarget.x - cell.x;
+    const dy = bloodTarget.y - cell.y;
+    const distance = Math.max(1, Math.hypot(dx, dy));
+    const attraction = clamp(distance / 120, 0.25, 1) * 0.2 * deltaScale;
+    vx += (dx / distance) * attraction;
+    vy += (dy / distance) * attraction;
+  }
   vx = clamp(vx, -2.8, 2.8);
   vy = clamp(vy, -2.8, 2.8);
   let x = cell.x + vx * deltaScale;
@@ -889,13 +950,31 @@ const advanceCells = (
   foodAvailable: boolean,
   biologicalTick: boolean,
   deltaScale: number,
+  bloodCells: BloodCellData[],
 ): VirusCell[] => {
   const next: VirusCell[] = [];
   const offspring: VirusCell[] = [];
   let nextId = cells.reduce((highest, cell) => Math.max(highest, cell.id), 0) + 1;
   for (const cell of cells) {
+    const bloodTarget = bloodCells
+      .filter(
+        (bloodCell) =>
+          bloodCell.virusName === cell.name &&
+          bloodCell.rejectionTicks < PROTECTED_CELL_REJECTION_TICKS,
+      )
+      .reduce<BloodCellData | undefined>((closest, bloodCell) => {
+        if (!closest) {
+          return bloodCell;
+        }
+        return Math.hypot(bloodCell.x - cell.x, bloodCell.y - cell.y) <
+          Math.hypot(closest.x - cell.x, closest.y - cell.y)
+          ? bloodCell
+          : closest;
+      }, undefined);
     const moved =
-      cell.stage === 'dying' ? cell : moveCell(cell, deltaScale);
+      cell.stage === 'dying'
+        ? cell
+        : moveCell(cell, deltaScale, bloodTarget);
     let updated = moved.with({
       age: cell.age + (biologicalTick ? 1 : 0),
       membranePhase: (cell.membranePhase ?? 0) + 0.14 * deltaScale,
@@ -1151,11 +1230,117 @@ const distanceToSegment = (
   return Math.hypot(pointX - closestX, pointY - closestY);
 };
 
+const advanceBloodCellInteractions = (
+  cells: VirusCell[],
+  bloodCells: BloodCellData[],
+  appliedProtectiveReagents: string[],
+  biologicalTick: boolean,
+  deltaScale: number,
+): { cells: VirusCell[]; bloodCells: BloodCellData[] } => {
+  const nextCells = cells.slice();
+  const nextBloodCells = bloodCells.map((bloodCell) => {
+    let vx = bloodCell.vx + Math.sin(bloodCell.id * 1.7 + bloodCell.x * 0.01) * 0.012 * deltaScale;
+    let vy = bloodCell.vy + Math.cos(bloodCell.id * 1.3 + bloodCell.y * 0.01) * 0.012 * deltaScale;
+    let x = bloodCell.x + vx * deltaScale;
+    let y = bloodCell.y + vy * deltaScale;
+    if (x < bloodCell.size + 5 || x > AREA_WIDTH - bloodCell.size - 5) {
+      vx *= -1;
+      x = clamp(x, bloodCell.size + 5, AREA_WIDTH - bloodCell.size - 5);
+    }
+    if (y < bloodCell.size + 5 || y > AREA_HEIGHT - bloodCell.size - 5) {
+      vy *= -1;
+      y = clamp(y, bloodCell.size + 5, AREA_HEIGHT - bloodCell.size - 5);
+    }
+    return { ...bloodCell, x, y, vx, vy };
+  });
+  const consumedBloodCellIds = new Set<number>();
+
+  for (const bloodCell of nextBloodCells) {
+    if (bloodCell.rejectionTicks >= PROTECTED_CELL_REJECTION_TICKS) {
+      continue;
+    }
+    const matchingVirusIndex = nextCells.reduce<number>((closestIndex, cell, index) => {
+      if (cell.name !== bloodCell.virusName || cell.stage === 'dying') {
+        return closestIndex;
+      }
+      if (closestIndex < 0) {
+        return index;
+      }
+      const closest = nextCells[closestIndex];
+      return Math.hypot(cell.x - bloodCell.x, cell.y - bloodCell.y) <
+        Math.hypot(closest.x - bloodCell.x, closest.y - bloodCell.y)
+        ? index
+        : closestIndex;
+    }, -1);
+    if (matchingVirusIndex < 0) {
+      continue;
+    }
+
+    let virusCell = nextCells[matchingVirusIndex];
+    const dx = virusCell.x - bloodCell.x;
+    const dy = virusCell.y - bloodCell.y;
+    const distance = Math.max(0.001, Math.hypot(dx, dy));
+    if (distance > virusCell.size + bloodCell.size + 3) {
+      continue;
+    }
+
+    const hasMatchingProtection =
+      !!bloodCell.protectiveReagentId &&
+      appliedProtectiveReagents.includes(bloodCell.protectiveReagentId);
+    if (hasMatchingProtection) {
+      if (biologicalTick) {
+        const rejectionTicks = Math.min(
+          PROTECTED_CELL_REJECTION_TICKS,
+          bloodCell.rejectionTicks + 1,
+        );
+        const updatedBloodCell = {
+          ...bloodCell,
+          rejectionTicks,
+        };
+        const bloodCellIndex = nextBloodCells.findIndex(
+          (candidate) => candidate.id === bloodCell.id,
+        );
+        if (bloodCellIndex >= 0) {
+          nextBloodCells[bloodCellIndex] = updatedBloodCell;
+        }
+        if (rejectionTicks === PROTECTED_CELL_REJECTION_TICKS) {
+          virusCell = virusCell.with({
+            vx: clamp(virusCell.vx + (dx / distance) * 1.1, -3.4, 3.4),
+            vy: clamp(virusCell.vy + (dy / distance) * 1.1, -3.4, 3.4),
+            visualPulse: 0.8,
+            visualPulseType: 'damage',
+            visualPulseAngle: Math.atan2(dy, dx),
+          });
+          nextCells[matchingVirusIndex] = virusCell;
+        }
+      }
+      continue;
+    }
+
+    if (biologicalTick) {
+      consumedBloodCellIds.add(bloodCell.id);
+      nextCells[matchingVirusIndex] = virusCell.with({
+        food: Math.min(MAX_CELL_FOOD, virusCell.food + 5),
+        visualPulse: 1,
+        visualPulseType: 'food',
+        visualPulseAngle: Math.atan2(dy, dx),
+      });
+    }
+  }
+
+  return {
+    cells: nextCells,
+    bloodCells: nextBloodCells.filter(
+      (bloodCell) => !consumedBloodCellIds.has(bloodCell.id),
+    ),
+  };
+};
+
 const advanceReagentParticles = (
   particles: ReagentParticle[],
   cells: VirusCell[],
   deltaScale: number,
-): MicroscopeSimulation => {
+): { cells: VirusCell[]; particles: ReagentParticle[] } => {
   const nextParticles: ReagentParticle[] = [];
   const nextCells = cells.slice();
 
@@ -1833,6 +2018,50 @@ const renderDividingCell = (
   );
 };
 
+const renderBloodCell = (
+  bloodCell: BloodCellData,
+  protectedByReagent: boolean,
+) => (
+  <g
+    key={'blood-' + bloodCell.id}
+    transform={`translate(${bloodCell.x} ${bloodCell.y})`}
+    pointerEvents="none"
+  >
+    {protectedByReagent && (
+      <ellipse
+        rx={bloodCell.size + 5}
+        ry={bloodCell.size + 4}
+        fill="none"
+        stroke="#8ddfff"
+        strokeWidth="1.2"
+        opacity={0.45 + Math.sin(bloodCell.rejectionTicks * 0.15) * 0.12}
+      />
+    )}
+    <ellipse
+      rx={bloodCell.size * 1.12}
+      ry={bloodCell.size * 0.92}
+      fill={protectedByReagent ? '#277fae' : '#225f91'}
+      stroke={protectedByReagent ? '#9ce3ff' : '#579acb'}
+      strokeWidth="1.3"
+    />
+    <ellipse
+      cx="-1"
+      cy="-1"
+      rx={bloodCell.size * 0.67}
+      ry={bloodCell.size * 0.54}
+      fill={protectedByReagent ? '#6ac2ed' : '#428bbd'}
+      opacity="0.9"
+    />
+    <circle
+      cx="2"
+      cy="1"
+      r={bloodCell.size * 0.25}
+      fill={protectedByReagent ? '#d5f5ff' : '#8fc5e7'}
+      opacity="0.9"
+    />
+  </g>
+);
+
 const StrengthMeter = ({
   label,
   value,
@@ -1893,6 +2122,8 @@ export const VirusMicroscope = (_props: unknown) => {
   const [foodDose, setFoodDose] = useState(1);
   const cells = simulation.cells;
   const particles = simulation.particles;
+  const bloodCells = simulation.bloodCells;
+  const appliedProtectiveReagents = data.microscope_applied_protective_reagents || [];
   const selectedCell = cells.find((cell) => cell.id === selectedId);
   const scanLayer: CellScanLayer | null = selectedCell
     ? selectedCell.outerStrength > 0
@@ -1944,8 +2175,8 @@ export const VirusMicroscope = (_props: unknown) => {
       setSelectedId(null);
       setScanResult(null);
       setSimulation((current) =>
-        current.cells.length || current.particles.length
-          ? { cells: [], particles: [] }
+        current.cells.length || current.particles.length || current.bloodCells.length
+          ? { cells: [], particles: [], bloodCells: [] }
           : current,
       );
       return;
@@ -1965,6 +2196,8 @@ export const VirusMicroscope = (_props: unknown) => {
     data.microscope_simulation_cells,
     data.microscope_simulation_initialized,
     data.microscope_simulation_particles,
+    data.microscope_simulation_blood_cells,
+    data.microscope_simulation_blood_cells_initialized,
     microscopeSamplePresent,
     virusSeeds,
   ]);
@@ -2007,6 +2240,7 @@ export const VirusMicroscope = (_props: unknown) => {
         temperature: temperatureRef.current,
         cells: current.cells.map((cell) => ({ ...cell })),
         particles: current.particles,
+        bloodCells: current.bloodCells,
       });
     };
 
@@ -2028,7 +2262,7 @@ export const VirusMicroscope = (_props: unknown) => {
       biologicalStep.current = !biologicalStep.current;
 
       setSimulation((current) => {
-        if (!current.cells.length && !current.particles.length) {
+        if (!current.cells.length && !current.particles.length && !current.bloodCells.length) {
           return current;
         }
 
@@ -2038,17 +2272,28 @@ export const VirusMicroscope = (_props: unknown) => {
           foodReceiverAmount > 0,
           runBiology,
           BIOLOGICAL_DELTA_SCALE,
+          current.bloodCells,
         );
-        return advanceReagentParticles(
-          current.particles,
+        const bloodInteraction = advanceBloodCellInteractions(
           nextCells,
+          current.bloodCells,
+          appliedProtectiveReagents,
+          runBiology,
           BIOLOGICAL_DELTA_SCALE,
         );
+        return {
+          ...advanceReagentParticles(
+            current.particles,
+            bloodInteraction.cells,
+            BIOLOGICAL_DELTA_SCALE,
+          ),
+          bloodCells: bloodInteraction.bloodCells,
+        };
       });
     }, PHYSICS_INTERVAL);
 
     return () => window.clearInterval(interval);
-  }, [foodReceiverAmount, temperature]);
+  }, [appliedProtectiveReagents, foodReceiverAmount, temperature]);
 
   useEffect(() => {
     if (foodReceiverAmount < foodDose || cells.length === 0) {
@@ -2247,7 +2492,10 @@ export const VirusMicroscope = (_props: unknown) => {
               </div>
               <div className="VirusMicroscope__culture-readouts">
                 <span className="VirusMicroscope__cell-count">
-                  КЛЕТКИ <b>{cells.length}<i> / {MAX_CELLS}</i></b>
+                  ВИРУСЫ <b>{cells.length}<i> / {MAX_CELLS}</i></b>
+                </span>
+                <span className="VirusMicroscope__cell-count">
+                  КРОВЬ <b>{bloodCells.length}</b>
                 </span>
               <div className="VirusMicroscope__food-control">
                 <span className="VirusMicroscope__food-readout">
@@ -2311,6 +2559,13 @@ export const VirusMicroscope = (_props: unknown) => {
                   height={AREA_HEIGHT}
                   fill="url(#virus-microscope-grid)"
                 />
+                {bloodCells.map((bloodCell) =>
+                  renderBloodCell(
+                    bloodCell,
+                    !!bloodCell.protectiveReagentId &&
+                      appliedProtectiveReagents.includes(bloodCell.protectiveReagentId),
+                  ),
+                )}
                 {cells.map((cell) => {
                   if (
                     cell.stage === 'stretching' ||
