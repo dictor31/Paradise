@@ -298,6 +298,10 @@
 	if(!isnull(pull_hand) && pull_hand != PULL_WITHOUT_HANDS && ((hand_id == ITEM_SLOT_HAND_LEFT && pull_hand == PULL_HAND_LEFT) || (hand_id == ITEM_SLOT_HAND_RIGHT && pull_hand == PULL_HAND_RIGHT)))
 		return FALSE
 
+	if(is_hand_pain_blocked(hand_id))
+		balloon_alert(src, "рука слишком сильно болит!")
+		return FALSE
+
 	return hand_id == ITEM_SLOT_HAND_LEFT ? !l_hand : !r_hand
 
 /**

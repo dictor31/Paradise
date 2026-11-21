@@ -15,7 +15,7 @@
 	tts_seed = GetTTSVoice()
 
 	if(.) // not dead
-		handle_pain()
+		process_pain(seconds)
 		handle_heartbeat()
 		// Handles liver failure effects, if we lack a liver
 		handle_liver(seconds)

@@ -77,6 +77,13 @@
 	var/heartbeat = 0
 	var/receiving_cpr = FALSE
 
+	/// Time spent at maximum overall pain; used to calculate cardiac complication risk.
+	var/pain_overload = 0
+	COOLDOWN_DECLARE(pain_emote_cooldown)
+	COOLDOWN_DECLARE(pain_blur_cooldown)
+	COOLDOWN_DECLARE(pain_fall_cooldown)
+	COOLDOWN_DECLARE(pain_cardiac_cooldown)
+
 	var/datum/body_accessory/body_accessory = null
 	/// Name of tail image in species effects icon file.
 	var/tail

@@ -55,6 +55,10 @@
 	blacklisted_movetypes = (FLOATING|FLYING)
 	variable = TRUE
 
+/datum/movespeed_modifier/pain_slowdown
+	blacklisted_movetypes = (FLOATING|FLYING)
+	variable = TRUE
+
 /datum/movespeed_modifier/damage_slowdown_flying
 	movetypes = FLYING
 	variable = TRUE

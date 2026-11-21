@@ -73,6 +73,8 @@
 	var/brute_dam = 0
 	/// Curent bodypart burn damage
 	var/burn_dam = 0
+	/// Accumulated local pain for this bodypart (0-100), separate from physical damage.
+	var/pain_level = 0
 	/// Damage equal to brute damage after bodypart breaks. Used to calculate bodypart overall damage
 	var/perma_injury = 0
 	/// Fracture type
@@ -280,6 +282,39 @@
 /obj/item/organ/external/update_health()
 	damage = min(max_damage, (brute_dam + burn_dam))
 
+/// Add pain caused by a new painful stimulus. Robotic and necrotic parts cannot feel pain.
+/obj/item/organ/external/proc/add_pain(amount)
+	if(amount <= 0 || !owner || is_robotic() || (status & ORGAN_DEAD) || HAS_TRAIT(owner, TRAIT_GODMODE))
+		return FALSE
+
+	var/old_pain = pain_level
+	pain_level = clamp(pain_level + amount, 0, 100)
+	return pain_level - old_pain
+
+/// Reduce the stored pain of this bodypart without changing its physical damage.
+/obj/item/organ/external/proc/reduce_pain(amount)
+	if(amount <= 0)
+		return FALSE
+
+	var/old_pain = pain_level
+	pain_level = max(0, pain_level - amount)
+	return old_pain - pain_level
+
+/// Natural recovery of local pain. Fractures make the pain fade more slowly.
+/obj/item/organ/external/proc/process_pain(seconds)
+	if(pain_level <= 0)
+		return
+
+	if(is_robotic() || (status & ORGAN_DEAD))
+		pain_level = 0
+		return
+
+	var/recovery = max(seconds, 0) * 1.5
+	if(has_fracture())
+		recovery *= 0.5
+
+	reduce_pain(recovery)
+
 // MARK: Damage procs
 
 /**
@@ -308,6 +343,7 @@
 	forced = FALSE,
 	updating_health = TRUE,
 	silent = FALSE,
+	cause_pain = TRUE,
 )
 	if(owner && HAS_TRAIT(owner, TRAIT_GODMODE))
 		return FALSE
@@ -349,6 +385,10 @@
 	burn = round(burn, DAMAGE_PRECISION)
 	if(brute <= 0 && burn <= 0)
 		return FALSE
+
+	// Count the incoming painful stimulus once, before any overflow is distributed to neighbouring parts.
+	if(cause_pain)
+		add_pain((brute + burn) * 2)
 
 	var/original_brute = brute
 	var/original_burn = burn
@@ -433,7 +473,7 @@
 				// And pass the pain around
 				var/obj/item/organ/external/picked_part = pick(possible_points)
 				// If the damage was reduced before, don't reduce it again
-				picked_part.external_receive_damage(brute, burn, blocked, sharp, used_weapon, forbidden_limbs, TRUE, FALSE, silent)
+				picked_part.external_receive_damage(brute, burn, blocked, sharp, used_weapon, forbidden_limbs, TRUE, FALSE, silent, cause_pain = FALSE)
 
 			// We've ensured all damage to the mob is retained, now let's drop it, if necessary
 			var/limb_dropped = FALSE
@@ -582,6 +622,7 @@ This function completely restores a damaged organ to perfect condition.
 	perma_injury = 0
 	brute_dam = 0
 	burn_dam = 0
+	pain_level = 0
 	bleeding_amount = 0
 	bleedsuppress = 0
 	if(!HAS_TRAIT(src, TRAIT_I_WANT_BRAINS_ORGAN)) // zombies's wounds don't close. Because thats cool.
@@ -1185,6 +1226,7 @@ Note that amputating the affected organ does in fact remove the infection from t
 /obj/item/organ/external/robotize(make_tough = FALSE, company, convert_all = TRUE)
 	. = ..()
 
+	pain_level = 0
 	status &= ~ORGAN_INT_BLEED
 	status &= ~ORGAN_SPLINTED
 	status &= ~ORGAN_DEAD
@@ -1222,6 +1264,7 @@ Note that amputating the affected organ does in fact remove the infection from t
 	if(status & (ORGAN_ROBOT|ORGAN_DEAD))
 		return
 	. = is_usable()
+	pain_level = 0
 	status |= ORGAN_DEAD
 	if(dead_icon)
 		icon_state = dead_icon
@@ -1237,6 +1280,7 @@ Note that amputating the affected organ does in fact remove the infection from t
 	if(!is_dead())
 		return
 	. = is_usable()
+	pain_level = 0
 	status &= ~ORGAN_DEAD
 	if(owner)
 		owner.update_body()
