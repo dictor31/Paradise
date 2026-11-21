@@ -622,6 +622,7 @@
 	forced = FALSE,
 	updating_health = TRUE,
 	silent = FALSE,
+	cause_pain = TRUE,
 )
 	. = ..()
 	if(brute_dam + burn_dam > 50)

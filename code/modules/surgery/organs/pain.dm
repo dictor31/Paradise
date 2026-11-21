@@ -215,6 +215,8 @@
 	if(pain_overload < 30 || !COOLDOWN_FINISHED(src, pain_cardiac_cooldown))
 		return
 
+	COOLDOWN_START(src, pain_cardiac_cooldown, 10 SECONDS)
+
 	var/obj/item/organ/internal/heart/heart = get_int_organ(/obj/item/organ/internal/heart)
 	if(!heart || heart.is_dead() || locate(/datum/disease/critical/heart_failure) in diseases)
 		return
@@ -223,8 +225,6 @@
 	if(prob(failure_chance))
 		var/datum/disease/critical/heart_failure/failure = new
 		failure.Contract(src)
-
-	COOLDOWN_START(src, pain_cardiac_cooldown, 10 SECONDS)
 
 /mob/living/carbon/human/proc/handle_pain()
 	if(!has_pain())
